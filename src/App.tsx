@@ -1,26 +1,22 @@
 import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import {BrowserRouter, Route, Switch} from "react-router-dom";
+import {SettingsPage} from "./Pages/Settings";
+import {AppState} from "./Utilities/AppState";
+import {CalendarPage} from "./Pages/Calendar";
+import {MainPage} from "./Pages/Main";
+
+export const appState = new AppState();
 
 function App() {
-  return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
-  );
+    return (
+        <BrowserRouter>
+            <Switch>
+                <Route path={"/settings"} component={SettingsPage}/>
+                <Route path={"/calendar/:dateString?"} component={CalendarPage}/>
+                <Route component={MainPage}/>
+            </Switch>
+        </BrowserRouter>
+    );
 }
 
 export default App;
