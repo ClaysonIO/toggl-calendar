@@ -18,42 +18,35 @@ export class Toggl{
         })
     }
 
+    static FetchDateRangeDetails(apiKey: string, workspace_id: string, startDate: Dayjs, endDate: Dayjs, page?: number){
+        return new Promise((resolve, reject)=>{
+            const response = {timeEntries: []};
 
-    static GetDateRangeDetails(apiKey: string, workspace_id: string, startDate: Dayjs, endDate: Dayjs){
-        return new Promise(async (resolve, reject)=>{
-            let page = 0;
-            let finished = false;
-            let timeEntries: any[] = [];
-            while(!finished){
-
-                await axios.get('https://toggl.com/reports/api/v2/details', {
-                    params: {
-                        since: startDate.isBefore(endDate) ? startDate.format('YYYY-MM-DD') : endDate.format('YYYY-MM-DD'),
-                        until: startDate.isBefore(endDate) ? endDate.format('YYYY-MM-DD') : startDate.format('YYYY-MM-DD'),
-                        user_agent: "https://toggl.clayson.io",
-                        workspace_id: workspace_id
-                    },
-                    auth: {username: apiKey, password: "api_key"}
+            axios.get('https://toggl.com/reports/api/v2/details', {
+                params: {
+                    since: startDate.isBefore(endDate) ? startDate.format('YYYY-MM-DD') : endDate.format('YYYY-MM-DD'),
+                    until: startDate.isBefore(endDate) ? endDate.format('YYYY-MM-DD') : startDate.format('YYYY-MM-DD'),
+                    user_agent: "https://toggl.clayson.io",
+                    workspace_id: workspace_id,
+                    page: page === undefined ? 0 : page
+                },
+                auth: {username: apiKey, password: "api_token"}
+            })
+                .then(result=>result.data)
+                .then((result: any)=> {
+                    response.timeEntries = response.timeEntries.concat(result.data);
+                    if(result.total_count < result.per_page){
+                        resolve(response);
+                    } else {
+                        const newPage = page ? page + 1 : 1;
+                        Toggl.FetchDateRangeDetails(apiKey, workspace_id, startDate, endDate, newPage)
+                            .then(result=>resolve(result))
+                            .catch(err=>reject(err));
+                    }
                 })
-                    .then(result=>result.data)
-                    .then((result: any)=> {
-                        if(result.total_count < result.per_page){
-                            finished = true;
-                        }
-                        timeEntries = timeEntries.concat(result.data);
-                    })
-                    .catch(err=>{
-                        finished = true;
-                        reject(err)
-                    })
-                    .finally(()=>{
-                        page++;
-                    })
-
-            }
-
-            console.log("TIME ENTRIES", timeEntries);
-
+                .catch(err=>{
+                    reject(err)
+                })
         })
     }
 }

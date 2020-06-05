@@ -37,7 +37,7 @@ export class AppState{
     @action private setWorkSpaces(workSpaces: WorkSpace[]){
         this.workSpaces = workSpaces.sort((a,b)=>a.name.toLowerCase().localeCompare(b.name.toLowerCase(), 'en', {numeric: true}));
 
-        window.localStorage.setItem("workSpaces", JSON.stringify(this.workSpaces.map(val=>val.toString())));
+        window.localStorage.setItem("workSpaces", JSON.stringify(this.workSpaces.map(val=>val.dehydrate())));
 
         const lastSelectedWorkSpace = window.localStorage.getItem("workSpaceId");
 

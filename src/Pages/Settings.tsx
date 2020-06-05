@@ -11,7 +11,7 @@ export const SettingsPage = observer(()=>{
             <div style={{display: "flex", flexDirection: "column"}}>
                 <label htmlFor={"apiToken"}><h4>Toggl API Token</h4></label>
                 <input id={'apiToken'} placeholder={"Put your token here..."} type={'text'} value={appState.settings.apiToken} onChange={(e)=>{appState.settings.setApiToken(e.currentTarget.value)}}/>
-                <small>Find your API token at the bottom of <a href={'https://toggl.com/app/profile'} target={"_blank"}>toggl.com/app/profile</a> </small>
+                <small>Find your API token at the bottom of <a href={'https://toggl.com/app/profile'} rel="noopener noreferrer" target={"_blank"}>toggl.com/app/profile</a> </small>
             </div>
             <div style={{marginTop: "50px"}}>
                 <h3>Toggl Workspaces</h3>
