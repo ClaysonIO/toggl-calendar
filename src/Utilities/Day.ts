@@ -38,10 +38,10 @@ export class Day{
             return acc + val.dur;
         }, 0)).asHours()
 
-        const hours = Math.round(decimalHours);
+        const hours = Math.floor(decimalHours);
         const minutes = Math.round(60 * (decimalHours - hours));
 
-        return `${hours}:${`0${minutes}`.slice(-2)}`;
+        return `${hours}:${`0${minutes > 0 ? minutes : 0}`.slice(-2)}`;
     }
 
     @computed public get roundedHours(): string{

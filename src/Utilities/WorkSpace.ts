@@ -36,10 +36,8 @@ export class WorkSpace{
     }
 
     @action addTasksToProjects(taskResponses: ITaskResponse[]){
-        let projectHash = this.projectHash();
-        let projects = this.projects;
-
-        console.log("TASKS", taskResponses)
+        let projectHash: {[key: number]: Project} = {};
+        let projects: Project[] = []
 
         taskResponses.forEach(taskResponse=>{
             if(!projectHash[taskResponse.pid]){
@@ -52,9 +50,6 @@ export class WorkSpace{
         })
         runInAction(()=>{
             this.projects = projects;
-            this.projects.forEach(project=>{
-                console.log("PROJECT:", project.name, project.entries);
-            })
         })
 
     }

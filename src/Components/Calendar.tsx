@@ -27,6 +27,10 @@ export const Calendar = observer(({workSpace, dateString}: ICalendar)=>{
         }
     }
 
+    function moveToday(){
+            history.push(`/calendar/${dayjs().startOf('week').format('YYYY-MM-DD')}/${dayjs().endOf('week').format('YYYY-MM-DD')}`)
+    }
+
     function toggleDisplayType(){
         let nextDisplayType: any = "time";
         switch(displayType){
@@ -72,6 +76,7 @@ export const Calendar = observer(({workSpace, dateString}: ICalendar)=>{
                 <button onClick={toggleDisplayType}>{displayType}</button>
                 <div style={{flex: 1}}/>
                 <button onClick={()=>moveWeek(false)}>&lt;</button>
+                <button onClick={()=>moveToday()}>Today</button>
                 <button onClick={()=>moveWeek(true)}>&gt;</button>
             </div>
             <table>
@@ -97,13 +102,22 @@ export const Calendar = observer(({workSpace, dateString}: ICalendar)=>{
 });
 
 const CalendarTableRow = observer(({project, dates, displayType}: {project: Project, dates: Dayjs[], displayType: string})=>{
-
+    const {startDate, endDate} = useParams();
 
     function getText(projectDate: Day, displayType: string){
         switch(displayType) {
             case "time": return projectDate?.hours.toString();
             case "roundedTime": return projectDate?.roundedHours;
             case "description": return projectDate?.tasks.join('\n');
+            default: return "";
+        }
+    }
+
+    function getSum(displayType: string){
+        switch(displayType) {
+            case "time": return project.hours(startDate, endDate);
+            case "roundedTime": return project.roundedHours(startDate, endDate);
+            case "description": return project.roundedHours(startDate, endDate);
             default: return "";
         }
     }
@@ -117,7 +131,7 @@ const CalendarTableRow = observer(({project, dates, displayType}: {project: Proj
 
                 return (<SingleCalendarCell key={index} text={getText(projectDate, displayType)}/>);
             })}
-            <th style={{color: project.project_hex_color || 'black'}}>{project.client}</th>
+            <th style={{color: project.project_hex_color || 'black'}}>{getSum(displayType)}</th>
         </tr>
     )
 })

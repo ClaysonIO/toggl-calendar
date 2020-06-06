@@ -2,6 +2,7 @@ import {Day} from "./Day";
 import {Task} from "./Task";
 import {Entry} from "./Entry";
 import {action, computed, observable} from "mobx";
+import dayjs from "dayjs";
 
 interface IProject {
     pid: number;
@@ -35,8 +36,6 @@ export class Project{
             this.days.push(day)
         }
         day.addEntry(entry);
-
-        console.log(this.entries.slice())
     }
 
     @computed public get dateHash(){
@@ -46,7 +45,41 @@ export class Project{
         }, {});
     }
 
-    public getDates(dateString: string){
+    private getDates(startDate: string, endDate: string){
+        const start = dayjs(startDate).startOf('day');
+        const end = dayjs(endDate).endOf('day');
 
+        return this.days.filter(val=> (
+            val.date.isAfter(start)
+            && val.date.isBefore(end))
+            || val.date.isSame(start, 'day')
+            || val.date.isSame(end, 'day')
+        );
+    }
+
+    private timeAsHours(startDate: string, endDate: string){
+        const dates = this.getDates(startDate, endDate);
+
+        console.log("DATES", dates)
+
+        return dates.reduce((acc: number, val)=>{
+            return acc + val.timeAsHours;
+        }, 0)
+    }
+
+
+    public hours(startDate: string, endDate: string){
+        const decimalHours = this.timeAsHours(startDate, endDate);
+console.log("HOURS", decimalHours)
+        const hours = Math.round(decimalHours);
+        const minutes = Math.round(60 * (decimalHours - hours));
+
+        return `${hours}:${`0${minutes}`.slice(-2)}`;
+    }
+
+    public roundedHours(startDate: string, endDate: string): string{
+        console.log("Rounded HOURS", this.client, this.timeAsHours(startDate, endDate), startDate, endDate)
+
+        return (Math.round(this.timeAsHours(startDate, endDate) / .25) * .25).toFixed(2)
     }
 }
