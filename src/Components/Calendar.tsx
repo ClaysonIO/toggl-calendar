@@ -13,11 +13,15 @@ export const Calendar = observer(({workSpace, dateString}: ICalendar)=>{
 
     useEffect(()=>{
         if(appState.selectedWorkSpace){
-            appState.selectedWorkSpace.getTasks(dayjs().startOf('week'), dayjs().endOf('week'))
+            appState.selectedWorkSpace
+                .getTasks(dayjs().startOf('week'), dayjs().endOf('week'))
                 .then(result=>console.log(result))
-                .catch(err=>console.error(err));
+                .catch(err=>{
+                    alert(err);
+                    console.error(err)
+                });
         }
-    })
+    }, [appState.selectedWorkSpace])
     return (
         <div>
 
