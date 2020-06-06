@@ -11,6 +11,7 @@ interface ICalendar{
 
 export const Calendar = observer(({workSpace, dateString}: ICalendar)=>{
 
+    const workspace_id = appState.selectedWorkSpace?.id;
     useEffect(()=>{
         if(appState.selectedWorkSpace){
             appState.selectedWorkSpace
@@ -21,7 +22,7 @@ export const Calendar = observer(({workSpace, dateString}: ICalendar)=>{
                     console.error(err)
                 });
         }
-    }, [appState.selectedWorkSpace])
+    }, [workspace_id])
     return (
         <div>
 

@@ -3,7 +3,6 @@ import {IWorkSpace, WorkSpace} from "./WorkSpace";
 import {Toggl} from "./Toggl";
 import {action, observable} from "mobx";
 import {User} from "./User";
-import dayjs from "dayjs";
 
 export class AppState{
     public readonly settings: Settings;

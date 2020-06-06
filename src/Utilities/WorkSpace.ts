@@ -4,7 +4,6 @@ import {Toggl} from "./Toggl";
 import {appState} from "../App";
 import {action, observable} from "mobx";
 import {ITaskResponse} from "./Interfaces/ITaskResponse";
-import {Entry} from "./Entry";
 
 export interface IWorkSpace{
     id: number;
