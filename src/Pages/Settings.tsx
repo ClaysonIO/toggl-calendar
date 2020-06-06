@@ -18,7 +18,7 @@ export const SettingsPage = observer(()=>{
                 <hr/>
 
                 <ul>
-                    {appState.workSpaces.map(val=>(<li>{val.name}</li>))}
+                    {appState.workSpaces.map((val, index)=>(<li key={index}>{val.name}</li>))}
                 </ul>
                 <button onClick={appState.getWorkSpaces} disabled={!appState.settings.apiToken}>Fetch Workspaces</button>
             </div>

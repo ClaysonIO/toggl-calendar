@@ -1,22 +1,35 @@
 import axios from 'axios';
 import {Dayjs} from 'dayjs';
-import {IWorkSpace, WorkSpace} from "./WorkSpace";
+// import {IWorkSpace, WorkSpace} from "./WorkSpace";
+import {IUser} from "./Interfaces/IUser";
 
 
 export class Toggl{
 
-    static GetWorkSpaces(apiKey: string): Promise<WorkSpace[]>{
+    static GetUser(apiKey: string): Promise<IUser>{
         return new Promise((resolve, reject)=>{
-            axios.get('https://www.toggl.com/api/v8/workspaces', {
+            axios.get('https://www.toggl.com/api/v8/me', {
                 auth: {username: apiKey, password: "api_token"}
             })
                 .then((result)=>{
-                    const workspaces = result.data.map((val: IWorkSpace)=>new WorkSpace(val, apiKey))
-                    resolve(workspaces);
+                    resolve(result.data.data as IUser);
                 })
                 .catch(err=>reject(err));
         })
     }
+
+    // static GetWorkSpaces(apiKey: string): Promise<WorkSpace[]>{
+    //     return new Promise((resolve, reject)=>{
+    //         axios.get('https://www.toggl.com/api/v8/workspaces', {
+    //             auth: {username: apiKey, password: "api_token"}
+    //         })
+    //             .then((result)=>{
+    //                 const workspaces = result.data.map((val: IWorkSpace)=>new WorkSpace(val, apiKey))
+    //                 resolve(workspaces);
+    //             })
+    //             .catch(err=>reject(err));
+    //     })
+    // }
 
     static FetchDateRangeDetails(apiKey: string, workspace_id: string, startDate: Dayjs, endDate: Dayjs, page?: number){
         return new Promise((resolve, reject)=>{

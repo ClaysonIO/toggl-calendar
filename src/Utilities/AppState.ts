@@ -2,9 +2,11 @@ import {Settings} from "./Settings";
 import {IWorkSpace, WorkSpace} from "./WorkSpace";
 import {Toggl} from "./Toggl";
 import {action, observable} from "mobx";
+import {User} from "./User";
 
 export class AppState{
     public readonly settings: Settings;
+    @observable public user?: User;
     @observable public workSpaces: WorkSpace[] = [];
     @observable public selectedWorkSpace?: WorkSpace;
 
@@ -13,7 +15,9 @@ export class AppState{
 
         if(this.settings.apiToken){
             const workSpaces = JSON.parse(window.localStorage.getItem("workSpaces") || "[]") as IWorkSpace[];
+            const user = window.localStorage.getItem("user") ? JSON.parse(window.localStorage.getItem("user")||"") : undefined;
             this.setWorkSpaces(workSpaces.map(val=>new WorkSpace(val, this.settings.apiToken)))
+            this.setUser(user ? new User(user) : undefined);
         }
 
         this.getWorkSpaces = this.getWorkSpaces.bind(this);
@@ -24,13 +28,23 @@ export class AppState{
         window.localStorage.setItem("workSpaceId", this.selectedWorkSpace?.id.toString() || "");
     }
 
+    @action public setUser(user?: User){
+        this.user = user;
+        if(user){
+            window.localStorage.setItem("user", JSON.stringify(user.toInterface()));
+        } else {
+            window.localStorage.removeItem("user");
+        }
+    }
+
     public getWorkSpaces(){
         if(this.settings.apiToken){
-            Toggl.GetWorkSpaces(this.settings.apiToken)
-                .then((workspaces)=>{
-                    this.setWorkSpaces(workspaces);
+            Toggl.GetUser(this.settings.apiToken)
+                .then(user=>{
+                    console.log("USER", user)
+                    this.setUser(new User(user));
+                    this.setWorkSpaces(user.workspaces.map(val=>new WorkSpace(val, this.settings.apiToken)))
                 })
-                .catch(err=>alert(err));
         }
     }
 
