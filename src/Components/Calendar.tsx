@@ -19,6 +19,14 @@ export const Calendar = observer(({workSpace, dateString}: ICalendar)=>{
     const history = useHistory();
     const [displayType, setDisplayType] = useState<'time' | 'description' | 'roundedTime'>(window.localStorage.getItem('displayType') as any || 'time')
 
+    function moveWeek(forward: boolean){
+        if(forward){
+            history.push(`/calendar/${dayjs(startDate).add(1, 'week').format('YYYY-MM-DD')}/${dayjs(endDate).add(1, 'week').format('YYYY-MM-DD')}`)
+        } else {
+            history.push(`/calendar/${dayjs(startDate).subtract(1, 'week').format('YYYY-MM-DD')}/${dayjs(endDate).subtract(1, 'week').format('YYYY-MM-DD')}`)
+        }
+    }
+
     function toggleDisplayType(){
         let nextDisplayType: any = "time";
         switch(displayType){
@@ -60,13 +68,22 @@ export const Calendar = observer(({workSpace, dateString}: ICalendar)=>{
         , [workspace_id, startDate, endDate])
     return (
         <React.Fragment>
-            <button onClick={toggleDisplayType}>{displayType}</button>
+            <div style={{display: 'flex'}}>
+                <button onClick={toggleDisplayType}>{displayType}</button>
+                <div style={{flex: 1}}/>
+                <button onClick={()=>moveWeek(false)}>&lt;</button>
+                <button onClick={()=>moveWeek(true)}>&gt;</button>
+            </div>
             <table>
                 <thead>
                 <tr>
                     <th>Project</th>
                     <th>Company</th>
-                    {dates.map((val, index)=>(<th key={index}>{val.toDate().toLocaleDateString()}</th>))}
+                    {dates.map((val, index)=>(
+                        <th key={index}>
+                            <div>{val.format('dddd')}</div>
+                            <div>{val.toDate().toLocaleDateString()}</div>
+                        </th>))}
                     <th>Sum of Time</th>
                 </tr>
                 </thead>
