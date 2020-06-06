@@ -3,6 +3,7 @@ import {IWorkSpace, WorkSpace} from "./WorkSpace";
 import {Toggl} from "./Toggl";
 import {action, observable} from "mobx";
 import {User} from "./User";
+import dayjs from "dayjs";
 
 export class AppState{
     public readonly settings: Settings;
@@ -41,10 +42,10 @@ export class AppState{
         if(this.settings.apiToken){
             Toggl.GetUser(this.settings.apiToken)
                 .then(user=>{
-                    console.log("USER", user)
                     this.setUser(new User(user));
                     this.setWorkSpaces(user.workspaces.map(val=>new WorkSpace(val, this.settings.apiToken)))
                 })
+                .catch(err=>alert(err));
         }
     }
 

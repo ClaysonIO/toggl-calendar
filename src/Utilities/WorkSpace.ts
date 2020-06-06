@@ -4,6 +4,7 @@ import {Toggl} from "./Toggl";
 import {appState} from "../App";
 import {action, observable} from "mobx";
 import {ITaskResponse} from "./Interfaces/ITaskResponse";
+import {Entry} from "./Entry";
 
 export interface IWorkSpace{
     id: number;
@@ -42,15 +43,17 @@ export class WorkSpace{
                 projectHash[newProject.pid] = newProject;
             }
 
-            // projectHash[taskResponse.pid]
+            // projectHash[taskResponse.pid].addEntry(new Entry(taskResponse))
         })
     }
 
     public getTasks(startDate: Dayjs, endDate: Dayjs){
         return new Promise((resolve, reject)=>{
-            Toggl.FetchDateRangeDetails(appState.settings.apiToken, this.id.toString(), startDate, endDate)
-                .then(result=>resolve(result))
-                .catch(err=>reject(err));
+            if(appState.user?.id){
+                Toggl.FetchDateRangeDetails(appState.settings.apiToken, appState.user.id, this.id.toString(), startDate, endDate)
+                    .then(result=>resolve(result))
+                    .catch(err=>reject(err));
+            }
         })
     }
 

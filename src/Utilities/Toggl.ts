@@ -2,6 +2,7 @@ import axios from 'axios';
 import {Dayjs} from 'dayjs';
 // import {IWorkSpace, WorkSpace} from "./WorkSpace";
 import {IUser} from "./Interfaces/IUser";
+import {appState} from "../App";
 
 
 export class Toggl{
@@ -31,7 +32,7 @@ export class Toggl{
     //     })
     // }
 
-    static FetchDateRangeDetails(apiKey: string, workspace_id: string, startDate: Dayjs, endDate: Dayjs, page?: number){
+    static FetchDateRangeDetails(apiKey: string, user_id: number, workspace_id: string, startDate: Dayjs, endDate: Dayjs, page?: number){
         return new Promise((resolve, reject)=>{
             const response = {timeEntries: []};
 
@@ -40,7 +41,8 @@ export class Toggl{
                     since: startDate.isBefore(endDate) ? startDate.format('YYYY-MM-DD') : endDate.format('YYYY-MM-DD'),
                     until: startDate.isBefore(endDate) ? endDate.format('YYYY-MM-DD') : startDate.format('YYYY-MM-DD'),
                     user_agent: "https://toggl.clayson.io",
-                    workspace_id: workspace_id,
+                    workspace_id: user_id.toString(),
+                    user_ids: appState.user?.id,
                     page: page === undefined ? 0 : page
                 },
                 auth: {username: apiKey, password: "api_token"}
@@ -52,7 +54,7 @@ export class Toggl{
                         resolve(response);
                     } else {
                         const newPage = page ? page + 1 : 1;
-                        Toggl.FetchDateRangeDetails(apiKey, workspace_id, startDate, endDate, newPage)
+                        Toggl.FetchDateRangeDetails(apiKey, user_id, workspace_id, startDate, endDate, newPage)
                             .then(result=>resolve(result))
                             .catch(err=>reject(err));
                     }

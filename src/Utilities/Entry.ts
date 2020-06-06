@@ -1,5 +1,5 @@
 
-interface IEntry {
+export interface IEntry {
     name: string;
     minutes: number
 }
