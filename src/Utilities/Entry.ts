@@ -1,15 +1,19 @@
+import dayjs, {Dayjs} from "dayjs";
 
 export interface IEntry {
-    name: string;
-    minutes: number
+    description: string;
+    dur: number
+    start: string;
 }
 
 export class Entry{
-    name: string;
-    minutes: number;
+    description: string;
+    dur: number;
+    date: Dayjs;
 
-    constructor({name, minutes}: IEntry) {
-        this.name = name;
-        this.minutes = minutes;
+    constructor({description, dur, start}: IEntry) {
+        this.description = description;
+        this.dur = dur;
+        this.date = dayjs(start);
     }
 }

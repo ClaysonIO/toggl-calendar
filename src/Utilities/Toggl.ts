@@ -3,6 +3,7 @@ import {Dayjs} from 'dayjs';
 // import {IWorkSpace, WorkSpace} from "./WorkSpace";
 import {IUser} from "./Interfaces/IUser";
 import {appState} from "../App";
+import {ITaskResponse} from "./Interfaces/ITaskResponse";
 
 
 export class Toggl{
@@ -32,7 +33,7 @@ export class Toggl{
     //     })
     // }
 
-    static FetchDateRangeDetails(apiKey: string, user_id: number, workspace_id: string, startDate: Dayjs, endDate: Dayjs, page?: number){
+    static FetchDateRangeDetails(apiKey: string, user_id: number, workspace_id: string, startDate: Dayjs, endDate: Dayjs, page?: number): Promise<ITaskResponse[]>{
         return new Promise((resolve, reject)=>{
             const response = {timeEntries: []};
 
@@ -41,7 +42,7 @@ export class Toggl{
                     since: startDate.isBefore(endDate) ? startDate.format('YYYY-MM-DD') : endDate.format('YYYY-MM-DD'),
                     until: startDate.isBefore(endDate) ? endDate.format('YYYY-MM-DD') : startDate.format('YYYY-MM-DD'),
                     user_agent: "https://toggl.clayson.io",
-                    workspace_id: user_id.toString(),
+                    workspace_id: workspace_id.toString(),
                     user_ids: appState.user?.id,
                     page: page === undefined ? 0 : page
                 },
@@ -51,7 +52,7 @@ export class Toggl{
                 .then((result: any)=> {
                     response.timeEntries = response.timeEntries.concat(result.data);
                     if(result.total_count < result.per_page){
-                        resolve(response);
+                        resolve(response.timeEntries);
                     } else {
                         const newPage = page ? page + 1 : 1;
                         Toggl.FetchDateRangeDetails(apiKey, user_id, workspace_id, startDate, endDate, newPage)

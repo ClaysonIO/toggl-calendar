@@ -2,22 +2,26 @@ import {Project} from "./Project";
 import {Dayjs} from "dayjs";
 import {Toggl} from "./Toggl";
 import {appState} from "../App";
-import {action, observable} from "mobx";
+import {action, observable, runInAction} from "mobx";
 import {ITaskResponse} from "./Interfaces/ITaskResponse";
+import {Entry} from "./Entry";
 
 export interface IWorkSpace{
     id: number;
     name: string;
+    api_token: string;
 }
 
 export class WorkSpace{
     public id: number;
     public name: string;
+    public api_token: string;
     @observable public projects: Project[] = [];
 
-    constructor({id, name}: IWorkSpace, apiKey: string) {
+    constructor({id, name, api_token}: IWorkSpace, apiToken?: string) {
         this.id = id;
         this.name = name;
+        this.api_token = apiToken || api_token
     }
 
     public getProjects(){
@@ -35,6 +39,8 @@ export class WorkSpace{
         let projectHash = this.projectHash();
         let projects = this.projects;
 
+        console.log("TASKS", taskResponses)
+
         taskResponses.forEach(taskResponse=>{
             if(!projectHash[taskResponse.pid]){
                 const newProject = new Project(taskResponse)
@@ -42,15 +48,25 @@ export class WorkSpace{
                 projectHash[newProject.pid] = newProject;
             }
 
-            // projectHash[taskResponse.pid].addEntry(new Entry(taskResponse))
+            projectHash[taskResponse.pid].addEntry(new Entry(taskResponse))
         })
+        runInAction(()=>{
+            this.projects = projects;
+            this.projects.forEach(project=>{
+                console.log("PROJECT:", project.name, project.entries);
+            })
+        })
+
     }
 
     public getTasks(startDate: Dayjs, endDate: Dayjs){
         return new Promise((resolve, reject)=>{
             if(appState.user?.id){
-                Toggl.FetchDateRangeDetails(appState.settings.apiToken, appState.user.id, this.id.toString(), startDate, endDate)
-                    .then(result=>resolve(result))
+                Toggl.FetchDateRangeDetails(this.api_token, appState.user.id, this.id.toString(), startDate, endDate)
+                    .then(result=>{
+                        this.addTasksToProjects(result);
+                        resolve(result)
+                    })
                     .catch(err=>reject(err));
             }
         })
@@ -59,7 +75,8 @@ export class WorkSpace{
     public toInterface(): IWorkSpace{
         return {
             id: this.id,
-            name: this.name
+            name: this.name,
+            api_token: this.api_token,
         }
     }
 }

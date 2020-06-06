@@ -19,6 +19,7 @@ export interface IUser {
     "workspaces": {
         id: number;
         name: string;
+        api_token: string;
         at: string;
     }[],
     "clients": string[]

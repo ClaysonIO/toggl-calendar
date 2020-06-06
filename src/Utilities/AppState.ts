@@ -16,7 +16,7 @@ export class AppState{
         if(this.settings.apiToken){
             const workSpaces = JSON.parse(window.localStorage.getItem("workSpaces") || "[]") as IWorkSpace[];
             const user = window.localStorage.getItem("user") ? JSON.parse(window.localStorage.getItem("user")||"") : undefined;
-            this.setWorkSpaces(workSpaces.map(val=>new WorkSpace(val, this.settings.apiToken)))
+            this.setWorkSpaces(workSpaces.map(val=>new WorkSpace(val)))
             this.setUser(user ? new User(user) : undefined);
         }
 
@@ -45,6 +45,7 @@ export class AppState{
                     this.setWorkSpaces(user.workspaces.map(val=>new WorkSpace(val, this.settings.apiToken)))
                 })
                 .catch(err=>alert(err));
+
         }
     }
 

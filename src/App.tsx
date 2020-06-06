@@ -12,7 +12,7 @@ function App() {
         <BrowserRouter>
             <Switch>
                 <Route path={"/settings"} component={SettingsPage}/>
-                <Route path={"/calendar/:dateString?"} component={CalendarPage}/>
+                <Route path={"/calendar/:startDate?/:endDate?"} component={CalendarPage}/>
                 <Route component={MainPage}/>
             </Switch>
         </BrowserRouter>
