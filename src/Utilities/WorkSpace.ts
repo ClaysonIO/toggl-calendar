@@ -54,7 +54,7 @@ export class WorkSpace{
         })
     }
 
-    public dehydrate(): IWorkSpace{
+    public toInterface(): IWorkSpace{
         return {
             id: this.id,
             name: this.name
