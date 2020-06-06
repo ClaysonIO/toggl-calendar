@@ -1,7 +1,6 @@
 import React, {useEffect, useState} from "react";
 import {WorkSpace} from "../Utilities/WorkSpace";
 import {observer} from "mobx-react-lite";
-import {appState} from "../App";
 import dayjs, {Dayjs} from "dayjs";
 import customParseFormat from 'dayjs/plugin/customParseFormat'
 import {Project} from "../Utilities/Project";
@@ -18,15 +17,17 @@ interface ICalendar{
 export const Calendar = observer(({workSpace, dateString}: ICalendar)=>{
     const {startDate, endDate} = useParams();
     const history = useHistory();
-    const [displayType, setDisplayType] = useState<'time' | 'description' | 'roundedTime'>('time')
+    const [displayType, setDisplayType] = useState<'time' | 'description' | 'roundedTime'>(window.localStorage.getItem('displayType') as any || 'time')
 
     function toggleDisplayType(){
+        let nextDisplayType: any = "time";
         switch(displayType){
-            case "time": setDisplayType('roundedTime');break;
-            case "roundedTime": setDisplayType('description');break;
-            case "description": setDisplayType('time');break;
-            default: setDisplayType('time');
+            case "time": nextDisplayType = 'roundedTime';break;
+            case "roundedTime": nextDisplayType = 'description';break;
+            case "description": nextDisplayType = 'time';break;
         }
+        window.localStorage.setItem('displayType', nextDisplayType);
+        setDisplayType(nextDisplayType)
     }
 
     const dates: Dayjs[] = [];
@@ -38,10 +39,10 @@ export const Calendar = observer(({workSpace, dateString}: ICalendar)=>{
         }
     }
 
-    const workspace_id = appState.selectedWorkSpace?.id;
+    const workspace_id = workSpace?.id;
     useEffect(()=>{
-            if(appState.selectedWorkSpace && startDate && endDate){
-                appState.selectedWorkSpace
+            if(workSpace && startDate && endDate){
+                workSpace
                     .getTasks(dayjs(startDate), dayjs(endDate))
                     .then(result=>console.log(result))
                     .catch(err=>{
@@ -54,6 +55,8 @@ export const Calendar = observer(({workSpace, dateString}: ICalendar)=>{
                 history.push(`/calendar/${dayjs().startOf('week').format('YYYY-MM-DD')}/${dayjs().endOf('week').format('YYYY-MM-DD')}`)
             }
         }
+        // Needed to ignore history
+        // eslint-disable-next-line
         , [workspace_id, startDate, endDate])
     return (
         <React.Fragment>
@@ -68,7 +71,7 @@ export const Calendar = observer(({workSpace, dateString}: ICalendar)=>{
                 </tr>
                 </thead>
                 <tbody>
-                {appState.selectedWorkSpace?.projects.map((val, index)=>(<CalendarTableRow key={index} project={val} dates={dates} displayType={displayType}/>))}
+                {workSpace?.projects.map((val, index)=>(<CalendarTableRow key={index} project={val} dates={dates} displayType={displayType}/>))}
                 </tbody>
 
             </table>
