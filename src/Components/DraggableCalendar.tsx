@@ -7,6 +7,7 @@ import {Project} from "../Utilities/Project";
 import {useHistory, useParams, Link} from "react-router-dom";
 import {Day} from "../Utilities/Day";
 import './DraggableCalendar.css'
+import {Loading} from "./Loading";
 
 dayjs.extend(customParseFormat)
 
@@ -108,7 +109,7 @@ const CalendarHeader = observer(({dates}: {dates: Dayjs[]})=>{
 const CalendarBody = observer(({workSpace, dates, displayType}: {workSpace: WorkSpace, dates: Dayjs[], displayType: string})=>{
 
     return workSpace.loading ? (
-        <div>Loading...</div>
+        <Loading/>
         ) : (
         <tbody>
         {workSpace?.projects.map((val, index)=>(
