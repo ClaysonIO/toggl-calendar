@@ -51,7 +51,7 @@ export const DraggableCalendar = observer(({workSpace}: ICalendar)=>{
             if(workSpace && startDate && endDate){
                 workSpace
                     .getTasks(dayjs(startDate), dayjs(endDate))
-                    .then(result=>console.log(result))
+                    .then(result=>console.log("TASKS", result))
                     .catch(err=>{
                         alert(err);
                         console.error(err)
@@ -109,7 +109,7 @@ const CalendarHeader = observer(({dates}: {dates: Dayjs[]})=>{
 const CalendarBody = observer(({workSpace, dates, displayType}: {workSpace: WorkSpace, dates: Dayjs[], displayType: string})=>{
 
     return workSpace.loading ? (
-        <Loading/>
+        <tbody><tr><td colSpan={11}><Loading/></td></tr></tbody>
         ) : (
         <tbody>
         {workSpace?.projects.map((val, index)=>(

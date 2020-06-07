@@ -36,6 +36,8 @@ export class Toggl{
     static FetchDateRangeDetails(apiKey: string, user_id: number, workspace_id: string, startDate: Dayjs, endDate: Dayjs, page?: number): Promise<ITaskResponse[]>{
         return new Promise((resolve, reject)=>{
             let timeEntries: ITaskResponse[] = [];
+            //Note that Pages in Toggl begin at 1, not 0
+            const currentPage = page ? page : 1;
 
             axios.get('https://toggl.com/reports/api/v2/details', {
                 params: {
@@ -44,7 +46,7 @@ export class Toggl{
                     user_agent: window.location.origin,
                     workspace_id: workspace_id.toString(),
                     user_ids: appState.user?.id,
-                    page: page === undefined ? 0 : page
+                    page: currentPage
                 },
                 auth: {username: apiKey, password: "api_token"}
             })
@@ -57,8 +59,7 @@ export class Toggl{
                         /* Toggl rate limits calls at 1 per second. We'll add an extra second on each call
                            to avoid running into trouble */
                         setTimeout(()=>{
-                            const newPage = page ? page + 1 : 1;
-                            Toggl.FetchDateRangeDetails(apiKey, user_id, workspace_id, startDate, endDate, newPage)
+                            Toggl.FetchDateRangeDetails(apiKey, user_id, workspace_id, startDate, endDate, currentPage + 1 )
                                 .then((result: ITaskResponse[])=>resolve(timeEntries.concat(result)))
                                 .catch(err=>reject(err));
                         }, 1000)
