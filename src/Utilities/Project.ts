@@ -60,8 +60,6 @@ export class Project{
     private timeAsHours(startDate: string, endDate: string){
         const dates = this.getDates(startDate, endDate);
 
-        console.log("DATES", dates)
-
         return dates.reduce((acc: number, val)=>{
             return acc + val.timeAsHours;
         }, 0)
@@ -70,7 +68,7 @@ export class Project{
 
     public hours(startDate: string, endDate: string){
         const decimalHours = this.timeAsHours(startDate, endDate);
-console.log("HOURS", decimalHours)
+
         const hours = Math.round(decimalHours);
         const minutes = Math.round(60 * (decimalHours - hours));
 
@@ -78,8 +76,6 @@ console.log("HOURS", decimalHours)
     }
 
     public roundedHours(startDate: string, endDate: string): string{
-        console.log("Rounded HOURS", this.client, this.timeAsHours(startDate, endDate), startDate, endDate)
-
         return (Math.round(this.timeAsHours(startDate, endDate) / .25) * .25).toFixed(2)
     }
 }

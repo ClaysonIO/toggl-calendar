@@ -70,6 +70,8 @@ export const Calendar = observer(({workSpace, dateString}: ICalendar)=>{
         // Needed to ignore history
         // eslint-disable-next-line
         , [workspace_id, startDate, endDate])
+
+
     return (
         <React.Fragment>
             <div style={{display: 'flex'}}>
@@ -79,17 +81,18 @@ export const Calendar = observer(({workSpace, dateString}: ICalendar)=>{
                 <button onClick={()=>moveToday()}>Today</button>
                 <button onClick={()=>moveWeek(true)}>&gt;</button>
             </div>
-            <table>
+            <table style={{width: "100%"}}>
                 <thead>
                 <tr>
+                    <th/>
                     <th>Project</th>
                     <th>Company</th>
                     {dates.map((val, index)=>(
-                        <th key={index}>
+                        <th style={{width: '20%'}} key={index}>
                             <div>{val.format('dddd')}</div>
                             <div>{val.toDate().toLocaleDateString()}</div>
                         </th>))}
-                    <th>Sum of Time</th>
+                    <th><div style={{width: '75px'}}>Sum of Time</div></th>
                 </tr>
                 </thead>
                 <tbody>
@@ -102,13 +105,16 @@ export const Calendar = observer(({workSpace, dateString}: ICalendar)=>{
 });
 
 const CalendarTableRow = observer(({project, dates, displayType}: {project: Project, dates: Dayjs[], displayType: string})=>{
+
+    const [expanded, setExpanded] = useState(false);
+
     const {startDate, endDate} = useParams();
 
     function getText(projectDate: Day, displayType: string){
         switch(displayType) {
             case "time": return projectDate?.hours.toString();
             case "roundedTime": return projectDate?.roundedHours;
-            case "description": return projectDate?.tasks.join('\n');
+            case "description": return projectDate?.tasks.map(val=>(<div>{val}</div>));
             default: return "";
         }
     }
@@ -123,9 +129,14 @@ const CalendarTableRow = observer(({project, dates, displayType}: {project: Proj
     }
 
     return (
-        <tr>
-            <th style={{color: project.project_hex_color || 'black'}}>{project.name}</th>
-            <th style={{color: project.project_hex_color || 'black'}}>{project.client}</th>
+        <tr className={expanded ? 'expanded' : ''}>
+            <td><button onClick={()=>setExpanded(!expanded)}>Expand</button></td>
+            <th style={{color: project.project_hex_color || 'black'}} title={project.name}>
+                <div className={'project'}>{project.name}</div>
+            </th>
+            <th style={{color: project.project_hex_color || 'black'}} title={project.client}>
+                <div className={'company'}>{project.client}</div>
+            </th>
             {dates.map((date, index)=>{
                 const projectDate = project.dateHash[date.format('YYYYMMDD')];
 
@@ -136,7 +147,7 @@ const CalendarTableRow = observer(({project, dates, displayType}: {project: Proj
     )
 })
 
-const SingleCalendarCell = ({text}: {text?: string})=>{
+const SingleCalendarCell = ({text}: {text?: string | React.ReactElement | React.ReactElement[]})=>{
     function copyToClipboard(event: React.MouseEvent){
         const range = document.createRange();
         const textNode = event.currentTarget;
@@ -150,7 +161,7 @@ const SingleCalendarCell = ({text}: {text?: string})=>{
 
     return (
         <td>
-            <button onClick={copyToClipboard} style={{display: "flex"}}>
+            <button onClick={copyToClipboard}>
                 {text}
             </button>
         </td>)
