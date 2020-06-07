@@ -41,7 +41,7 @@ export class Toggl{
                 params: {
                     since: startDate.isBefore(endDate) ? startDate.format('YYYY-MM-DD') : endDate.format('YYYY-MM-DD'),
                     until: startDate.isBefore(endDate) ? endDate.format('YYYY-MM-DD') : startDate.format('YYYY-MM-DD'),
-                    user_agent: "https://toggl.clayson.io",
+                    user_agent: window.location.origin,
                     workspace_id: workspace_id.toString(),
                     user_ids: appState.user?.id,
                     page: page === undefined ? 0 : page
