@@ -201,65 +201,65 @@ const SingleCell = ({text}: {text?: string | React.ReactElement | React.ReactEle
         </td>)
 }
 
-const CalendarTableRow = observer(({project, dates, displayType}: {project: Project, dates: Dayjs[], displayType: string})=>{
-
-    const [expanded, setExpanded] = useState(false);
-
-    const {startDate, endDate} = useParams();
-
-    function getText(projectDate: Day, displayType: string){
-        switch(displayType) {
-            case "time": return projectDate?.hours.toString();
-            case "roundedTime": return projectDate?.roundedHours;
-            case "description": return projectDate?.tasks.map(val=>(<div>{val}</div>));
-            default: return "";
-        }
-    }
-
-    function getSum(displayType: string){
-        switch(displayType) {
-            case "time": return project.hours(startDate, endDate);
-            case "roundedTime": return project.roundedHours(startDate, endDate);
-            case "description": return project.roundedHours(startDate, endDate);
-            default: return "";
-        }
-    }
-
-    return (
-        <tr className={expanded ? 'expanded' : ''}>
-            <td><button onClick={()=>setExpanded(!expanded)}>Expand</button></td>
-            <th style={{color: project.project_hex_color || 'black'}} title={project.name}>
-                <div className={'project'}>{project.name}</div>
-            </th>
-            <th style={{color: project.project_hex_color || 'black'}} title={project.client}>
-                <div className={'company'}>{project.client}</div>
-            </th>
-            {dates.map((date, index)=>{
-                const projectDate = project.dateHash[date.format('YYYYMMDD')];
-
-                return (<SingleCalendarCell key={index} text={getText(projectDate, displayType)}/>);
-            })}
-            <th style={{color: project.project_hex_color || 'black'}}>{getSum(displayType)}</th>
-        </tr>
-    )
-})
-
-const SingleCalendarCell = ({text}: {text?: string | React.ReactElement | React.ReactElement[]})=>{
-    function copyToClipboard(event: React.MouseEvent){
-        const range = document.createRange();
-        const textNode = event.currentTarget;
-        if(textNode){
-            range.selectNode(textNode);
-            window.getSelection()?.removeAllRanges();
-            window.getSelection()?.addRange(range);
-            document.execCommand("copy");
-        }
-    }
-
-    return (
-        <td>
-            <button onClick={copyToClipboard}>
-                {text}
-            </button>
-        </td>)
-}
+// const CalendarTableRow = observer(({project, dates, displayType}: {project: Project, dates: Dayjs[], displayType: string})=>{
+//
+//     const [expanded, setExpanded] = useState(false);
+//
+//     const {startDate, endDate} = useParams();
+//
+//     function getText(projectDate: Day, displayType: string){
+//         switch(displayType) {
+//             case "time": return projectDate?.hours.toString();
+//             case "roundedTime": return projectDate?.roundedHours;
+//             case "description": return projectDate?.tasks.map(val=>(<div>{val}</div>));
+//             default: return "";
+//         }
+//     }
+//
+//     function getSum(displayType: string){
+//         switch(displayType) {
+//             case "time": return project.hours(startDate, endDate);
+//             case "roundedTime": return project.roundedHours(startDate, endDate);
+//             case "description": return project.roundedHours(startDate, endDate);
+//             default: return "";
+//         }
+//     }
+//
+//     return (
+//         <tr className={expanded ? 'expanded' : ''}>
+//             <td><button onClick={()=>setExpanded(!expanded)}>Expand</button></td>
+//             <th style={{color: project.project_hex_color || 'black'}} title={project.name}>
+//                 <div className={'project'}>{project.name}</div>
+//             </th>
+//             <th style={{color: project.project_hex_color || 'black'}} title={project.client}>
+//                 <div className={'company'}>{project.client}</div>
+//             </th>
+//             {dates.map((date, index)=>{
+//                 const projectDate = project.dateHash[date.format('YYYYMMDD')];
+//
+//                 return (<SingleCalendarCell key={index} text={getText(projectDate, displayType)}/>);
+//             })}
+//             <th style={{color: project.project_hex_color || 'black'}}>{getSum(displayType)}</th>
+//         </tr>
+//     )
+// })
+//
+// const SingleCalendarCell = ({text}: {text?: string | React.ReactElement | React.ReactElement[]})=>{
+//     function copyToClipboard(event: React.MouseEvent){
+//         const range = document.createRange();
+//         const textNode = event.currentTarget;
+//         if(textNode){
+//             range.selectNode(textNode);
+//             window.getSelection()?.removeAllRanges();
+//             window.getSelection()?.addRange(range);
+//             document.execCommand("copy");
+//         }
+//     }
+//
+//     return (
+//         <td>
+//             <button onClick={copyToClipboard}>
+//                 {text}
+//             </button>
+//         </td>)
+// }
