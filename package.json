@@ -1,8 +1,11 @@
 {
   "name": "toggl-calendar-view",
   "version": "0.1.0",
+  "author": "Daniel Clayson",
+  "description": "A modified view of the Toggl calendar",
   "private": true,
-  "homepage": "https://toggl.clayson.io",
+  "homepage": "./",
+  "main": "./public/electron.js",
   "dependencies": {
     "@testing-library/jest-dom": "^4.2.4",
     "@testing-library/react": "^9.5.0",
@@ -30,10 +33,14 @@
     "typescript": "^3.8.3"
   },
   "scripts": {
+    "electron": "electron .",
     "start": "react-scripts start",
     "build": "react-scripts build && cp build/index.html build/404.html",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "dist": "electron-builder",
+    "electron-pack": "build --em.main=build/electron.js",
+    "preelectron-pack": "react-scripts build"
   },
   "eslintConfig": {
     "extends": "react-app"
@@ -49,5 +56,22 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "electron-builder": "^22.7.0",
+    "electron": "^9.0.2",
+    "electron-is-dev": "^1.2.0"
+  },
+  "build": {
+    "appId": "io.clayson.toggl",
+    "files": [
+      "build/**/*",
+      "node_modules/**/*"
+    ],
+    "directories": {
+      "buildResources": "assets"
+    },
+    "win": {
+    }
   }
 }
