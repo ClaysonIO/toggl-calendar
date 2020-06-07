@@ -16,6 +16,7 @@ export class WorkSpace{
     public id: number;
     public name: string;
     public api_token: string;
+    @observable public loading: boolean = true;
     @observable public projects: Project[] = [];
 
     constructor({id, name, api_token}: IWorkSpace, apiToken?: string) {
@@ -24,8 +25,8 @@ export class WorkSpace{
         this.api_token = apiToken || api_token
     }
 
-    public getProjects(){
-
+    @action public setLoading(state: boolean){
+        this.loading = state;
     }
 
     public projectHash(){
@@ -55,6 +56,7 @@ export class WorkSpace{
     }
 
     public getTasks(startDate: Dayjs, endDate: Dayjs){
+        this.setLoading(true);
         return new Promise((resolve, reject)=>{
             if(appState.user?.id){
                 Toggl.FetchDateRangeDetails(this.api_token, appState.user.id, this.id.toString(), startDate, endDate)
@@ -62,7 +64,8 @@ export class WorkSpace{
                         this.addTasksToProjects(result);
                         resolve(result)
                     })
-                    .catch(err=>reject(err));
+                    .catch(err=>reject(err))
+                    .finally(()=>this.setLoading(false));
             }
         })
     }

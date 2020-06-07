@@ -1,0 +1,62 @@
+.draggableCalendar{
+    display: flex;
+    flex-direction: column;
+}
+
+.draggableCalendar .row{
+    display: grid;
+    grid-template-columns: 25px 150px 100px repeat(7, 1fr) 75px;
+}
+
+.draggableCalendar tbody{
+    display: flex;
+    flex-direction: column;
+}
+
+.draggableCalendar tbody .expanded button{
+    overflow: visible;
+    height: auto;
+    white-space: normal;
+    text-overflow: ellipsis;
+}
+
+.draggableCalendar .expandCol{
+
+}
+
+.draggableCalendar .projectCol{
+
+    text-align: left;
+}
+
+.draggableCalendar .companyCol{
+
+    text-align: left;
+
+}
+
+.draggableCalendar tr{
+    border-bottom: 1px #c4c4d0 solid;
+}
+
+.draggableCalendar tbody .dateCol{
+    flex-direction: row;
+    display: flex;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.draggableCalendar .dateCol button{
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    align-items: start;
+    border: none;
+    background: none;
+    cursor: pointer;
+}
+
+.draggableCalendar .sumCol{
+    text-align: right;
+}

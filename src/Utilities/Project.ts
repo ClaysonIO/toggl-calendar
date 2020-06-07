@@ -69,10 +69,10 @@ export class Project{
     public hours(startDate: string, endDate: string){
         const decimalHours = this.timeAsHours(startDate, endDate);
 
-        const hours = Math.round(decimalHours);
+        const hours = Math.floor(decimalHours);
         const minutes = Math.round(60 * (decimalHours - hours));
 
-        return `${hours}:${`0${minutes}`.slice(-2)}`;
+        return `${hours}:${`0${minutes > 0 ? minutes : 0}`.slice(-2)}`;
     }
 
     public roundedHours(startDate: string, endDate: string): string{
