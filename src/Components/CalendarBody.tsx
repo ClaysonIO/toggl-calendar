@@ -1,0 +1,33 @@
+import {observer} from "mobx-react-lite";
+import {WorkSpace} from "../Utilities/WorkSpace";
+import {Dayjs} from "dayjs";
+import {Loading} from "./Loading";
+import {Droppable} from "react-beautiful-dnd";
+import React from "react";
+import {CalendarRow} from "./CalendarRow";
+
+export const CalendarBody = observer(({workSpace, dates, displayType}: { workSpace: WorkSpace, dates: Dayjs[], displayType: string }) => {
+
+    return workSpace.loading ? (
+        <tbody>
+        <tr>
+            <td colSpan={11}><Loading/></td>
+        </tr>
+        </tbody>
+    ) : (
+        <Droppable droppableId={'tbody'}>
+            {(provided, snapshot) => (
+                <tbody
+                    id={"tbody"}
+                    ref={provided.innerRef}
+                    {...provided.droppableProps}
+                >
+                {workSpace?.orderedProjects.slice().map((val, index) => (
+                    <CalendarRow key={index} index={index} project={val} dates={dates} displayType={displayType}/>
+                ))}
+                {provided.placeholder}
+                </tbody>
+            )}
+        </Droppable>
+    )
+})
