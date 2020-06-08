@@ -10,8 +10,8 @@ export const CalendarBody = observer(({workSpace, dates, displayType}: { workSpa
 
     return workSpace.loading ? (
         <tbody>
-        <tr>
-            <td colSpan={11}><Loading/></td>
+        <tr className={'row'}>
+            <td className={'loading'} ><Loading/></td>
         </tr>
         </tbody>
     ) : (

@@ -6,11 +6,24 @@
 .draggableCalendar .row{
     display: grid;
     grid-template-columns: 25px 150px 100px repeat(7, 1fr) 75px;
+    grid-gap: 5px;
 }
 
 .draggableCalendar tbody{
     display: flex;
     flex-direction: column;
+}
+
+.draggableCalendar tbody td button{
+    flex: 1;
+    width: 100%;
+    height: 30px;
+    min-height: 30px;
+    overflow: hidden;
+    text-align: left;
+    word-break: break-word;
+    /*white-space: nowrap;*/
+    text-overflow: ellipsis;
 }
 
 .draggableCalendar tbody .expanded button{
@@ -22,6 +35,13 @@
 
 .draggableCalendar .expandCol{
 
+}
+
+.draggableCalendar td.loading{
+    grid-column: 1/-1;
+    margin-top: 100px;
+    margin-bottom: 100px;
+    text-align: center;
 }
 
 .draggableCalendar .projectCol{

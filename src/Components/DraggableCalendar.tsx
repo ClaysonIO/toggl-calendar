@@ -3,13 +3,14 @@ import {WorkSpace} from "../Utilities/WorkSpace";
 import {observer} from "mobx-react-lite";
 import dayjs, {Dayjs} from "dayjs";
 import customParseFormat from 'dayjs/plugin/customParseFormat'
-import {Link, useHistory, useParams} from "react-router-dom";
+import {useParams} from "react-router-dom";
 import './DraggableCalendar.css'
 import {DragDropContext} from "react-beautiful-dnd";
 import {DisplayTypeSelect} from "./DisplayTypeSelect";
 import {CalendarHeader} from "./CalendarHeader";
 import {CalendarBody} from "./CalendarBody";
 import {CalendarFooter} from "./CalendarFooter";
+import {CalendarDateNav} from "./CalendarDateNav";
 
 dayjs.extend(customParseFormat)
 
@@ -19,14 +20,7 @@ interface ICalendar{
 
 export const DraggableCalendar = observer(({workSpace}: ICalendar)=>{
     const {startDate, endDate} = useParams();
-    const history = useHistory();
     const [displayType, setDisplayType] = useState<'time' | 'description' | 'roundedTime'>(window.localStorage.getItem('displayType') as any || 'time')
-
-    const navLinks = {
-        back: `/calendar/${dayjs(startDate).subtract(1, 'week').format('YYYY-MM-DD')}/${dayjs(endDate).subtract(1, 'week').format('YYYY-MM-DD')}`,
-        today:`/calendar/${dayjs().startOf('week').format('YYYY-MM-DD')}/${dayjs().endOf('week').format('YYYY-MM-DD')}`,
-        forward:`/calendar/${dayjs(startDate).add(1, 'week').format('YYYY-MM-DD')}/${dayjs(endDate).add(1, 'week').format('YYYY-MM-DD')}`
-    }
 
 
     const dates: Dayjs[] = [];
@@ -48,14 +42,8 @@ export const DraggableCalendar = observer(({workSpace}: ICalendar)=>{
                         console.error(err)
                     });
             }
-
-            if(!startDate || !endDate){
-                history.push(`/calendar/${dayjs().startOf('week').format('YYYY-MM-DD')}/${dayjs().endOf('week').format('YYYY-MM-DD')}`)
-            }
         }
-        // Needed to ignore history
-        // eslint-disable-next-line
-        , [workspace_id, startDate, endDate])
+        , [workSpace, workspace_id, startDate, endDate])
 
 
     return workSpace ? (
@@ -63,9 +51,7 @@ export const DraggableCalendar = observer(({workSpace}: ICalendar)=>{
             <div style={{display: 'flex'}}>
                 <DisplayTypeSelect displayType={displayType} setDisplayType={setDisplayType}/>
                 <div style={{flex: 1}}/>
-                <Link to={navLinks.back}><button>&lt;</button></Link>
-                <Link to={navLinks.today}><button>Today</button></Link>
-                <Link to={navLinks.forward}><button>&gt;</button></Link>
+                <CalendarDateNav/>
             </div>
             <DragDropContext onDragEnd={workSpace.orderProject}>
                 <table className={'draggableCalendar'}>
