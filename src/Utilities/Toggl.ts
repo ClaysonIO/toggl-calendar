@@ -1,6 +1,5 @@
 import axios from 'axios';
 import {Dayjs} from 'dayjs';
-// import {IWorkSpace, WorkSpace} from "./WorkSpace";
 import {IUser} from "./Interfaces/IUser";
 import {appState} from "../App";
 import {ITaskResponse} from "./Interfaces/ITaskResponse";
@@ -19,19 +18,6 @@ export class Toggl{
                 .catch(err=>reject(err));
         })
     }
-
-    // static GetWorkSpaces(apiKey: string): Promise<WorkSpace[]>{
-    //     return new Promise((resolve, reject)=>{
-    //         axios.get('https://www.toggl.com/api/v8/workspaces', {
-    //             auth: {username: apiKey, password: "api_token"}
-    //         })
-    //             .then((result)=>{
-    //                 const workspaces = result.data.map((val: IWorkSpace)=>new WorkSpace(val, apiKey))
-    //                 resolve(workspaces);
-    //             })
-    //             .catch(err=>reject(err));
-    //     })
-    // }
 
     static FetchDateRangeDetails(apiKey: string, user_id: number, workspace_id: string, startDate: Dayjs, endDate: Dayjs, page?: number): Promise<ITaskResponse[]>{
         return new Promise((resolve, reject)=>{

@@ -8,6 +8,8 @@ import {useHistory, useParams, Link} from "react-router-dom";
 import {Day} from "../Utilities/Day";
 import './DraggableCalendar.css'
 import {Loading} from "./Loading";
+import Select from "react-select";
+import {DragDropContext, Draggable, Droppable} from "react-beautiful-dnd";
 
 dayjs.extend(customParseFormat)
 
@@ -26,16 +28,6 @@ export const DraggableCalendar = observer(({workSpace}: ICalendar)=>{
         forward:`/calendar/${dayjs(startDate).add(1, 'week').format('YYYY-MM-DD')}/${dayjs(endDate).add(1, 'week').format('YYYY-MM-DD')}`
     }
 
-    function toggleDisplayType(){
-        let nextDisplayType: any = "time";
-        switch(displayType){
-            case "time": nextDisplayType = 'roundedTime';break;
-            case "roundedTime": nextDisplayType = 'description';break;
-            case "description": nextDisplayType = 'time';break;
-        }
-        window.localStorage.setItem('displayType', nextDisplayType);
-        setDisplayType(nextDisplayType)
-    }
 
     const dates: Dayjs[] = [];
     if(startDate && endDate){
@@ -70,24 +62,48 @@ export const DraggableCalendar = observer(({workSpace}: ICalendar)=>{
     return workSpace ? (
         <React.Fragment>
             <div style={{display: 'flex'}}>
-                <button onClick={toggleDisplayType}>{displayType}</button>
+                <DisplayTypeSelect displayType={displayType} setDisplayType={setDisplayType}/>
                 <div style={{flex: 1}}/>
                 <Link to={navLinks.back}><button>&lt;</button></Link>
                 <Link to={navLinks.today}><button>Today</button></Link>
                 <Link to={navLinks.forward}><button>&gt;</button></Link>
             </div>
-            <table className={'draggableCalendar'}>
-                <CalendarHeader dates={dates}/>
-                <CalendarBody dates={dates} workSpace={workSpace} displayType={displayType}/>
-                <CalendarFooter dates={dates}/>
-            </table>
+            <DragDropContext onDragEnd={workSpace.orderProject}>
+                <table className={'draggableCalendar'}>
+                    <CalendarHeader dates={dates}/>
+                    <CalendarBody dates={dates} workSpace={workSpace} displayType={displayType}/>
+                    <CalendarFooter dates={dates} workSpace={workSpace} displayType={displayType}/>
+                </table>
+            </DragDropContext>
         </React.Fragment>
     ) : (
         <h3>No Workspace Selected</h3>
     )
 });
 
-const CalendarHeader = observer(({dates}: {dates: Dayjs[]})=>{
+export const DisplayTypeSelect = observer(({displayType, setDisplayType}: {displayType: string, setDisplayType: Function})=>{
+
+    const options = [
+        {label: "Description", value: 'description'},
+        {label: "Time", value: 'time'},
+        {label: "Rounded To 15 Min", value: 'roundedTime'}
+    ];
+
+    function setValue(value: any){
+        setDisplayType(value?.value)
+        window.localStorage.setItem('displayType', value?.value);
+    }
+    return (
+        <div style={{width: "200px"}}>
+            <Select
+                options={options}
+                value={options.find(val=>val.value === displayType)}
+                onChange={setValue}/>
+        </div>
+    )
+})
+
+export const CalendarHeader = observer(({dates}: {dates: Dayjs[]})=>{
 
     return (
         <thead>
@@ -106,40 +122,28 @@ const CalendarHeader = observer(({dates}: {dates: Dayjs[]})=>{
     )
 })
 
-const CalendarBody = observer(({workSpace, dates, displayType}: {workSpace: WorkSpace, dates: Dayjs[], displayType: string})=>{
+export const CalendarBody = observer(({workSpace, dates, displayType}: {workSpace: WorkSpace, dates: Dayjs[], displayType: string})=>{
 
     return workSpace.loading ? (
         <tbody><tr><td colSpan={11}><Loading/></td></tr></tbody>
-        ) : (
-        <tbody>
-        {workSpace?.projects.map((val, index)=>(
-            <CalendarRow key={index} project={val} dates={dates} displayType={displayType}/>
-        ))}
-        </tbody>
+    ) : (
+        <Droppable droppableId={'tbody'}>
+            {(provided, snapshot) => (
+                <tbody
+                    id={"tbody"}
+                    ref={provided.innerRef}
+                    {...provided.droppableProps}
+                >
+                {workSpace?.orderedProjects.slice().map((val, index)=>(
+                    <CalendarRow key={index} index={index} project={val} dates={dates} displayType={displayType}/>
+                ))}
+                {provided.placeholder}
+                </tbody>
+            )}
+        </Droppable>
     )
 })
-
-const CalendarFooter = observer(({dates}: {dates: Dayjs[]})=>{
-
-    return (
-        <tfoot>
-        <tr className={'row'}>
-            <th className={'expandCol'}/>
-            <th className={'projectCol'}></th>
-            <th className={'companyCol'}></th>
-            {dates.map((val, index)=>(
-                <th className={'dateCol'} key={index}>
-                    <div>{val.format('dddd')}</div>
-                    <div>{val.toDate().toLocaleDateString()}</div>
-                </th>))}
-            <th className={'sumCol'}>
-
-            </th>
-        </tr>
-        </tfoot>
-    )
-})
-const CalendarRow = observer(({project, dates, displayType}: {project: Project, dates: Dayjs[], displayType: string})=>{
+export const CalendarRow = observer(({project, dates, displayType, index}: {project: Project, dates: Dayjs[], displayType: string, index: number})=>{
 
     const {startDate, endDate} = useParams();
     const [expanded, setExpanded] = useState(false);
@@ -162,26 +166,39 @@ const CalendarRow = observer(({project, dates, displayType}: {project: Project, 
         }
     }
 
-    return (
-        <tr className={`row ${expanded ? 'expanded' : ''}`}>
-            <td className={'expandCol'}><button onClick={()=>setExpanded(!expanded)}>Expand</button></td>
-            <th className={'projectCol'} style={{color: project.project_hex_color || 'black'}} title={project.name}>
-                <div className={'project'}>{project.name}</div>
-            </th>
-            <th className={'companyCol'} style={{color: project.project_hex_color || 'black'}} title={project.client}>
-                <div className={'company'}>{project.client}</div>
-            </th>
-            {dates.map((date, index)=>{
-                const projectDate = project.dateHash[date.format('YYYYMMDD')];
+    console.log("INDEX", index)
 
-                return (<SingleCell key={index} text={getText(projectDate, displayType)}/>);
-            })}
-            <th className={'sumCol'} style={{color: project.project_hex_color || 'black'}}>{getSum(displayType)}</th>
-        </tr>
+    return (
+        <Draggable key={project?.pid?.toString()} draggableId={project?.pid?.toString()} index={index}>
+            {(provided, snapshot) => (
+                <tr
+                    id={project?.pid?.toString() || "blank"}
+                    ref={provided.innerRef}
+                    className={`row ${expanded ? 'expanded' : ''}`}
+                    {...provided.draggableProps}
+                    {...provided.dragHandleProps}
+                >
+
+                    <td className={'expandCol'}><button onClick={()=>setExpanded(!expanded)}>Expand</button></td>
+                    <th className={'projectCol'} style={{color: project.project_hex_color || 'black'}} title={project.name}>
+                        <div className={'project'}>{project.name}</div>
+                    </th>
+                    <th className={'companyCol'} style={{color: project.project_hex_color || 'black'}} title={project.client}>
+                        <div className={'company'}>{project.client}</div>
+                    </th>
+                    {dates.map((date, index)=>{
+                        const projectDate = project.dateHash[date.format('YYYYMMDD')];
+
+                        return (<SingleCell key={index} text={getText(projectDate, displayType)}/>);
+                    })}
+                    <th className={'sumCol'} style={{color: project.project_hex_color || 'black'}}>{getSum(displayType)}</th>
+                </tr>
+            )}
+        </Draggable>
     )
 })
 
-const SingleCell = ({text}: {text?: string | React.ReactElement | React.ReactElement[]})=>{
+export const SingleCell = ({text}: {text?: string | React.ReactElement | React.ReactElement[]})=>{
     function copyToClipboard(event: React.MouseEvent){
         const range = document.createRange();
         const textNode = event.currentTarget;
@@ -201,65 +218,46 @@ const SingleCell = ({text}: {text?: string | React.ReactElement | React.ReactEle
         </td>)
 }
 
-// const CalendarTableRow = observer(({project, dates, displayType}: {project: Project, dates: Dayjs[], displayType: string})=>{
-//
-//     const [expanded, setExpanded] = useState(false);
-//
-//     const {startDate, endDate} = useParams();
-//
-//     function getText(projectDate: Day, displayType: string){
-//         switch(displayType) {
-//             case "time": return projectDate?.hours.toString();
-//             case "roundedTime": return projectDate?.roundedHours;
-//             case "description": return projectDate?.tasks.map(val=>(<div>{val}</div>));
-//             default: return "";
-//         }
-//     }
-//
-//     function getSum(displayType: string){
-//         switch(displayType) {
-//             case "time": return project.hours(startDate, endDate);
-//             case "roundedTime": return project.roundedHours(startDate, endDate);
-//             case "description": return project.roundedHours(startDate, endDate);
-//             default: return "";
-//         }
-//     }
-//
-//     return (
-//         <tr className={expanded ? 'expanded' : ''}>
-//             <td><button onClick={()=>setExpanded(!expanded)}>Expand</button></td>
-//             <th style={{color: project.project_hex_color || 'black'}} title={project.name}>
-//                 <div className={'project'}>{project.name}</div>
-//             </th>
-//             <th style={{color: project.project_hex_color || 'black'}} title={project.client}>
-//                 <div className={'company'}>{project.client}</div>
-//             </th>
-//             {dates.map((date, index)=>{
-//                 const projectDate = project.dateHash[date.format('YYYYMMDD')];
-//
-//                 return (<SingleCalendarCell key={index} text={getText(projectDate, displayType)}/>);
-//             })}
-//             <th style={{color: project.project_hex_color || 'black'}}>{getSum(displayType)}</th>
-//         </tr>
-//     )
-// })
-//
-// const SingleCalendarCell = ({text}: {text?: string | React.ReactElement | React.ReactElement[]})=>{
-//     function copyToClipboard(event: React.MouseEvent){
-//         const range = document.createRange();
-//         const textNode = event.currentTarget;
-//         if(textNode){
-//             range.selectNode(textNode);
-//             window.getSelection()?.removeAllRanges();
-//             window.getSelection()?.addRange(range);
-//             document.execCommand("copy");
-//         }
-//     }
-//
-//     return (
-//         <td>
-//             <button onClick={copyToClipboard}>
-//                 {text}
-//             </button>
-//         </td>)
-// }
+
+export const CalendarFooter = observer(({dates, displayType, workSpace}: {dates: Dayjs[], displayType: string, workSpace: WorkSpace})=>{
+
+
+    function getDateSum(date: Dayjs){
+        switch(displayType) {
+            case "time": return workSpace.sumDayClockTime(date);
+            case "roundedTime": return workSpace.sumDayRoundedHours(date);
+            case "description": return workSpace.sumDayClockTime(date);
+            default: return "";
+        }
+    }
+
+
+    function getWeekSum(dates: Dayjs[]){
+        const startDate = dates[0];
+        const endDate = dates[dates.length-1]
+
+        switch(displayType) {
+            case "time": return workSpace.sumWeekClockTime(startDate, endDate);
+            case "roundedTime": return workSpace.sumWeekRoundedHours(startDate, endDate);
+            case "description": return workSpace.sumWeekClockTime(startDate, endDate);
+            default: return "";
+        }
+    }
+
+    return (
+        <tfoot>
+        <tr className={'row'}>
+            <th/>
+            <th/>
+            <th/>
+            {dates.map((val, index)=>(
+                <th className={'dateCol'} key={index}>
+                    <div>{getDateSum(val)}</div>
+                </th>))}
+            <th className={'sumCol'}>
+                <div>{getWeekSum(dates)}</div>
+            </th>
+        </tr>
+        </tfoot>
+    )
+})

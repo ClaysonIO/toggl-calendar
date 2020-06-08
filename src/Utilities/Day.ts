@@ -2,6 +2,8 @@ import {Entry} from "./Entry";
 import {action, computed, observable} from "mobx";
 import dayjs, {Dayjs} from "dayjs";
 import duration from "dayjs/plugin/duration";
+import {DecimalToClockTime} from "./Functions/DecimalToClockTime";
+import {DecimalToRoundedTime} from "./Functions/DecimalToRoundedTime";
 
 dayjs.extend(duration)
 
@@ -38,15 +40,12 @@ export class Day{
             return acc + val.dur;
         }, 0)).asHours()
 
-        const hours = Math.floor(decimalHours);
-        const minutes = Math.round(60 * (decimalHours - hours));
-
-        return `${hours}:${`0${minutes > 0 ? minutes : 0}`.slice(-2)}`;
+        return DecimalToClockTime(decimalHours);
     }
 
     @computed public get roundedHours(): string{
-        return (Math.round(dayjs.duration(this.entries.reduce((acc: number, val: Entry)=>{
+        return DecimalToRoundedTime(dayjs.duration(this.entries.reduce((acc: number, val: Entry)=>{
             return acc + val.dur;
-        }, 0)).asHours() / .25) * .25).toFixed(2)
+        }, 0)).asHours())
     }
 }

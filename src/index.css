@@ -85,6 +85,7 @@ tbody tr.expanded button{
 
 .lds-ripple {
   margin: auto;
+  text-align: center;
   display: inline-block;
   position: relative;
   width: 80px;

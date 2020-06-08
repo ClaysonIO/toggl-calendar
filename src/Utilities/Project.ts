@@ -14,7 +14,6 @@ interface IProject {
 export class Project{
     public pid: number;
     public client: string;
-    public tasks: Task[] = [];
     @observable public entries: Entry[] = [];
     @observable public days: Day[] = [];
     public name: string;
@@ -22,7 +21,7 @@ export class Project{
 
     constructor({pid, project, client, project_hex_color}: IProject) {
         this.pid = pid;
-        this.name = project;
+        this.name = project || "Without Project";
         this.client = client;
         this.project_hex_color = project_hex_color;
     }
@@ -57,7 +56,7 @@ export class Project{
         );
     }
 
-    private timeAsHours(startDate: string, endDate: string){
+    public timeAsHours(startDate: string, endDate: string): number{
         const dates = this.getDates(startDate, endDate);
 
         return dates.reduce((acc: number, val)=>{
