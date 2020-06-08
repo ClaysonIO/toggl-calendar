@@ -1,5 +1,4 @@
 import {Day} from "./Day";
-import {Task} from "./Task";
 import {Entry} from "./Entry";
 import {action, computed, observable} from "mobx";
 import dayjs from "dayjs";

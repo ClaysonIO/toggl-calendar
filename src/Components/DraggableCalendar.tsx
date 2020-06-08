@@ -43,7 +43,6 @@ export const DraggableCalendar = observer(({workSpace}: ICalendar)=>{
             if(workSpace && startDate && endDate){
                 workSpace
                     .getTasks(dayjs(startDate), dayjs(endDate))
-                    .then(result=>console.log("TASKS", result))
                     .catch(err=>{
                         alert(err);
                         console.error(err)
@@ -165,8 +164,6 @@ export const CalendarRow = observer(({project, dates, displayType, index}: {proj
             default: return "";
         }
     }
-
-    console.log("INDEX", index)
 
     return (
         <Draggable key={project?.pid?.toString()} draggableId={project?.pid?.toString()} index={index}>
