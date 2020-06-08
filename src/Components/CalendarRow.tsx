@@ -20,6 +20,8 @@ export const CalendarRow = observer(({project, dates, displayType, index}: { pro
                 return projectDate?.roundedHours;
             case "description":
                 return projectDate?.tasks.map(val => (<div>{val}</div>));
+            case "tasksAndTime":
+                return projectDate?.tasksAndRoundedTime.map(val => (<div>{val}</div>));
             default:
                 return "";
         }
@@ -34,7 +36,7 @@ export const CalendarRow = observer(({project, dates, displayType, index}: { pro
             case "description":
                 return project.roundedHours(startDate, endDate);
             default:
-                return "";
+                return project.roundedHours(startDate, endDate);
         }
     }
 

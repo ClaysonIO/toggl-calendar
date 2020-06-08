@@ -7,7 +7,8 @@ export const DisplayTypeSelect = observer(({displayType, setDisplayType}: { disp
     const options = [
         {label: "Description", value: 'description'},
         {label: "Time", value: 'time'},
-        {label: "Rounded To 15 Min", value: 'roundedTime'}
+        {label: "Rounded To 15 Min", value: 'roundedTime'},
+        {label: "Tasks and Rounded Time", value: 'tasksAndTime'}
     ];
 
     function setValue(value: any) {
