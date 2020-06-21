@@ -1,15 +1,17 @@
 import {observer} from "mobx-react-lite";
 import {Project} from "../Utilities/Project";
 import {Dayjs} from "dayjs";
-import {useParams} from "react-router-dom";
+import {useLocation} from "react-router-dom";
 import React, {useState} from "react";
 import {Day} from "../Utilities/Day";
 import {Draggable} from "react-beautiful-dnd";
 import {CalendarCell} from "./CalendarCell";
+import {splitQuery} from "../Utilities/Functions/SplitQuery";
 
 export const CalendarRow = observer(({project, dates, displayType, index}: { project: Project, dates: Dayjs[], displayType: string, index: number }) => {
 
-    const {startDate, endDate} = useParams();
+    const location = useLocation();
+    const {startDate, endDate} = splitQuery(location.search);
     const [expanded, setExpanded] = useState(false);
 
     function getText(projectDate: Day, displayType: string) {
@@ -19,9 +21,9 @@ export const CalendarRow = observer(({project, dates, displayType, index}: { pro
             case "roundedTime":
                 return projectDate?.roundedHours;
             case "description":
-                return projectDate?.tasks.map(val => (<div>{val}</div>));
+                return projectDate?.tasks.filter(val=>val).map((val, index) => (<div key={index}>{val}</div>));
             case "tasksAndTime":
-                return projectDate?.tasksAndRoundedTime.map(val => (<div>{val}</div>));
+                return projectDate?.tasksAndRoundedTime.filter(val=>val).map((val, index) => (<div key={index}>{val}</div>));
             default:
                 return "";
         }

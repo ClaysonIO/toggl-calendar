@@ -10,8 +10,8 @@ export const Header = ()=>{
             <Link to={'/'}><h1>Toggl Calendar View</h1></Link>
             <div style={{flex: 1}}/>
             <WorkSpaceSelect/>
-            {appState.workSpaces.length ? <Link to={'/calendar'} >Calendar</Link> : ""}
-            <Link to={'/settings'} >Settings</Link>
+            {appState.workSpaces.length ? <Link to={'/?page=calendar'} >Calendar</Link> : ""}
+            <Link to={'/?page=settings'} >Settings</Link>
             <GithubLogo/>
         </header>
     )

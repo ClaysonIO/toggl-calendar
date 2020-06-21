@@ -1,21 +1,31 @@
 import React, {useEffect} from "react";
-import {Link, useHistory, useParams} from "react-router-dom";
+import {Link, useHistory, useLocation} from "react-router-dom";
 import dayjs from "dayjs";
+import {splitQuery} from "../Utilities/Functions/SplitQuery";
 
 export const CalendarDateNav = ()=>{
-    const {startDate, endDate} = useParams();
+    const location = useLocation();
+    const {startDate, endDate} = splitQuery(location.search);
     const history = useHistory();
 
     const navLinks = {
-        back: `/calendar/${dayjs(startDate).subtract(1, 'week').format('YYYY-MM-DD')}/${dayjs(endDate).subtract(1, 'week').format('YYYY-MM-DD')}`,
-        today:`/calendar/${dayjs().startOf('week').format('YYYY-MM-DD')}/${dayjs().endOf('week').format('YYYY-MM-DD')}`,
-        forward:`/calendar/${dayjs(startDate).add(1, 'week').format('YYYY-MM-DD')}/${dayjs(endDate).add(1, 'week').format('YYYY-MM-DD')}`
+        back: `/?page=calendar&startDate=${
+            dayjs(startDate).subtract(1, 'week').format('YYYY-MM-DD')
+        }&endDate=${dayjs(endDate).subtract(1, 'week').format('YYYY-MM-DD')}`,
+        today:`/?page=calendar&startDate=${
+            dayjs().startOf('week').format('YYYY-MM-DD')
+        }&endDate=${dayjs().endOf('week').format('YYYY-MM-DD')}`,
+        forward:`/?page=calendar&startDate=${
+            dayjs(startDate).add(1, 'week').format('YYYY-MM-DD')
+        }&endDate=${dayjs(endDate).add(1, 'week').format('YYYY-MM-DD')}`
     }
 
 
     useEffect(()=>{
             if(!startDate || !endDate){
-                history.push(`/calendar/${dayjs().startOf('week').format('YYYY-MM-DD')}/${dayjs().endOf('week').format('YYYY-MM-DD')}`)
+                history.push(`/?page=calendar&startDate=${
+                    dayjs().startOf('week').format('YYYY-MM-DD')
+                }&endDate=${dayjs().endOf('week').format('YYYY-MM-DD')}`)
             }
         }
         // Needed to ignore history

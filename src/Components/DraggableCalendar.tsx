@@ -3,7 +3,7 @@ import {WorkSpace} from "../Utilities/WorkSpace";
 import {observer} from "mobx-react-lite";
 import dayjs, {Dayjs} from "dayjs";
 import customParseFormat from 'dayjs/plugin/customParseFormat'
-import {useParams} from "react-router-dom";
+import {useLocation} from "react-router-dom";
 import './DraggableCalendar.css'
 import {DragDropContext} from "react-beautiful-dnd";
 import {DisplayTypeSelect} from "./DisplayTypeSelect";
@@ -11,6 +11,7 @@ import {CalendarHeader} from "./CalendarHeader";
 import {CalendarBody} from "./CalendarBody";
 import {CalendarFooter} from "./CalendarFooter";
 import {CalendarDateNav} from "./CalendarDateNav";
+import {splitQuery} from "../Utilities/Functions/SplitQuery";
 
 dayjs.extend(customParseFormat)
 
@@ -19,7 +20,10 @@ interface ICalendar{
 }
 
 export const DraggableCalendar = observer(({workSpace}: ICalendar)=>{
-    const {startDate, endDate} = useParams();
+
+    const location = useLocation();
+    const {startDate, endDate} = splitQuery(location.search);
+
     const [displayType, setDisplayType] = useState<'time' | 'description' | 'roundedTime'>(window.localStorage.getItem('displayType') as any || 'time')
 
 

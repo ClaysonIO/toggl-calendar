@@ -1,21 +1,24 @@
 import React from 'react';
-import {BrowserRouter, Route, Switch} from "react-router-dom";
+import {Route, Switch, useLocation} from "react-router-dom";
 import {SettingsPage} from "./Pages/Settings";
 import {AppState} from "./Utilities/AppState";
 import {CalendarPage} from "./Pages/Calendar";
 import {MainPage} from "./Pages/Main";
+import {splitQuery} from "./Utilities/Functions/SplitQuery";
 
 export const appState = new AppState();
 
 function App() {
+    const location = useLocation();
+    const query = splitQuery(location.search);
+
     return (
-        <BrowserRouter>
             <Switch>
-                <Route path={"/settings"} component={SettingsPage}/>
-                <Route path={"/calendar/:startDate?/:endDate?"} component={CalendarPage}/>
+                {query['page'] === 'settings' ? <Route path={"/"} component={SettingsPage}/> : ''}
+                {query['page'] === 'calendar' ? <Route path={"/"} component={CalendarPage}/> : ''}
+
                 <Route component={MainPage}/>
             </Switch>
-        </BrowserRouter>
     );
 }
 
