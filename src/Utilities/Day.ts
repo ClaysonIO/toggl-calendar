@@ -21,16 +21,20 @@ export class Day{
     }
 
     @computed public get tasksAndRoundedTime(){
-        return this.entries.reduce((acc: {description: string, dur: number}[], val: Entry)=>{
-            let current = acc.find(item=>item.description === val.description);
-            if(!current){
-                current = {description: val.description, dur: 0};
-                acc.push(current);
-            }
-            current.dur += val.dur;
-            return acc;
-        }, [])
-            .map(val=>`(${DecimalToRoundedTime(dayjs.duration(val.dur).asHours())}) ${val.description}`);
+        return this.entries
+            // .reduce((acc: {description: string, dur: number}[], val: Entry)=>{
+            //     let current = acc.find(item=>item.description === val.description);
+            //     if(!current){
+            //         current = {description: val.description, dur: 0};
+            //         acc.push(current);
+            //     }
+            //     current.dur += val.dur;
+            //     return acc;
+            // }, [])
+            .map(val=>{
+                const time = DecimalToRoundedTime(dayjs.duration(val.dur).asHours());
+                return `${val.project} ${val.client || ""} ${time} ${val.description}`
+            });
     }
 
     @computed public get tasks(){
