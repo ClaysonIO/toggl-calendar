@@ -1,18 +1,30 @@
-import {computed, observable} from "mobx";
+import {action, computed, observable} from "mobx";
 import {Entry} from "./Entry";
 import {Day} from "./Day";
 import dayjs from "dayjs";
 
 //This class provides the functions to calculate
 export abstract class Row{
+    public rowId: string = (Math.random() * 1000000000).toString()
     @observable public entries: Entry[] = [];
     @observable public days: Day[] = [];
+    @observable public expanded: boolean = false;
+
+    constructor() {
+        this.setExpanded = this.setExpanded.bind(this);
+    }
+
 
     @computed public get dateHash(){
         return this.days.reduce((acc: {[key: string]: Day}, val)=>{
             acc[val.date.format('YYYYMMDD')] = val;
             return acc;
         }, {});
+    }
+
+    @action public setExpanded(state: boolean){
+        console.log("Set Expanded", state)
+        this.expanded = state;
     }
 
     protected getDates(startDate: string, endDate: string){

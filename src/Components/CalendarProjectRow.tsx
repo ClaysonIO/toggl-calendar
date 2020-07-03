@@ -16,6 +16,11 @@ export const CalendarProjectRow = observer(({project, dates, displayType, index}
     const {startDate, endDate} = splitQuery(location.search);
     const [expanded, setExpanded] = useState(false);
 
+    function changeSetExpanded(state: boolean){
+        setExpanded(state);
+        project.setExpanded(state);
+    }
+
     function getText(projectDate: Day, displayType: string) {
         switch (displayType) {
             case "time":
@@ -47,39 +52,46 @@ export const CalendarProjectRow = observer(({project, dates, displayType, index}
     return (
         <Draggable key={project?.pid?.toString()} draggableId={project?.pid?.toString()} index={index}>
             {(provided, snapshot) => (
-                <tbody>
-                    <tr
-                        id={project?.pid?.toString() || "blank"}
-                        ref={provided.innerRef}
-                        className={`row ${expanded ? 'expanded' : ''}`}
-                        {...provided.draggableProps}
-                        {...provided.dragHandleProps}
-                        style={{borderTop: `3px solid ${project.project_hex_color || 'black'}`}}
-                    >
+                <tr
+                    id={project?.rowId}
+                    ref={provided.innerRef}
+                    // className={`row ${project.expanded ? 'expanded' : ''}`}
+                    {...provided.draggableProps}
+                    {...provided.dragHandleProps}
+                    style={{borderTop: `2px solid ${project.project_hex_color || 'black'}`}}
+                >
+                    <td style={{gridColumn: "1/-1"}}>
+                        <table>
+                            <tbody>
+                            <tr
+                                className={`row ${project.expanded ? 'expanded' : ''}`}
+                            >
+                                <td className={'expandCol'}>
+                                    <ExpandButton expanded={expanded} setExpanded={changeSetExpanded}/>
+                                </td>
+                                <th className={'projectCol'} style={{color: project.project_hex_color || 'black'}}
+                                    title={project.name}>
+                                    <div className={'project'}>{project.name}</div>
+                                </th>
+                                <th className={'companyCol'} style={{color: project.project_hex_color || 'black'}}
+                                    title={project.client}>
+                                    <div className={'company'}>{project.client}</div>
+                                </th>
+                                {dates.map((date, index) => {
+                                    const projectDate = project.dateHash[date.format('YYYYMMDD')];
 
-                        <td className={'expandCol'}>
-                            <ExpandButton setExpanded={setExpanded} expanded={expanded}/>
-                        </td>
-                        <th className={'projectCol'} style={{color: project.project_hex_color || 'black'}}
-                            title={project.name}>
-                            <div className={'project'}>{project.name}</div>
-                        </th>
-                        <th className={'companyCol'} style={{color: project.project_hex_color || 'black'}}
-                            title={project.client}>
-                            <div className={'company'}>{project.client}</div>
-                        </th>
-                        {dates.map((date, index) => {
-                            const projectDate = project.dateHash[date.format('YYYYMMDD')];
+                                    return (<CalendarCell key={index} text={getText(projectDate, displayType)}/>);
+                                })}
+                                <th className={'sumCol'}
+                                    style={{color: project.project_hex_color || 'black'}}>{getSum(displayType)}</th>
+                            </tr>
 
-                            return (<CalendarCell key={index} text={getText(projectDate, displayType)}/>);
-                        })}
-                        <th className={'sumCol'}
-                            style={{color: project.project_hex_color || 'black'}}>{getSum(displayType)}</th>
-                    </tr>
-                    {expanded ? (
-                        project.tags.map((val, index)=>(<CalendarTagRow tag={val} dates={dates} displayType={displayType} index={index} key={index}/>))
-                    ) : <React.Fragment/>}
-                </tbody>
+                            {project.expanded ? project.tags.map((tag, index)=>(<CalendarTagRow tag={tag} dates={dates} displayType={displayType} index={index} key={index}/>)) : <React.Fragment/>}
+
+                            </tbody>
+                        </table>
+                    </td>
+                </tr>
             )}
         </Draggable>
     )

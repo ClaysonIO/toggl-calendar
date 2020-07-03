@@ -30,15 +30,17 @@ export class WorkSpace{
     }
 
     @action.bound public orderProject({ destination, source, reason }: any){
-        const currentOrder = this.orderedProjects.map(val=>val);
-        const item = currentOrder.splice(source.index, 1).pop()!;
+        if(source && destination){
+            const currentOrder = this.orderedProjects.map(val=>val);
+            const item = currentOrder.splice(source.index, 1).pop()!;
 
-        currentOrder.splice(destination.index, 0, item);
+            currentOrder.splice(destination.index, 0, item);
 
-        this.projectOrder = currentOrder.map(val=>val.pid.toString());
-        window.localStorage.setItem(`workspaceOrder_${this.id}`, JSON.stringify(this.projectOrder));
+            this.projectOrder = currentOrder.map(val=>val.pid.toString());
+            window.localStorage.setItem(`workspaceOrder_${this.id}`, JSON.stringify(this.projectOrder));
 
-        //TODO: Work out an algorithm to merge the existing array, and the new array, in a manner that keeps both in sync (if possible)
+            //TODO: Work out an algorithm to merge the existing array, and the new array, in a manner that keeps both in sync (if possible)
+        }
     }
 
     @computed public get orderedProjects(): Project[]{
@@ -109,15 +111,15 @@ export class WorkSpace{
     }
 
     private sumDay(day: Dayjs){
-        return this.projects.reduce((acc, val)=>{
+        return day ? this.projects.reduce((acc, val)=>{
             return acc + (val.days.find(val=>val.date.isSame(day, 'day'))?.timeAsHours || 0);
-        }, 0)
+        }, 0) : 0;
     }
 
     private sumWeek(startDate: Dayjs, endDate: Dayjs){
-        return this.projects.reduce((acc, val)=>{
+        return startDate && endDate ? this.projects.reduce((acc, val)=>{
             return acc + val.timeAsHours(startDate.format('YYYY-MM-DD'), endDate.format('YYYY-MM-DD'));
-        }, 0)
+        }, 0): 0;
     }
 
     public sumDayClockTime(day: Dayjs){

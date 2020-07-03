@@ -5,7 +5,6 @@ import dayjs, {Dayjs} from "dayjs";
 import customParseFormat from 'dayjs/plugin/customParseFormat'
 import {useLocation} from "react-router-dom";
 import './DraggableCalendar.css'
-import {DragDropContext} from "react-beautiful-dnd";
 import {DisplayTypeSelect} from "./DisplayTypeSelect";
 import {CalendarHeader} from "./CalendarHeader";
 import {CalendarBody} from "./CalendarBody";
@@ -57,13 +56,11 @@ export const DraggableCalendar = observer(({workSpace}: ICalendar)=>{
                 <div style={{flex: 1}}/>
                 <CalendarDateNav/>
             </div>
-            <DragDropContext onDragEnd={workSpace.orderProject}>
-                <table className={'draggableCalendar'}>
-                    <CalendarHeader dates={dates}/>
-                    <CalendarBody dates={dates} workSpace={workSpace} displayType={displayType}/>
-                    <CalendarFooter dates={dates} workSpace={workSpace} displayType={displayType}/>
-                </table>
-            </DragDropContext>
+            <table className={'draggableCalendar'}>
+                <CalendarHeader dates={dates}/>
+                <CalendarBody dates={dates} workSpace={workSpace} displayType={displayType}/>
+                <CalendarFooter dates={dates} workSpace={workSpace} displayType={displayType}/>
+            </table>
         </React.Fragment>
     ) : (
         <h3>No Workspace Selected</h3>

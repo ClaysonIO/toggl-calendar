@@ -14,8 +14,8 @@ interface IProject {
 export class Project extends Row{
     public pid: number;
     public client: string;
-    @observable public entries: Entry[] = [];
-    @observable public days: Day[] = [];
+    // @observable public entries: Entry[] = [];
+    // @observable public days: Day[] = [];
     @observable public tags: Tag[] = [];
     public name: string;
     public project_hex_color: string;
@@ -27,6 +27,7 @@ export class Project extends Row{
         this.client = client;
         this.project_hex_color = project_hex_color;
     }
+
 
     @action public addEntry(entry: Entry){
         this.entries.push(entry);
