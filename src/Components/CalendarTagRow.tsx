@@ -7,8 +7,11 @@ import {Day} from "../Utilities/Day";
 import {Draggable} from "react-beautiful-dnd";
 import {CalendarCell} from "./CalendarCell";
 import {splitQuery} from "../Utilities/Functions/SplitQuery";
+import {Tag} from "../Utilities/Tag";
+import {ExpandButton} from "./ExpandButton";
 
-export const CalendarRow = observer(({project, dates, displayType, index}: { project: Project, dates: Dayjs[], displayType: string, index: number }) => {
+export const CalendarTagRow = observer(({tag, dates, displayType, index}: { tag: Tag, dates: Dayjs[], displayType: string, index: number }) => {
+    console.log("Rendering Row")
 
     const location = useLocation();
     const {startDate, endDate} = splitQuery(location.search);
@@ -32,47 +35,41 @@ export const CalendarRow = observer(({project, dates, displayType, index}: { pro
     function getSum(displayType: string) {
         switch (displayType) {
             case "time":
-                return project.hours(startDate, endDate);
+                return tag.hours(startDate, endDate);
             case "roundedTime":
-                return project.roundedHours(startDate, endDate);
+                return tag.roundedHours(startDate, endDate);
             case "description":
-                return project.roundedHours(startDate, endDate);
+                return tag.roundedHours(startDate, endDate);
             default:
-                return project.roundedHours(startDate, endDate);
+                return tag.roundedHours(startDate, endDate);
         }
     }
 
+    const rowId = tag?.name?.toString() + tag.project.pid;
+
     return (
-        <Draggable key={project?.pid?.toString()} draggableId={project?.pid?.toString()} index={index}>
-            {(provided, snapshot) => (
                 <tr
-                    id={project?.pid?.toString() || "blank"}
-                    ref={provided.innerRef}
+                    id={rowId}
                     className={`row ${expanded ? 'expanded' : ''}`}
-                    {...provided.draggableProps}
-                    {...provided.dragHandleProps}
+                    style={{borderTop: `1px dashed ${tag.project.project_hex_color || 'black'}`}}
                 >
 
                     <td className={'expandCol'}>
-                        <button onClick={() => setExpanded(!expanded)}>Expand</button>
                     </td>
-                    <th className={'projectCol'} style={{color: project.project_hex_color || 'black'}}
-                        title={project.name}>
-                        <div className={'project'}>{project.name}</div>
+                    <th className={'projectCol'}>
+                        <ExpandButton setExpanded={setExpanded} expanded={expanded}/>
                     </th>
-                    <th className={'companyCol'} style={{color: project.project_hex_color || 'black'}}
-                        title={project.client}>
-                        <div className={'company'}>{project.client}</div>
+                    <th className={'companyCol'} style={{color: tag.project.project_hex_color || 'black'}}
+                        title={tag.name}>
+                        <div className={'project'}>{tag.name}</div>
                     </th>
                     {dates.map((date, index) => {
-                        const projectDate = project.dateHash[date.format('YYYYMMDD')];
+                        const tagDate = tag.dateHash[date.format('YYYYMMDD')];
 
-                        return (<CalendarCell key={index} text={getText(projectDate, displayType)}/>);
+                        return (<CalendarCell key={index} text={getText(tagDate, displayType)}/>);
                     })}
                     <th className={'sumCol'}
-                        style={{color: project.project_hex_color || 'black'}}>{getSum(displayType)}</th>
+                        style={{color: tag.project.project_hex_color || 'black'}}>{getSum(displayType)}</th>
                 </tr>
-            )}
-        </Draggable>
     )
 })

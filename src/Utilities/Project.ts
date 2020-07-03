@@ -1,7 +1,8 @@
 import {Day} from "./Day";
 import {Entry} from "./Entry";
-import {action, computed, observable} from "mobx";
-import dayjs from "dayjs";
+import {action, observable} from "mobx";
+import {Tag} from "./Tag";
+import {Row} from "./Row";
 
 interface IProject {
     pid: number;
@@ -10,15 +11,17 @@ interface IProject {
     project_hex_color: string;
 }
 
-export class Project{
+export class Project extends Row{
     public pid: number;
     public client: string;
     @observable public entries: Entry[] = [];
     @observable public days: Day[] = [];
+    @observable public tags: Tag[] = [];
     public name: string;
     public project_hex_color: string;
 
     constructor({pid, project, client, project_hex_color}: IProject) {
+        super();
         this.pid = pid;
         this.name = project || "Without Project";
         this.client = client;
@@ -34,46 +37,16 @@ export class Project{
             this.days.push(day)
         }
         day.addEntry(entry);
-    }
 
-    @computed public get dateHash(){
-        return this.days.reduce((acc: {[key: string]: Day}, val)=>{
-            acc[val.date.format('YYYYMMDD')] = val;
-            return acc;
-        }, {});
-    }
+        //Add entry to tag
+        let currentTag = this.tags.find(val=>val.name === entry.tags);
 
-    private getDates(startDate: string, endDate: string){
-        const start = dayjs(startDate).startOf('day');
-        const end = dayjs(endDate).endOf('day');
-
-        return this.days.filter(val=> (
-            val.date.isAfter(start)
-            && val.date.isBefore(end))
-            || val.date.isSame(start, 'day')
-            || val.date.isSame(end, 'day')
-        );
-    }
-
-    public timeAsHours(startDate: string, endDate: string): number{
-        const dates = this.getDates(startDate, endDate);
-
-        return dates.reduce((acc: number, val)=>{
-            return acc + val.timeAsHours;
-        }, 0)
-    }
-
-
-    public hours(startDate: string, endDate: string){
-        const decimalHours = this.timeAsHours(startDate, endDate);
-
-        const hours = Math.floor(decimalHours);
-        const minutes = Math.round(60 * (decimalHours - hours));
-
-        return `${hours}:${`0${minutes > 0 ? minutes : 0}`.slice(-2)}`;
-    }
-
-    public roundedHours(startDate: string, endDate: string): string{
-        return (Math.round(this.timeAsHours(startDate, endDate) / .25) * .25).toFixed(2)
+        if(!currentTag){
+           currentTag = new Tag({name: entry.tags, project: this});
+           this.tags = this.tags
+               .concat([currentTag])
+               .sort((a,b)=>b.name.localeCompare(a.name, 'en', {numeric: true}));
+        }
+        currentTag.addEntry(entry);
     }
 }

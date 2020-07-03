@@ -1,6 +1,15 @@
 import {Project} from "./Project";
+import {Row} from "./Row";
+import {computed} from "mobx";
+import {Entry} from "./Entry";
 
-export class Group{
+export class Group extends Row{
     public projects: Project[] = [];
     public name: string = '';
+
+    @computed public get entries(){
+        return this.projects.reduce((acc: Entry[], val: Project)=>{
+            return acc.concat(val.entries);
+        }, [])
+    }
 }

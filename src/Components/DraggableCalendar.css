@@ -5,7 +5,7 @@
 
 .draggableCalendar .row{
     display: grid;
-    grid-template-columns: 25px 150px 100px repeat(7, 1fr) 75px;
+    grid-template-columns: 40px 150px 100px repeat(7, 1fr) 75px;
     grid-gap: 5px;
 }
 
@@ -33,6 +33,30 @@
     text-overflow: ellipsis;
 }
 
+.expander{
+    height: 30px !important;
+    width: 30px !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 0;
+    margin: 0;
+    background: none;
+    border: none;
+    cursor: pointer;
+    outline: none;
+font-size: larger;
+}
+
+.rotater{
+    transition: ease .25s;
+}
+
+.rotated{
+    transform: rotate(90deg);
+}
+
 .draggableCalendar .expandCol{
 
 }
@@ -56,7 +80,7 @@
 }
 
 .draggableCalendar tr{
-    border-bottom: 1px #c4c4d0 solid;
+    /*border-bottom: 1px #c4c4d0 solid;*/
 }
 
 .draggableCalendar tbody .dateCol{

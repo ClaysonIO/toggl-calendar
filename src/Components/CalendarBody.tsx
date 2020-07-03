@@ -4,7 +4,7 @@ import {Dayjs} from "dayjs";
 import {Loading} from "./Loading";
 import {Droppable} from "react-beautiful-dnd";
 import React from "react";
-import {CalendarRow} from "./CalendarRow";
+import {CalendarProjectRow} from "./CalendarProjectRow";
 
 export const CalendarBody = observer(({workSpace, dates, displayType}: { workSpace: WorkSpace, dates: Dayjs[], displayType: string }) => {
 
@@ -23,7 +23,7 @@ export const CalendarBody = observer(({workSpace, dates, displayType}: { workSpa
                     {...provided.droppableProps}
                 >
                 {workSpace?.orderedProjects.slice().map((val, index) => (
-                    <CalendarRow key={index} index={index} project={val} dates={dates} displayType={displayType}/>
+                    <CalendarProjectRow key={index} index={index} project={val} dates={dates} displayType={displayType}/>
                 ))}
                 {provided.placeholder}
                 </tbody>
