@@ -2,6 +2,7 @@ import React, {useEffect} from "react";
 import {Link, useHistory, useLocation} from "react-router-dom";
 import dayjs from "dayjs";
 import {splitQuery} from "../Utilities/Functions/SplitQuery";
+import {appState} from "../App";
 
 export const CalendarDateNav = ()=>{
     const location = useLocation();
@@ -20,6 +21,17 @@ export const CalendarDateNav = ()=>{
         }&endDate=${dayjs(endDate).add(1, 'week').format('YYYY-MM-DD')}`
     }
 
+    function clickToday(event: any){
+        //Force refresh of tasks if clicked when on this week
+        if(navLinks.today.slice(1) === window.location.search){
+            event.stopPropagation();
+            appState.selectedWorkSpace?.getTasks(dayjs(startDate), dayjs(endDate))
+                .catch(err=>{
+                    alert(err);
+                    console.error(err)
+                });
+        }
+    }
 
     useEffect(()=>{
             if(!startDate || !endDate){
@@ -35,7 +47,7 @@ export const CalendarDateNav = ()=>{
     return (
         <div>
             <Link to={navLinks.back}><button>&lt;</button></Link>
-            <Link to={navLinks.today}><button>Today</button></Link>
+            <Link to={navLinks.today} onClick={clickToday}><button>Today</button></Link>
             <Link to={navLinks.forward}><button>&gt;</button></Link>
         </div>
     )
