@@ -12,10 +12,15 @@ function App() {
     const location = useLocation();
     const query = splitQuery(location.search);
 
+    if(!query['page']){
+        query['page'] = localStorage.getItem('workSpaceId') ? 'calendar' : 'main';
+    }
+
     return (
             <Switch>
                 {query['page'] === 'settings' ? <Route path={"/"} component={SettingsPage}/> : ''}
                 {query['page'] === 'calendar' ? <Route path={"/"} component={CalendarPage}/> : ''}
+                {query['page'] === 'main' ? <Route path={"/"} component={MainPage}/> : ''}
 
                 <Route component={MainPage}/>
             </Switch>

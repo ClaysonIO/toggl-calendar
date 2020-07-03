@@ -15,7 +15,7 @@ export const CalendarBody = observer(({workSpace, dates, displayType}: { workSpa
         </tr>
         </tbody>
     ) : (
-        <Droppable droppableId={'tbody'}>
+        <Droppable droppableId={'tbody'} isCombineEnabled={true}>
             {(provided, snapshot) => (
                 <tbody
                     id={"tbody"}
