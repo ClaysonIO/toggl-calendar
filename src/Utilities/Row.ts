@@ -9,6 +9,7 @@ export abstract class Row{
     @observable public entries: Entry[] = [];
     @observable public days: Day[] = [];
     @observable public expanded: boolean = false;
+    public abstract readonly type: 'group' | 'project' | 'tag';
 
     constructor() {
         this.setExpanded = this.setExpanded.bind(this);

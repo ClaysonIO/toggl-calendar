@@ -19,6 +19,7 @@ export class Project extends Row{
     @observable public tags: Tag[] = [];
     public name: string;
     public project_hex_color: string;
+    public readonly type = 'project';
 
     constructor({pid, project, client, project_hex_color}: IProject) {
         super();

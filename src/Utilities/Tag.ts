@@ -13,6 +13,7 @@ interface ITag {
 export class Tag extends Row{
     public name: string;
     public project: Project;
+    public readonly type = 'tag';
     @observable public entries: Entry[] = [];
     @observable public days: Day[] = [];
 

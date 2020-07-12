@@ -1,0 +1,15 @@
+.divCalendar.container{
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+
+}
+
+.divCalendar .header{
+    font-weight: bold;
+}
+
+.divCalendar .row{
+    display: grid;
+    grid-gap: 5px;
+}
