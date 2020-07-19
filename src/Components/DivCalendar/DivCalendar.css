@@ -13,3 +13,72 @@
     display: grid;
     grid-gap: 5px;
 }
+
+.divCalendar .title{
+    font-weight: bold;
+}
+
+.divCalendar .projectRow{
+    border-top: 2px solid;
+    padding: 5px;
+}
+
+.expanded button{
+    overflow: visible;
+    height: auto;
+    white-space: normal;
+    text-overflow: ellipsis;
+}
+
+.expander{
+    height: 30px !important;
+    width: 30px !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 0;
+    margin: 0;
+    background: none;
+    border: none;
+    cursor: pointer;
+    outline: none;
+    font-size: larger;
+}
+
+.rotater{
+    transition: ease .25s;
+}
+
+.rotated{
+    transform: rotate(90deg);
+}
+
+.dateCol button{
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    align-items: flex-start;
+    border: none;
+    background: none;
+    cursor: pointer;
+}
+
+.sumCol{
+    text-align: right;
+}
+
+.dateCol{
+    flex-direction: row;
+    display: flex;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.loading{
+    grid-column: 1/-1;
+    margin-top: 100px;
+    margin-bottom: 100px;
+    text-align: center;
+}

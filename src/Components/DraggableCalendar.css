@@ -26,7 +26,7 @@
     text-overflow: ellipsis;
 }
 
-.draggableCalendar tbody .expanded button{
+.expanded button{
     overflow: visible;
     height: auto;
     white-space: normal;
@@ -91,7 +91,7 @@ font-size: larger;
     text-overflow: ellipsis;
 }
 
-.draggableCalendar .dateCol button{
+.dateCol button{
     display: flex;
     flex-direction: column;
     flex: 1;
@@ -103,4 +103,12 @@ font-size: larger;
 
 .draggableCalendar .sumCol{
     text-align: right;
+}
+
+.dateCol{
+    flex-direction: row;
+    display: flex;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
 }
