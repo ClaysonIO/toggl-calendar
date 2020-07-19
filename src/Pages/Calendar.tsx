@@ -45,7 +45,7 @@ export const CalendarPage = () =>{
             <div style={{display: 'flex'}}>
                 <DisplayTypeSelect displayType={displayType} setDisplayType={setDisplayType}/>
                 <div style={{flex: 1}}/>
-                <button>Create Group</button>
+                {/*<button>Create Group</button>*/}
                 <CalendarDateNav/>
             </div>
 
