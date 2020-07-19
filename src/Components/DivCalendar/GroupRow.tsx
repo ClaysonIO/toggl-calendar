@@ -1,12 +1,29 @@
 import React from 'react';
 import {observer} from "mobx-react-lite";
 import {Group} from "../../Utilities/Group";
+import {Dayjs} from "dayjs";
+import {ExpandButton} from "../ExpandButton";
+import {Cell} from "./Cell";
+import {DecimalToDisplayType} from "../../Utilities/Functions/DecimalToDisplayType";
+import {ProjectRow} from "./ProjectRow";
 
-export const GroupRow = observer(({group, gridCols}: {group: Group, gridCols: string})=>{
+export const GroupRow = observer(({group, dates, displayType, gridCols}: {group: Group, dates: Dayjs[], displayType: string, gridCols: string})=>{
+    const color = "#ff8330"
+    
     return (
-        <div className={"row"} style={{gridTemplateColumns: gridCols}}>
-
-            <div></div>
+        <div className={'rowContainer'}>
+            <div className={"row projectRow"} style={{gridTemplateColumns: gridCols, borderColor: color}}>
+                <ExpandButton expanded={group.expanded} setExpanded={group.setExpanded}/>
+                <div className={'title'} style={{color: color}}>{group.name}</div>
+                <div className={'title'} style={{color: color}}/>
+                {dates.map((val, index)=>(<Cell key={index} expanded={group.expanded} displayType={displayType} day={group.dateHash[val.format('YYYYMMDD')]}/>))}
+                <div className={'title sumCol'} style={{color: color}}>{DecimalToDisplayType(group.timeAsHours(dates[0]?.toISOString(), dates[dates.length -1]?.toISOString()), displayType)}</div>
+            </div>
+            {group.expanded ?
+                group.projects.map((project, index)=>{
+                    return (<ProjectRow key={index} project={project} dates={dates} displayType={displayType} gridCols={gridCols}/>)
+                })
+                : <React.Fragment/>}
         </div>
     )
 })

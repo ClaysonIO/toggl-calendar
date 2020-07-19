@@ -26,9 +26,9 @@ export const CalendarContainer = observer(({workSpace, displayType, dates}: {wor
                 </div>
             ) : workSpace.orderedProjects.map((val: Row)=>{
                 switch (val.type) {
-                    case "group": return <GroupRow key={val.rowId} group={val as Group} gridCols={gridCols}/>;
+                    case "group": return <GroupRow key={val.rowId} group={val as Group} dates={dates} displayType={displayType} gridCols={gridCols}/>;
                     case "project": return <ProjectRow key={val.rowId} dates={dates} displayType={displayType} project={val as Project} gridCols={gridCols}/>;
-                    case "tag": return <TagRow key={val.rowId} tag={val as Tag} gridCols={gridCols}/>;
+                    case "tag": return <TagRow key={val.rowId} tag={val as Tag} dates={dates} displayType={displayType} gridCols={gridCols}/>;
                     default: return <React.Fragment/>
                 }
             })}
