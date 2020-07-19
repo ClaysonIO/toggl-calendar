@@ -5,7 +5,7 @@ import {Dayjs} from "dayjs";
 import {ExpandButton} from "../ExpandButton";
 import {Cell} from "./Cell";
 import {DecimalToDisplayType} from "../../Utilities/Functions/DecimalToDisplayType";
-import {ProjectRow} from "./ProjectRow";
+import {ProjectRowDraggable} from "./ProjectRowDraggable";
 
 export const GroupRow = observer(({group, dates, displayType, gridCols}: {group: Group, dates: Dayjs[], displayType: string, gridCols: string})=>{
     const color = "#ff8330"
@@ -21,7 +21,7 @@ export const GroupRow = observer(({group, dates, displayType, gridCols}: {group:
             </div>
             {group.expanded ?
                 group.projects.map((project, index)=>{
-                    return (<ProjectRow key={index} project={project} dates={dates} displayType={displayType} gridCols={gridCols}/>)
+                    return (<ProjectRowDraggable key={index} project={project} dates={dates} displayType={displayType} gridCols={gridCols} index={index}/>)
                 })
                 : <React.Fragment/>}
         </div>

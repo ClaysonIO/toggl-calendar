@@ -23,6 +23,11 @@
     padding: 5px;
 }
 
+.divCalendar .tagRow{
+    border-top: 1px solid;
+    padding: 5px;
+}
+
 .expanded button{
     overflow: visible;
     height: auto;
@@ -81,4 +86,13 @@
     margin-top: 100px;
     margin-bottom: 100px;
     text-align: center;
+}
+
+.row{
+    background-color: white;
+    transition: all ease-in .3s ;
+}
+
+#calendarContainer{
+    min-height: 100px;
 }

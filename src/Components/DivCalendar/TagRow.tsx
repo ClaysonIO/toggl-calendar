@@ -9,7 +9,7 @@ import {Dayjs} from "dayjs";
 export const TagRow = observer(({tag, dates, displayType, gridCols}: {tag: Tag, dates: Dayjs[], displayType: string, gridCols: string})=>{
     return (
         <div className={'rowContainer'}>
-            <div className={"row projectRow"} style={{gridTemplateColumns: gridCols, borderColor: tag.project.project_hex_color}}>
+            <div className={"row tagRow"} style={{gridTemplateColumns: gridCols, borderColor: tag.project.project_hex_color}}>
                 <div/>
                 <ExpandButton expanded={tag.expanded} setExpanded={tag.setExpanded}/>
                 <div className={''} style={{color: tag.project.project_hex_color}}>{tag.name || "--Untagged--"}</div>

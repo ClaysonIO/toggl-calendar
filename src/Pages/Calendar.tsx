@@ -36,7 +36,7 @@ export const CalendarPage = () =>{
                     });
             }
         }
-        , [appState.selectedWorkSpace, workspace_id, startDate, endDate])
+        , [workspace_id, startDate, endDate])
 
     return (
         <Layout>

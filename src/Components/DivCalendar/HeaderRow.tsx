@@ -4,10 +4,9 @@ import {Dayjs} from "dayjs";
 import {HeaderDate} from "./HeaderDate";
 
 export const HeaderRow = observer(({dates, gridCols}: {dates: Dayjs[], gridCols: string})=>{
-    console.log("dATES", dates)
     return (
         <div className={"row header"} style={{gridTemplateColumns: gridCols}}>
-            <div></div>
+            <div/>
             <div>Project</div>
             <div>Company</div>
             {dates.map((val, index)=>(<HeaderDate key={index} date={val}/>))}

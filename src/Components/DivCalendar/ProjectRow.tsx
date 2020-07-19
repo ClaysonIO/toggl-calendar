@@ -7,11 +7,17 @@ import {ExpandButton} from "../ExpandButton";
 import {DecimalToDisplayType} from "../../Utilities/Functions/DecimalToDisplayType";
 import {TagRow} from "./TagRow";
 
-export const ProjectRow = observer(({project, dates, displayType, gridCols}: {project: Project, dates: Dayjs[], displayType: string, gridCols: string})=>{
+export const ProjectRow = observer(({project, dates, displayType, gridCols, isDragging}: {project: Project, dates: Dayjs[], displayType: string, gridCols: string, isDragging: boolean})=>{
 
     return (
-        <div className={'rowContainer'}>
-            <div className={"row projectRow"} style={{gridTemplateColumns: gridCols, borderColor: project.project_hex_color}}>
+        <React.Fragment>
+            <div
+                className={`row projectRow ${isDragging ? 'selected' : ''}`}
+                style={{
+                    gridTemplateColumns: gridCols,
+                    borderColor: project.project_hex_color,
+                    boxShadow: `${isDragging ? '0 2px .8rem' : "0 0 0"} ${project.project_hex_color}`,
+                }}>
                 <ExpandButton expanded={project.expanded} setExpanded={project.setExpanded}/>
                 <div className={'title'} style={{color: project.project_hex_color}}>{project.name}</div>
                 <div className={'title'} style={{color: project.project_hex_color}}>{project.client}</div>
@@ -23,6 +29,6 @@ export const ProjectRow = observer(({project, dates, displayType, gridCols}: {pr
                     return (<TagRow key={index} tag={tag} dates={dates} displayType={displayType} gridCols={gridCols}/>)
                 })
                 : <React.Fragment/>}
-        </div>
+        </React.Fragment>
     )
 })
