@@ -58,7 +58,7 @@ export const CalendarProjectRow = observer(({project, dates, displayType, index}
                     // className={`row ${project.expanded ? 'expanded' : ''}`}
                     {...provided.draggableProps}
                     {...provided.dragHandleProps}
-                    style={{borderTop: `2px solid ${project.project_hex_color || 'black'}`}}
+                    style={{borderTop: `2px solid ${project.color || 'black'}`}}
                 >
                     <td style={{gridColumn: "1/-1"}}>
                         <table>
@@ -69,11 +69,11 @@ export const CalendarProjectRow = observer(({project, dates, displayType, index}
                                 <td className={'expandCol'}>
                                     <ExpandButton expanded={expanded} setExpanded={changeSetExpanded}/>
                                 </td>
-                                <th className={'projectCol'} style={{color: project.project_hex_color || 'black'}}
+                                <th className={'projectCol'} style={{color: project.color || 'black'}}
                                     title={project.name}>
                                     <div className={'project'}>{project.name}</div>
                                 </th>
-                                <th className={'companyCol'} style={{color: project.project_hex_color || 'black'}}
+                                <th className={'companyCol'} style={{color: project.color || 'black'}}
                                     title={project.client}>
                                     <div className={'company'}>{project.client}</div>
                                 </th>
@@ -83,7 +83,7 @@ export const CalendarProjectRow = observer(({project, dates, displayType, index}
                                     return (<CalendarCell key={index} text={getText(projectDate, displayType)}/>);
                                 })}
                                 <th className={'sumCol'}
-                                    style={{color: project.project_hex_color || 'black'}}>{getSum(displayType)}</th>
+                                    style={{color: project.color || 'black'}}>{getSum(displayType)}</th>
                             </tr>
 
                             {project.expanded ? project.tags.map((tag, index)=>(<CalendarTagRow tag={tag} dates={dates} displayType={displayType} index={index} key={index}/>)) : <React.Fragment/>}

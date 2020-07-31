@@ -7,6 +7,8 @@ import {ITaskResponse} from "./Interfaces/ITaskResponse";
 import {Entry} from "./Entry";
 import {DecimalToClockTime} from "./Functions/DecimalToClockTime";
 import {DecimalToRoundedTime} from "./Functions/DecimalToRoundedTime";
+import {Row} from "./Row";
+import {Group} from "./Group";
 
 export interface IWorkSpace{
     id: number;
@@ -21,48 +23,105 @@ export class WorkSpace{
     @observable public projectOrder: string[] = [];
     @observable public loading: boolean = true;
     @observable public projects: Project[] = [];
+    @observable public groups: Group[] = [];
 
     constructor({id, name, api_token}: IWorkSpace, apiToken?: string) {
         this.id = id;
         this.name = name;
         this.api_token = apiToken || api_token;
         this.projectOrder = JSON.parse(window.localStorage.getItem(`workspaceOrder_${id}`) || '[]');
+        this.getGroups();
+    }
+
+    public getGroups(){
+        const serializedGroups = window.localStorage.getItem(`workspaceGroups_${this.id}`)
+
+        this.groups = (JSON.parse(serializedGroups || "[]")).map((val: string)=>Group.deserialize(val))
+    }
+
+    public setGroups(){
+        const serializedGroups = JSON.stringify(this.groups.map(val=>val.serialize()));
+
+        window.localStorage.setItem(`workspaceGroups_${this.id}`, serializedGroups)
     }
 
     @action.bound public orderProject({ destination, source, reason }: any){
         if(source && destination){
-            const currentOrder = this.orderedProjects.map(val=>val);
+            //Get all of the projects currently in a group
+            const projectIdsInGroups = this.groups.reduce((acc: string[], val)=>acc.concat(val.projectIds), []);
+
+            const currentOrder = this.orderedProjects.filter(val=>projectIdsInGroups.indexOf(val.rowId) === -1);
             const item = currentOrder.splice(source.index, 1).pop()!;
 
             currentOrder.splice(destination.index, 0, item);
 
-            this.projectOrder = currentOrder.map(val=>val.pid.toString());
-            window.localStorage.setItem(`workspaceOrder_${this.id}`, JSON.stringify(this.projectOrder));
+            this.saveProjectOrder(currentOrder);
 
             //TODO: Work out an algorithm to merge the existing array, and the new array, in a manner that keeps both in sync (if possible)
         }
     }
 
-    @computed public get orderedProjects(): Project[]{
+    @action public saveProjectOrder(orderedRows: Row[]){
+        const oldOrderedRowIds = this.projectOrder.slice();
+        const newOrderedRowIds = orderedRows.map(val=>val.rowId);
+
+        const finalOrderedRowIds: string[] = [];
+
+        //If there is overlap, start with Current. If nothing is there,
+        newOrderedRowIds.forEach((newId)=>{
+            const index = oldOrderedRowIds.indexOf(newId);
+            if(index === -1){
+                addIfUnique(finalOrderedRowIds, newId);
+            } else {
+                oldOrderedRowIds
+                    .splice(0, index + 1)
+                    .forEach(oldId=>addIfUnique(finalOrderedRowIds, oldId));
+            }
+        })
+
+        //Add any remaining values at the end
+        oldOrderedRowIds.forEach(oldId=>{
+            addIfUnique(finalOrderedRowIds, oldId);
+        });
+
+        function addIfUnique(stringArray: string[], newString: string){
+            if(stringArray.indexOf(newString) === -1) stringArray.push(newString);
+        }
+
+        console.log("OLD", this.projectOrder.slice())
+        console.log("NEW", finalOrderedRowIds)
+        window.localStorage.setItem(`workspaceOrder_${this.id}`, JSON.stringify(finalOrderedRowIds));
+        this.projectOrder = finalOrderedRowIds;
+    }
+
+    @computed public get orderedProjects(): Row[]{
         //Create a temporary array
-        const orderedArray: Project[] = [];
-        const tempArray = this.projects.map(val=>val);
+        const projectIdsInGroups = this.groups.reduce((acc: string[], val)=>acc.concat(val.projectIds), []);
+        const orderedArray: Row[] = [];
+        const tempArray: Row[] = (this.projects as Row[]).filter(val=>projectIdsInGroups.indexOf(val.rowId) == -1).concat(this.groups);
 
         //Go through the Order list, pop out projects as they're found
         this.projectOrder.forEach(orderedId=>{
-            const index = tempArray.findIndex(val=>val.pid.toString() === orderedId);
+            const index = tempArray.findIndex(val=>val.rowId.toString() === orderedId);
             if(index > -1){
                 orderedArray.push(tempArray.splice(index, 1)[0])
             }
         })
 
         //Add any remaining projects to the end
-
         return orderedArray.concat(tempArray);
     }
 
     @action public setLoading(state: boolean){
         this.loading = state;
+    }
+
+    @action public createGroup(name: string){
+        var newGroup = new Group({name});
+        if(!this.groups.filter(val=>val.rowId === newGroup.rowId).length){
+            this.groups = this.groups.concat(newGroup);
+            this.setGroups();
+        }
     }
 
     public projectHash(){

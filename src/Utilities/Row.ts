@@ -9,6 +9,7 @@ export abstract class Row{
     @observable public entries: Entry[] = [];
     @observable public days: Day[] = [];
     @observable public expanded: boolean = false;
+    @observable public color: string = "#ccc";
     public abstract readonly type: 'group' | 'project' | 'tag';
 
     constructor() {

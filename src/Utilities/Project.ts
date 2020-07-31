@@ -18,15 +18,15 @@ export class Project extends Row{
     // @observable public days: Day[] = [];
     @observable public tags: Tag[] = [];
     public name: string;
-    public project_hex_color: string;
     public readonly type = 'project';
 
     constructor({pid, project, client, project_hex_color}: IProject) {
         super();
+        this.rowId = pid.toString();
         this.pid = pid;
         this.name = project || "Without Project";
         this.client = client;
-        this.project_hex_color = project_hex_color;
+        this.color = project_hex_color;
     }
 
 

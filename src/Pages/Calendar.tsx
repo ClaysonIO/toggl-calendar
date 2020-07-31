@@ -38,6 +38,13 @@ export const CalendarPage = () =>{
         }
         , [workspace_id, startDate, endDate])
 
+    function createGroup(){
+        var groupName = window.prompt("Please name the group: ");
+        if(groupName){
+            appState?.selectedWorkSpace?.createGroup(groupName);
+        }
+    }
+
     return (
         <Layout>
             <h2>Calendar</h2>
@@ -45,7 +52,7 @@ export const CalendarPage = () =>{
             <div style={{display: 'flex'}}>
                 <DisplayTypeSelect displayType={displayType} setDisplayType={setDisplayType}/>
                 <div style={{flex: 1}}/>
-                {/*<button>Create Group</button>*/}
+                <button onClick={createGroup}>Create Group</button>
                 <CalendarDateNav/>
             </div>
 

@@ -15,6 +15,7 @@ import {Loading} from "../Loading";
 import {DragDropContext, Droppable} from "react-beautiful-dnd";
 import {ProjectRowDraggable} from "./ProjectRowDraggable";
 import {NoContent} from "../NoContent";
+import {GroupRowDraggable} from "./GroupRowDraggable";
 
 export const CalendarContainer = observer(({workSpace, displayType, dates}: {workSpace: WorkSpace, displayType: string, dates: Dayjs[]})=>{
 
@@ -37,7 +38,7 @@ export const CalendarContainer = observer(({workSpace, displayType, dates}: {wor
                             >
                                 {workSpace.orderedProjects.length ? workSpace.orderedProjects.map((val: Row, index)=>{
                                     switch (val.type) {
-                                        case "group": return <GroupRow key={val.rowId} group={val as Group} dates={dates} displayType={displayType} gridCols={gridCols}/>;
+                                        case "group": return <GroupRowDraggable key={val.rowId} group={val as Group} dates={dates} displayType={displayType} gridCols={gridCols} index={index}/>;
                                         case "project": return <ProjectRowDraggable key={val.rowId} dates={dates} displayType={displayType} project={val as Project} gridCols={gridCols} index={index}/>;
                                         case "tag": return <TagRow key={val.rowId} tag={val as Tag} dates={dates} displayType={displayType} gridCols={gridCols}/>;
                                         default: return <React.Fragment/>

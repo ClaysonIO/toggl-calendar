@@ -51,7 +51,7 @@ export const CalendarTagRow = observer(({tag, dates, displayType, index}: { tag:
         <tr
             id={tag.rowId}
             className={`row ${expanded ? 'expanded' : ''}`}
-            style={{borderTop: `1px dashed ${tag.project.project_hex_color || 'black'}`}}
+            style={{borderTop: `1px dashed ${tag.project.color || 'black'}`}}
         >
 
             <td className={'expandCol'}>
@@ -59,7 +59,7 @@ export const CalendarTagRow = observer(({tag, dates, displayType, index}: { tag:
             <th className={'projectCol'}>
                 <ExpandButton setExpanded={changeSetExpanded} expanded={expanded}/>
             </th>
-            <th className={'companyCol'} style={{fontSize: "small", color: tag.project.project_hex_color || 'black'}}
+            <th className={'companyCol'} style={{fontSize: "small", color: tag.project.color || 'black'}}
                 title={tag.name}>
                 <div className={'project'}>{tag.name || "--Untagged--"}</div>
             </th>
@@ -68,7 +68,7 @@ export const CalendarTagRow = observer(({tag, dates, displayType, index}: { tag:
                 return (<CalendarCell key={index} text={getText(tagDate, displayType)}/>);
             })}
             <th className={'sumCol'}
-                style={{color: tag.project.project_hex_color || 'black'}}>{getSum(displayType)}</th>
+                style={{color: tag.project.color || 'black'}}>{getSum(displayType)}</th>
         </tr>
     )
 })

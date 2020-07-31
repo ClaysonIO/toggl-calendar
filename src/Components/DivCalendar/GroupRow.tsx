@@ -7,12 +7,18 @@ import {Cell} from "./Cell";
 import {DecimalToDisplayType} from "../../Utilities/Functions/DecimalToDisplayType";
 import {ProjectRowDraggable} from "./ProjectRowDraggable";
 
-export const GroupRow = observer(({group, dates, displayType, gridCols}: {group: Group, dates: Dayjs[], displayType: string, gridCols: string})=>{
+export const GroupRow = observer(({group, dates, displayType, gridCols, isDragging}: {group: Group, dates: Dayjs[], displayType: string, gridCols: string, isDragging: boolean})=>{
     const color = "#ff8330"
     
     return (
         <div className={'rowContainer'}>
-            <div className={"row projectRow"} style={{gridTemplateColumns: gridCols, borderColor: color}}>
+            <div
+                className={"row projectRow"}
+                style={{
+                    gridTemplateColumns: gridCols,
+                    borderColor: color,
+                    boxShadow: `${isDragging ? '0 2px .8rem' : "0 0 0"} ${color}`,
+                }}>
                 <ExpandButton expanded={group.expanded} setExpanded={group.setExpanded}/>
                 <div className={'title'} style={{color: color}}>{group.name}</div>
                 <div className={'title'} style={{color: color}}/>
