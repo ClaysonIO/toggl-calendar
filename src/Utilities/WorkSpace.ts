@@ -47,69 +47,35 @@ export class WorkSpace{
 
     @action.bound public orderProject({ destination, source, reason }: any){
         if(source && destination){
-            //Get all of the projects currently in a group
-            const projectIdsInGroups = this.groups.reduce((acc: string[], val)=>acc.concat(val.projectIds), []);
 
-            const currentOrder = this.orderedProjects.filter(val=>projectIdsInGroups.indexOf(val.rowId) === -1);
+            const currentOrder = this.projectOrder.slice();
             const item = currentOrder.splice(source.index, 1).pop()!;
 
             currentOrder.splice(destination.index, 0, item);
 
-            this.saveProjectOrder(currentOrder);
+            // this.saveProjectOrder(currentOrder);
+
+            this.projectOrder = currentOrder;
+            window.localStorage.setItem(`workspaceOrder_${this.id}`, JSON.stringify(currentOrder));
 
             //TODO: Work out an algorithm to merge the existing array, and the new array, in a manner that keeps both in sync (if possible)
         }
     }
 
-    @action public saveProjectOrder(orderedRows: Row[]){
-        const oldOrderedRowIds = this.projectOrder.slice();
-        const newOrderedRowIds = orderedRows.map(val=>val.rowId);
-
-        const finalOrderedRowIds: string[] = [];
-
-        //If there is overlap, start with Current. If nothing is there,
-        newOrderedRowIds.forEach((newId)=>{
-            const index = oldOrderedRowIds.indexOf(newId);
-            if(index === -1){
-                addIfUnique(finalOrderedRowIds, newId);
-            } else {
-                oldOrderedRowIds
-                    .splice(0, index + 1)
-                    .forEach(oldId=>addIfUnique(finalOrderedRowIds, oldId));
-            }
-        })
-
-        //Add any remaining values at the end
-        oldOrderedRowIds.forEach(oldId=>{
-            addIfUnique(finalOrderedRowIds, oldId);
-        });
-
-        function addIfUnique(stringArray: string[], newString: string){
-            if(stringArray.indexOf(newString) === -1) stringArray.push(newString);
-        }
-
-        console.log("OLD", this.projectOrder.slice())
-        console.log("NEW", finalOrderedRowIds)
-        window.localStorage.setItem(`workspaceOrder_${this.id}`, JSON.stringify(finalOrderedRowIds));
-        this.projectOrder = finalOrderedRowIds;
-    }
-
-    @computed public get orderedProjects(): Row[]{
+    @computed public get orderedProjects(): (Row | null)[]{
         //Create a temporary array
         const projectIdsInGroups = this.groups.reduce((acc: string[], val)=>acc.concat(val.projectIds), []);
-        const orderedArray: Row[] = [];
-        const tempArray: Row[] = (this.projects as Row[]).filter(val=>projectIdsInGroups.indexOf(val.rowId) == -1).concat(this.groups);
 
         //Go through the Order list, pop out projects as they're found
-        this.projectOrder.forEach(orderedId=>{
-            const index = tempArray.findIndex(val=>val.rowId.toString() === orderedId);
-            if(index > -1){
-                orderedArray.push(tempArray.splice(index, 1)[0])
-            }
-        })
+        return this.projectOrder.map(orderedId=>{
+            if(projectIdsInGroups.indexOf(orderedId) > -1) return null;
+            const project = this.projects.find(val=>val.rowId === orderedId);
+            if(project) return project;
+            const group = this.groups.find(val=>val.rowId === orderedId);
+            if(group) return group;
 
-        //Add any remaining projects to the end
-        return orderedArray.concat(tempArray);
+            return null;
+        })
     }
 
     @action public setLoading(state: boolean){
@@ -122,13 +88,6 @@ export class WorkSpace{
             this.groups = this.groups.concat(newGroup);
             this.setGroups();
         }
-    }
-
-    public projectHash(){
-        return this.projects.reduce((acc: {[key: number]: Project}, val: Project)=>{
-            acc[val.pid] = val;
-            return acc;
-        }, {})
     }
 
     @action addTasksToProjects(taskResponses: ITaskResponse[]){
@@ -144,9 +103,14 @@ export class WorkSpace{
                 const newProject = new Project(taskResponse)
                 projects.push(newProject)
                 projectHash[newProject.pid] = newProject;
+
+                if(this.projectOrder.indexOf(newProject.rowId) === -1){
+                    this.projectOrder = this.projectOrder.concat([newProject.rowId]);
+                }
             }
 
             projectHash[taskResponse.pid].addEntry(new Entry(taskResponse))
+
         })
         runInAction(()=>{
             this.projects = projects;

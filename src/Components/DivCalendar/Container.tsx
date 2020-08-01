@@ -36,7 +36,9 @@ export const CalendarContainer = observer(({workSpace, displayType, dates}: {wor
                                 ref={provided.innerRef}
                                 {...provided.droppableProps}
                             >
-                                {workSpace.orderedProjects.length ? workSpace.orderedProjects.map((val: Row, index)=>{
+                                {workSpace.orderedProjects.length ? workSpace.orderedProjects.map((val: (Row | null), index)=>{
+                                    if(!val) return <React.Fragment/>;
+
                                     switch (val.type) {
                                         case "group": return <GroupRowDraggable key={val.rowId} group={val as Group} dates={dates} displayType={displayType} gridCols={gridCols} index={index}/>;
                                         case "project": return <ProjectRowDraggable key={val.rowId} dates={dates} displayType={displayType} project={val as Project} gridCols={gridCols} index={index}/>;

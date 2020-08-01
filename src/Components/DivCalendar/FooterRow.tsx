@@ -5,10 +5,11 @@ import {Row} from "../../Utilities/Row";
 import {FooterDate} from "./FooterDate";
 import {DecimalToDisplayType} from "../../Utilities/Functions/DecimalToDisplayType";
 
-export const FooterRow = observer(({dates, rows, displayType, gridCols}: {dates: Dayjs[], rows: Row[], displayType: string, gridCols: string})=>{
-    const decimalHours = dates.reduce((acc, day)=>{
+export const FooterRow = observer(({dates, rows, displayType, gridCols}: {dates: Dayjs[], rows: (Row|null)[], displayType: string, gridCols: string})=>{
+    const decimalHours = dates
+        .reduce((acc, day)=>{
         return acc + rows.reduce((acc, row)=>{
-            return acc + (row.dateHash[day.format('YYYYMMDD')]?.timeAsHours || 0)
+            return acc + (row?.dateHash[day.format('YYYYMMDD')]?.timeAsHours || 0)
         }, 0);
     }, 0);
 
