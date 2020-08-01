@@ -5,7 +5,6 @@ import {Dayjs} from "dayjs";
 import {HeaderRow} from "./HeaderRow";
 import "./DivCalendar.css";
 import {Row} from "../../Utilities/Row";
-import {GroupRow} from "./GroupRow";
 import {Group} from "../../Utilities/Group";
 import {Project} from "../../Utilities/Project";
 import {Tag} from "../../Utilities/Tag";

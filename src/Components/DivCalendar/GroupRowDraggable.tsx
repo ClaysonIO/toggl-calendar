@@ -1,9 +1,7 @@
 import React from 'react';
 import {observer} from "mobx-react-lite";
-import {Project} from "../../Utilities/Project";
 import {Dayjs} from "dayjs";
 import {Draggable} from "react-beautiful-dnd";
-import {ProjectRow} from "./ProjectRow";
 import {GroupRow} from "./GroupRow";
 import {Group} from "../../Utilities/Group";
 
