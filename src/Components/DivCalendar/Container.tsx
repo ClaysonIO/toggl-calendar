@@ -28,7 +28,7 @@ export const CalendarContainer = observer(({workSpace, displayType, dates}: {wor
                     </div>
                 ) :
                 <DragDropContext onDragEnd={workSpace.orderProject}>
-                    <Droppable droppableId={'calendarContainer'}>
+                    <Droppable droppableId={'calendarContainer'} type={"containerDroppable"}>
                         {(provided, snapshot) => (
                             <div
                                 id={"calendarContainer"}
@@ -36,13 +36,13 @@ export const CalendarContainer = observer(({workSpace, displayType, dates}: {wor
                                 {...provided.droppableProps}
                             >
                                 {workSpace.orderedProjects.length ? workSpace.orderedProjects.map((val: (Row | null), index)=>{
-                                    if(!val) return <React.Fragment/>;
+                                    if(!val) return <React.Fragment key={index}/>;
 
                                     switch (val.type) {
                                         case "group": return <GroupRowDraggable key={val.rowId} group={val as Group} dates={dates} displayType={displayType} gridCols={gridCols} index={index}/>;
                                         case "project": return <ProjectRowDraggable key={val.rowId} dates={dates} displayType={displayType} project={val as Project} gridCols={gridCols} index={index}/>;
                                         case "tag": return <TagRow key={val.rowId} tag={val as Tag} dates={dates} displayType={displayType} gridCols={gridCols}/>;
-                                        default: return <React.Fragment/>
+                                        default: return <React.Fragment key={index}/>
                                     }
                                 }) : <NoContent/>}
                             </div>

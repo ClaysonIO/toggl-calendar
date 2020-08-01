@@ -2,17 +2,20 @@ import {action, computed, observable} from "mobx";
 import {Entry} from "./Entry";
 import {Day} from "./Day";
 import dayjs from "dayjs";
+import {WorkSpace} from "./WorkSpace";
 
 //This class provides the functions to calculate
 export abstract class Row{
     public rowId: string = (Math.random() * 1000000000).toString()
     @observable public entries: Entry[] = [];
     @observable public days: Day[] = [];
-    @observable public expanded: boolean = false;
-    @observable public color: string = "#ccc";
+    @computed public get expanded(): boolean {return this.workSpace.expanded.indexOf(this.rowId) > -1};
+    @observable public color: string = "#ff8330";
+    public readonly workSpace: WorkSpace;
     public abstract readonly type: 'group' | 'project' | 'tag';
 
-    constructor() {
+    constructor({workSpace}: {workSpace: WorkSpace}) {
+        this.workSpace = workSpace;
         this.setExpanded = this.setExpanded.bind(this);
     }
 
@@ -25,8 +28,11 @@ export abstract class Row{
     }
 
     @action public setExpanded(state: boolean){
-        console.log("Set Expanded", state)
-        this.expanded = state;
+        if(this.expanded && !state){
+            this.workSpace.setExpanded(this.workSpace.expanded.filter(val=>val !== this.rowId));
+        } else if(!this.expanded && state){
+            this.workSpace.setExpanded(this.workSpace.expanded.concat([this.rowId]));
+        }
     }
 
     protected getDates(startDate: string, endDate: string){

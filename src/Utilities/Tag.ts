@@ -3,6 +3,7 @@ import {Entry} from "./Entry";
 import {Day} from "./Day";
 import {Row} from "./Row";
 import {Project} from "./Project";
+import {WorkSpace} from "./WorkSpace";
 
 
 interface ITag {
@@ -17,8 +18,8 @@ export class Tag extends Row{
     @observable public entries: Entry[] = [];
     @observable public days: Day[] = [];
 
-    constructor({name, project}: ITag) {
-        super();
+    constructor({name, project}: ITag, workSpace: WorkSpace) {
+        super({workSpace});
         this.name = name;
         this.project = project;
     }

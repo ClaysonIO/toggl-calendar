@@ -24,6 +24,7 @@ export class WorkSpace{
     @observable public loading: boolean = true;
     @observable public projects: Project[] = [];
     @observable public groups: Group[] = [];
+    @observable public expanded: string[] = [];
 
     constructor({id, name, api_token}: IWorkSpace, apiToken?: string) {
         this.id = id;
@@ -31,12 +32,24 @@ export class WorkSpace{
         this.api_token = apiToken || api_token;
         this.projectOrder = JSON.parse(window.localStorage.getItem(`workspaceOrder_${id}`) || '[]');
         this.getGroups();
+        this.getExpanded();
     }
+
+    @action setExpanded(expanded: string[]){
+        this.expanded = expanded;
+        window.localStorage.setItem(`workspaceExpanded_${this.id}`, JSON.stringify(expanded));
+    }
+
+    @action public getExpanded(){
+        const serializedExpanded = window.localStorage.getItem(`workspaceExpanded_${this.id}`)
+        this.expanded = (JSON.parse(serializedExpanded || "[]"));
+    }
+
 
     public getGroups(){
         const serializedGroups = window.localStorage.getItem(`workspaceGroups_${this.id}`)
 
-        this.groups = (JSON.parse(serializedGroups || "[]")).map((val: string)=>Group.deserialize(val))
+        this.groups = (JSON.parse(serializedGroups || "[]")).map((val: string)=>Group.deserialize(val, this))
     }
 
     public setGroups(){
@@ -46,6 +59,9 @@ export class WorkSpace{
     }
 
     @action.bound public orderProject({ destination, source, reason }: any){
+        console.log("SOURCE", source);
+        console.log("DESTINATION", destination);
+        console.log("REASON", reason);
         if(source && destination){
 
             const currentOrder = this.projectOrder.slice();
@@ -83,7 +99,7 @@ export class WorkSpace{
     }
 
     @action public createGroup(name: string){
-        var newGroup = new Group({name});
+        var newGroup = new Group({name}, this);
         if(!this.groups.filter(val=>val.rowId === newGroup.rowId).length){
             this.groups = this.groups.concat(newGroup);
             this.setGroups();
@@ -100,7 +116,7 @@ export class WorkSpace{
             }
 
             if(!projectHash[taskResponse.pid]){
-                const newProject = new Project(taskResponse)
+                const newProject = new Project(taskResponse, this)
                 projects.push(newProject)
                 projectHash[newProject.pid] = newProject;
 

@@ -3,6 +3,7 @@ import {Entry} from "./Entry";
 import {action, observable} from "mobx";
 import {Tag} from "./Tag";
 import {Row} from "./Row";
+import {WorkSpace} from "./WorkSpace";
 
 interface IProject {
     pid: number;
@@ -20,8 +21,8 @@ export class Project extends Row{
     public name: string;
     public readonly type = 'project';
 
-    constructor({pid, project, client, project_hex_color}: IProject) {
-        super();
+    constructor({pid, project, client, project_hex_color}: IProject, workSpace: WorkSpace) {
+        super({workSpace});
         this.rowId = pid.toString();
         this.pid = pid;
         this.name = project || "Without Project";
@@ -44,7 +45,7 @@ export class Project extends Row{
         let currentTag = this.tags.find(val=>val.name === entry.tags);
 
         if(!currentTag){
-           currentTag = new Tag({name: entry.tags, project: this});
+           currentTag = new Tag({name: entry.tags, project: this}, this.workSpace);
            this.tags = this.tags
                .concat([currentTag])
                .sort((a,b)=>b.name.localeCompare(a.name, 'en', {numeric: true}));

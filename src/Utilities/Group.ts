@@ -2,6 +2,7 @@ import {Project} from "./Project";
 import {Row} from "./Row";
 import {computed} from "mobx";
 import {Entry} from "./Entry";
+import {WorkSpace} from "./WorkSpace";
 
 interface IGroup {
     rowId?: string,
@@ -16,8 +17,8 @@ export class Group extends Row{
     public name: string = '';
     public readonly type = 'group';
 
-    constructor({name, rowId, projectIds, color}: IGroup) {
-        super();
+    constructor({name, rowId, projectIds, color}: IGroup, workSpace: WorkSpace) {
+        super({workSpace});
         this.name = name;
         this.projectIds = projectIds || this.projectIds;
         this.rowId = rowId || `Group_${name}`
@@ -39,10 +40,10 @@ export class Group extends Row{
         })
     }
 
-    public static deserialize(serialized: string){
+    public static deserialize(serialized: string, workSpace: WorkSpace){
         const deserialized = JSON.parse(serialized) as IGroup;
 
-        return new Group(deserialized)
+        return new Group(deserialized, workSpace)
     }
 }
 

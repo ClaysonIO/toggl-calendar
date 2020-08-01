@@ -10,13 +10,15 @@ import {TagRow} from "./TagRow";
 export const ProjectRow = observer(({project, dates, displayType, gridCols, isDragging}: {project: Project, dates: Dayjs[], displayType: string, gridCols: string, isDragging: boolean})=>{
 
     return (
-        <React.Fragment>
+        <div className={'rowContainer'}
+             style={{
+                 boxShadow: `${isDragging ? '0 2px .8rem' : "0 0 0"} ${project.color}`,
+             }}>
             <div
                 className={`row projectRow ${isDragging ? 'selected' : ''}`}
                 style={{
                     gridTemplateColumns: gridCols,
                     borderColor: project.color,
-                    boxShadow: `${isDragging ? '0 2px .8rem' : "0 0 0"} ${project.color}`,
                 }}>
                 <ExpandButton expanded={project.expanded} setExpanded={project.setExpanded}/>
                 <div className={'title'} style={{color: project.color}}>{project.name}</div>
@@ -29,6 +31,6 @@ export const ProjectRow = observer(({project, dates, displayType, gridCols, isDr
                     return (<TagRow key={index} tag={tag} dates={dates} displayType={displayType} gridCols={gridCols}/>)
                 })
                 : <React.Fragment/>}
-        </React.Fragment>
+        </div>
     )
 })
