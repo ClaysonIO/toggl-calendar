@@ -18,9 +18,9 @@ function App() {
 
     return (
             <Switch>
-                {query['page'] === 'settings' ? <Route path={"/"} component={SettingsPage}/> : ''}
-                {query['page'] === 'calendar' ? <Route path={"/"} component={CalendarPage}/> : ''}
-                {query['page'] === 'main' ? <Route path={"/"} component={MainPage}/> : ''}
+                <Route path={'/settings'} component={SettingsPage}/>
+                <Route path={'/calendar'} component={CalendarPage}/>
+                <Route path={'/main'} component={MainPage}/>
 
                 <Route component={MainPage}/>
             </Switch>

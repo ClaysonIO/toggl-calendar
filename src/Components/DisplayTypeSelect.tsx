@@ -4,24 +4,27 @@ import React from "react";
 
 export const DisplayTypeSelect = observer(({displayType, setDisplayType}: { displayType: string, setDisplayType: Function }) => {
 
-    const options = [
-        {label: "Description", value: 'description'},
-        {label: "Time", value: 'time'},
-        {label: "Rounded To 15 Min", value: 'roundedTime'},
-        {label: "Tasks and Rounded Time", value: 'tasksAndTime'}
-    ];
-
     function setValue(value: any) {
-        setDisplayType(value?.value)
-        window.localStorage.setItem('displayType', value?.value);
+        setDisplayType(value)
+        window.localStorage.setItem('displayType', value);
     }
 
+    return <div style={{display: 'flex'}}>
+        <DisplayTypeButton name={"Time"} currentValue={displayType} value={'time'} setValue={setValue}/>
+        <DisplayTypeButton name={"Rounded Time"} currentValue={displayType} value={'roundedTime'} setValue={setValue}/>
+        <DisplayTypeButton name={"Description"} currentValue={displayType} value={'description'} setValue={setValue}/>
+        <DisplayTypeButton name={"Time & Description"} currentValue={displayType} value={'tasksAndTime'} setValue={setValue}/>
+    </div>
+})
+
+const DisplayTypeButton = observer(({name, currentValue, value, setValue}:
+                                        {name: string, currentValue: string, value: string, setValue: Function})=>{
     return (
-        <div style={{width: "200px"}}>
-            <Select
-                options={options}
-                value={options.find(val => val.value === displayType)}
-                onChange={setValue}/>
-        </div>
+        <button
+            className={`calendarHeaderButton ${value === currentValue ? 'selected' : ''}`}
+            onClick={()=>setValue(value)}
+        >
+            {name}
+        </button>
     )
 })

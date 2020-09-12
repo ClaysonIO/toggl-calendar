@@ -37,6 +37,24 @@ main{
   color: #3b3b3b;
 }
 
+.calendarHeaderButton{
+  border:none;
+  background-color: #efebeb;
+  height: 2rem;
+  padding: 0 1rem;
+  cursor: pointer;
+  outline: none;
+  user-select: none;
+}
+
+.calendarHeaderButton:hover{
+  background-color: #e7e3e3;
+}
+
+.calendarHeaderButton.selected{
+  background-color: #f5bebe;
+}
+
 /*tbody th {*/
 /*  text-align: left;*/
 /*  vertical-align: top;*/

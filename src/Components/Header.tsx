@@ -7,11 +7,11 @@ import {GithubLogo} from "./GithubLogo";
 export const Header = ()=>{
     return (
         <header>
-            <Link to={'/?page=main'}><h1>Toggl Calendar View</h1></Link>
+            <Link to={'/'}><h1>Toggl Calendar View</h1></Link>
             <div style={{flex: 1}}/>
             <WorkSpaceSelect/>
-            {appState.workSpaces.length ? <Link to={'/?page=calendar'} >Calendar</Link> : ""}
-            <Link to={'/?page=settings'} >Settings</Link>
+            {appState.workSpaces.length ? <Link to={'/calendar'} >Calendar</Link> : ""}
+            <Link to={'/settings'} >Settings</Link>
             <GithubLogo/>
         </header>
     )

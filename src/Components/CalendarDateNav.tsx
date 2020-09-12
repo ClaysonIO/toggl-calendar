@@ -10,13 +10,13 @@ export const CalendarDateNav = ()=>{
     const history = useHistory();
 
     const navLinks = {
-        back: `/?page=calendar&startDate=${
+        back: `/calendar?startDate=${
             dayjs(startDate).subtract(1, 'week').format('YYYY-MM-DD')
         }&endDate=${dayjs(endDate).subtract(1, 'week').format('YYYY-MM-DD')}`,
-        today:`/?page=calendar&startDate=${
+        today:`/calendar?startDate=${
             dayjs().startOf('week').format('YYYY-MM-DD')
         }&endDate=${dayjs().endOf('week').format('YYYY-MM-DD')}`,
-        forward:`/?page=calendar&startDate=${
+        forward:`/calendar?startDate=${
             dayjs(startDate).add(1, 'week').format('YYYY-MM-DD')
         }&endDate=${dayjs(endDate).add(1, 'week').format('YYYY-MM-DD')}`
     }
@@ -35,7 +35,7 @@ export const CalendarDateNav = ()=>{
 
     useEffect(()=>{
             if(!startDate || !endDate){
-                history.push(`/?page=calendar&startDate=${
+                history.push(`/calendar?startDate=${
                     dayjs().startOf('week').format('YYYY-MM-DD')
                 }&endDate=${dayjs().endOf('week').format('YYYY-MM-DD')}`)
             }
@@ -46,9 +46,9 @@ export const CalendarDateNav = ()=>{
 
     return (
         <div>
-            <Link to={navLinks.back}><button>&lt;</button></Link>
-            <Link to={navLinks.today} onClick={clickToday}><button>Today</button></Link>
-            <Link to={navLinks.forward}><button>&gt;</button></Link>
+            <Link to={navLinks.back}><button className={'calendarHeaderButton'}>&lt;</button></Link>
+            <Link to={navLinks.today} onClick={clickToday}><button className={'calendarHeaderButton'}>Today</button></Link>
+            <Link to={navLinks.forward}><button className={'calendarHeaderButton'}>&gt;</button></Link>
         </div>
     )
 }
