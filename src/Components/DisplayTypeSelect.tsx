@@ -1,5 +1,4 @@
 import {observer} from "mobx-react-lite";
-import Select from "react-select";
 import React from "react";
 
 export const DisplayTypeSelect = observer(({displayType, setDisplayType}: { displayType: string, setDisplayType: Function }) => {
