@@ -18,7 +18,7 @@ import {GroupRowDraggable} from "./GroupRowDraggable";
 
 export const CalendarContainer = observer(({workSpace, displayType, dates}: {workSpace: WorkSpace, displayType: string, dates: Dayjs[]})=>{
 
-    const gridCols = `40px 150px 100px repeat(${dates.length}, 1fr) 75px`
+    const gridCols = `40px 150px 100px repeat(${dates.length}, 1fr) 75px 50px`
     return (
         <div className={"divCalendar container"}>
             <HeaderRow dates={dates} gridCols={gridCols}/>

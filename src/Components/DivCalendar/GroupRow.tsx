@@ -32,6 +32,7 @@ export const GroupRow = observer(({group, dates, displayType, gridCols, isDraggi
                 <div className={'title sumCol'} style={{color: textColor}}>
                     {DecimalToDisplayType(group.timeAsHours(dates[0]?.toISOString(), dates[dates.length -1]?.toISOString()), displayType)}
                 </div>
+                <div><button>Menu</button></div>
             </div>
             {group.expanded ?
                 <React.Fragment>
