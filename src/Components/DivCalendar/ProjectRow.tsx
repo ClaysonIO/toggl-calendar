@@ -6,14 +6,10 @@ import {Cell} from "./Cell";
 import {ExpandButton} from "../ExpandButton";
 import {DecimalToDisplayType} from "../../Utilities/Functions/DecimalToDisplayType";
 import {TagRow} from "./TagRow";
-import Popup from "reactjs-popup";
-import Creatable from "react-select/creatable";
 import {ProjectMenu} from "./ProjectMenu";
 
-export const ProjectRow = observer(({project, dates, displayType, gridCols, isDragging}: {project: Project, dates: Dayjs[], displayType: string, gridCols: string, isDragging: boolean})=>{
+export const ProjectRow = observer(({project, dates, displayType, gridCols, isDragging, inheritBackgroundColor}: {project: Project, dates: Dayjs[], displayType: string, gridCols: string, isDragging: boolean, inheritBackgroundColor?: boolean})=>{
     const [open, setOpen] = useState(false);
-
-
 
     return (
         <div className={'rowContainer'}
@@ -31,6 +27,7 @@ export const ProjectRow = observer(({project, dates, displayType, gridCols, isDr
                     borderLeftColor: open ? project.color : "rgba(0,0,0,0)",
                     borderRightColor: open ? project.color : "rgba(0,0,0,0)",
                     borderBottomColor: open ? project.color : "rgba(0,0,0,0)",
+                    backgroundColor: inheritBackgroundColor ? "rgba(255,255,255,0.75)" : "#FFF"
                 }}>
                 <ExpandButton expanded={project.expanded} setExpanded={project.setExpanded}/>
                 <div className={'title'} style={{color: project.color}}>{project.name}</div>
@@ -41,7 +38,7 @@ export const ProjectRow = observer(({project, dates, displayType, gridCols, isDr
             </div>
             {project.expanded ?
                 project.tags.map((tag, index)=>{
-                    return (<TagRow key={index} tag={tag} dates={dates} displayType={displayType} gridCols={gridCols}/>)
+                    return (<TagRow key={index} tag={tag} dates={dates} displayType={displayType} gridCols={gridCols} inheritBackgroundColor={inheritBackgroundColor}/>)
                 })
                 : <React.Fragment/>}
         </div>

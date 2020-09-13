@@ -13,7 +13,6 @@ interface IGroup {
 
 export class Group extends Row{
     @observable public projectIds: string[] = [];
-    public projects: Project[] = [];
     public name: string = '';
     public readonly type = 'group';
 
@@ -23,6 +22,10 @@ export class Group extends Row{
         this.projectIds = projectIds || this.projectIds;
         this.rowId = rowId || `Group_${name}`
         this.color = color || this.color;
+    }
+
+    @computed public get projects(){
+        return this.workSpace.projects.filter(val=>this.projectIds.indexOf(val.rowId) > -1)
     }
 
     @computed public get entries(){

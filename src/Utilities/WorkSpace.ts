@@ -80,7 +80,8 @@ export class WorkSpace{
 
     @computed public get orderedProjects(): (Row | null)[]{
         //Create a temporary array
-        const projectIdsInGroups = this.groups.reduce((acc: string[], val)=>acc.concat(val.projectIds), []);
+        const projectIdsInGroups = this.groups
+            .reduce((acc: string[], val)=>acc.concat(val.projectIds), []);
 
         //Go through the Order list, pop out projects as they're found
         return this.projectOrder.map(orderedId=>{
@@ -103,6 +104,10 @@ export class WorkSpace{
         if(!this.groups.filter(val=>val.rowId === newGroup.rowId).length){
             this.groups = this.groups.concat(newGroup);
             this.setGroups();
+
+            if(this.projectOrder.indexOf(newGroup.rowId) === -1){
+                this.projectOrder = this.projectOrder.concat([newGroup.rowId]);
+            }
         }
         return this.groups.find(val=>val.rowId === newGroup.rowId);
     }

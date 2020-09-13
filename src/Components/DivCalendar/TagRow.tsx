@@ -6,10 +6,13 @@ import {Cell} from "./Cell";
 import {DecimalToDisplayType} from "../../Utilities/Functions/DecimalToDisplayType";
 import {Dayjs} from "dayjs";
 
-export const TagRow = observer(({tag, dates, displayType, gridCols}: {tag: Tag, dates: Dayjs[], displayType: string, gridCols: string})=>{
+export const TagRow = observer(({tag, dates, displayType, gridCols, inheritBackgroundColor}: {tag: Tag, dates: Dayjs[], displayType: string, gridCols: string, inheritBackgroundColor?: boolean})=>{
     return (
         <div className={'rowContainer'}>
-            <div className={"row tagRow"} style={{gridTemplateColumns: gridCols, borderColor: tag.project.color}}>
+            <div className={"row tagRow"} style={{
+                gridTemplateColumns: gridCols,
+                borderColor: tag.project.color,
+                backgroundColor: inheritBackgroundColor ? "rgba(255,255,255,0.9)" : "#FFF"}}>
                 <div/>
                 <ExpandButton expanded={tag.expanded} setExpanded={tag.setExpanded}/>
                 <div className={''} style={{color: tag.project.color}}>{tag.name || "--Untagged--"}</div>

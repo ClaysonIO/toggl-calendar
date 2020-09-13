@@ -5,8 +5,8 @@ import {Dayjs} from "dayjs";
 import {ExpandButton} from "../ExpandButton";
 import {Cell} from "./Cell";
 import {DecimalToDisplayType} from "../../Utilities/Functions/DecimalToDisplayType";
-import {ProjectRowDraggable} from "./ProjectRowDraggable";
 import {EmptyRow} from "./ExmptyRow";
+import {ProjectRow} from "./ProjectRow";
 
 export const GroupRow = observer(({group, dates, displayType, gridCols, isDragging}: {group: Group, dates: Dayjs[], displayType: string, gridCols: string, isDragging: boolean})=>{
     const color = group.color || "#ff8330";
@@ -37,21 +37,8 @@ export const GroupRow = observer(({group, dates, displayType, gridCols, isDraggi
             {group.expanded ?
                 <React.Fragment>
                     {group.projects.length ? group.projects.map((project, index)=>{
-                        return (<ProjectRowDraggable key={index} project={project} dates={dates} displayType={displayType} gridCols={gridCols} index={index}/>)
+                        return (<ProjectRow key={index} project={project} dates={dates} displayType={displayType} gridCols={gridCols} isDragging={isDragging} inheritBackgroundColor={true}/>)
                     }) : <EmptyRow/>}
-
-                    {/*TODO: This should allow dropping projects into it*/}
-{/*                    <Droppable droppableId={`droppable_${group.rowId}`} type={"groupDroppable"}>*/}
-{/*                        {(provided, snapshot) => (*/}
-{/*                            <div*/}
-{/*                                id={`droppable_${group.rowId}`}*/}
-{/*                                ref={provided.innerRef}*/}
-{/*                                {...provided.droppableProps}*/}
-{/*                            >*/}
-{/*<div style={{borderRadius: '10px', border: 'dashed red 1px', width: '100%', height: '50px'}}/>*/}
-{/*                            </div>*/}
-{/*                        )}*/}
-{/*                    </Droppable>*/}
                 </React.Fragment>
                 : <React.Fragment/>}
             <div>
