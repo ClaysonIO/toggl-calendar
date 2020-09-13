@@ -4,6 +4,7 @@ import {action, observable} from "mobx";
 import {Tag} from "./Tag";
 import {Row} from "./Row";
 import {WorkSpace} from "./WorkSpace";
+import {Group} from "./Group";
 
 interface IProject {
     pid: number;
@@ -51,5 +52,16 @@ export class Project extends Row{
                .sort((a,b)=>b.name.localeCompare(a.name, 'en', {numeric: true}));
         }
         currentTag.addEntry(entry);
+    }
+
+    public setGroup({group}: {group?: Group}){
+        this.workSpace.groups.forEach(workspaceGroup=>{
+            const projectIds = workspaceGroup.projectIds.filter(val=>val !== this.rowId);
+            if(workspaceGroup === group){
+                projectIds.push(this.rowId);
+            }
+            workspaceGroup.setProjectIds(projectIds);
+        })
+        this.workSpace.setGroups();
     }
 }

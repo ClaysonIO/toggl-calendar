@@ -104,6 +104,7 @@ export class WorkSpace{
             this.groups = this.groups.concat(newGroup);
             this.setGroups();
         }
+        return this.groups.find(val=>val.rowId === newGroup.rowId);
     }
 
     @action addTasksToProjects(taskResponses: ITaskResponse[]){

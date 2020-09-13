@@ -8,6 +8,7 @@ import {DecimalToDisplayType} from "../../Utilities/Functions/DecimalToDisplayTy
 import {TagRow} from "./TagRow";
 import Popup from "reactjs-popup";
 import Creatable from "react-select/creatable";
+import {ProjectMenu} from "./ProjectMenu";
 
 export const ProjectRow = observer(({project, dates, displayType, gridCols, isDragging}: {project: Project, dates: Dayjs[], displayType: string, gridCols: string, isDragging: boolean})=>{
     const [open, setOpen] = useState(false);
@@ -36,22 +37,7 @@ export const ProjectRow = observer(({project, dates, displayType, gridCols, isDr
                 <div className={'title'} style={{color: project.color}}>{project.client}</div>
                 {dates.map((val, index)=>(<Cell key={index} expanded={project.expanded} displayType={displayType} day={project.dateHash[val.format('YYYYMMDD')]}/>))}
                 <div className={'title sumCol'} style={{color: project.color}}>{DecimalToDisplayType(project.timeAsHours(dates[0]?.toISOString(), dates[dates.length -1]?.toISOString()), displayType)}</div>
-                <Popup
-                    onOpen={()=>setOpen(true)}
-                    onClose={()=>setOpen(false)}
-                    trigger={<button>Menu</button>} position={"left center"}>
-                    <div style={{
-                        backgroundColor: '#fff',
-                        border: `1px solid ${project.color}`,
-                        padding: '10px',
-                        width: '200px',
-                        boxShadow: `0 2px .8rem ${project.color}`
-                    }}>
-                        Add to Group
-                        <Creatable/>
-                    </div>
-                </Popup>
-
+                <ProjectMenu project={project} setOpen={setOpen}/>
             </div>
             {project.expanded ?
                 project.tags.map((tag, index)=>{

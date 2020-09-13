@@ -1,6 +1,6 @@
 import {Project} from "./Project";
 import {Row} from "./Row";
-import {computed} from "mobx";
+import {action, computed, observable} from "mobx";
 import {Entry} from "./Entry";
 import {WorkSpace} from "./WorkSpace";
 
@@ -12,7 +12,7 @@ interface IGroup {
 }
 
 export class Group extends Row{
-    public projectIds: string[] = [];
+    @observable public projectIds: string[] = [];
     public projects: Project[] = [];
     public name: string = '';
     public readonly type = 'group';
@@ -29,6 +29,10 @@ export class Group extends Row{
         return this.projects.reduce((acc: Entry[], val: Project)=>{
             return acc.concat(val.entries);
         }, [])
+    }
+
+    @action public setProjectIds(projectIds: string[]){
+        this.projectIds = projectIds;
     }
 
     public serialize(){
