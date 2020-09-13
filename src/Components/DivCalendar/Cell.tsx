@@ -1,7 +1,15 @@
-import React, {ReactElement} from "react";
+import React, {ReactElement, useState} from "react";
 import {Day} from "../../Utilities/Day";
+import Tippy from "@tippyjs/react";
+import 'tippy.js/dist/tippy.css';
 
 export const Cell = ({day, displayType, expanded}: { day?: Day, displayType: string, expanded: boolean }) => {
+
+
+    const [visible, setVisible] = useState(false);
+    const show = () => setVisible(true);
+    const hide = () => setVisible(false);
+
     function copyToClipboard(event: React.MouseEvent) {
         const range = document.createRange();
         const textNode = event.currentTarget;
@@ -10,6 +18,10 @@ export const Cell = ({day, displayType, expanded}: { day?: Day, displayType: str
             window.getSelection()?.removeAllRanges();
             window.getSelection()?.addRange(range);
             document.execCommand("copy");
+            show();
+            setTimeout(()=>{
+                hide();
+            }, 2000)
         }
     }
 
@@ -26,8 +38,14 @@ export const Cell = ({day, displayType, expanded}: { day?: Day, displayType: str
 
     return (
         <div className={`dateCol ${expanded ? 'expanded' : ''}`}>
-            <button onClick={copyToClipboard}>
-                {value}
-            </button>
+            <Tippy
+                content={"Copied"}
+                visible={visible}
+                onClickOutside={hide}
+            >
+                <button onClick={copyToClipboard}>
+                    {value}
+                </button>
+            </Tippy>
         </div>)
 }
