@@ -41,7 +41,7 @@ export const SettingsPage = observer(()=>{
 
                 {appState.workSpaces.length ?
                     <ul>
-                        {appState.workSpaces.map((val, index) => (<div style={{width: '200px', margin: '5px'}}>
+                        {appState.workSpaces.map((val, index) => (<div key={index} style={{width: '200px', margin: '5px'}}>
                                 <button
                                     style={{width: '100%'}}
                                     onClick={()=>selectWorkSpace(val)}
