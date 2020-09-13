@@ -3,6 +3,7 @@ import {Row} from "./Row";
 import {action, computed, observable} from "mobx";
 import {Entry} from "./Entry";
 import {WorkSpace} from "./WorkSpace";
+import {Day} from "./Day";
 
 interface IGroup {
     rowId?: string,
@@ -26,6 +27,30 @@ export class Group extends Row{
 
     @computed public get projects(){
         return this.workSpace.projects.filter(val=>this.projectIds.indexOf(val.rowId) > -1)
+    }
+
+    @computed public get days(){
+        //Sort into buckets of days
+
+        //Add all entries into date
+
+        return Object.values(this.projects.reduce((acc: {[key: string]: Day}, project)=>{
+            project.days.forEach(day=>{
+                if(!acc[day.date.format('YYYYMMDD')]){
+                    acc[day.date.format('YYYYMMDD')] = new Day({date: day.date});
+                }
+                day.entries.forEach(entry=>{
+                    acc[day.date.format('YYYYMMDD')].addEntry(new Entry({
+                        description: `${project.client} / ${project.name} / ${entry.description}`,
+                        dur: entry.dur,
+                        start: entry.date.toISOString(),
+                        tags: entry.tags.split(', ')
+                    }));
+                })
+            })
+
+            return acc;
+        }, {}));
     }
 
     @computed public get entries(){
