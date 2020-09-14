@@ -59,9 +59,6 @@ export class WorkSpace{
     }
 
     @action.bound public orderProject({ destination, source, reason }: any){
-        console.log("SOURCE", source);
-        console.log("DESTINATION", destination);
-        console.log("REASON", reason);
         if(source && destination){
 
             const currentOrder = this.projectOrder.slice();

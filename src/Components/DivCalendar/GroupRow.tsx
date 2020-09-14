@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useState} from 'react';
 import {observer} from "mobx-react-lite";
 import {Group} from "../../Utilities/Group";
 import {Dayjs} from "dayjs";
@@ -7,8 +7,10 @@ import {Cell} from "./Cell";
 import {DecimalToDisplayType} from "../../Utilities/Functions/DecimalToDisplayType";
 import {EmptyRow} from "./ExmptyRow";
 import {ProjectRow} from "./ProjectRow";
+import {GroupMenu} from "./GroupMenu";
 
 export const GroupRow = observer(({group, dates, displayType, gridCols, isDragging}: {group: Group, dates: Dayjs[], displayType: string, gridCols: string, isDragging: boolean})=>{
+    const [open, setOpen] = useState(false);
     const color = group.color || "#ff8330";
     const textColor = "white";
 
@@ -16,7 +18,7 @@ export const GroupRow = observer(({group, dates, displayType, gridCols, isDraggi
         <div className={'rowContainer'}
              style={{
                  backgroundColor: color,
-                 boxShadow: `${isDragging ? '0 2px .8rem' : "0 0 0"} ${color}`,
+                 boxShadow: `${isDragging || open ? '0 2px .8rem' : "0 0 0"} ${color}`,
              }}>
             <div
                 className={"row projectRow"}
@@ -32,7 +34,7 @@ export const GroupRow = observer(({group, dates, displayType, gridCols, isDraggi
                 <div className={'title sumCol'} style={{color: textColor}}>
                     {DecimalToDisplayType(group.timeAsHours(dates[0]?.toISOString(), dates[dates.length -1]?.toISOString()), displayType)}
                 </div>
-                <div><button>Menu</button></div>
+                <GroupMenu group={group} setOpen={setOpen}/>
             </div>
             {group.expanded ?
                 <React.Fragment>

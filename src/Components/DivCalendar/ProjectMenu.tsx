@@ -17,13 +17,11 @@ export const ProjectMenu = observer(({project, setOpen}: {project: Project, setO
 
     function selectGroup(group?: Group){
         project.setGroup({group});
-        console.log("Selecting Group", group)
     }
 
     function createGroup(groupName: string){
         const group = workSpace?.createGroup(groupName);
         project.setGroup({group});
-        console.log(group);
     }
 
     const options: {label: string, value: string, data?: any}[] = [
@@ -35,12 +33,12 @@ export const ProjectMenu = observer(({project, setOpen}: {project: Project, setO
             data: val
         })));
 
-    const value = options.find(val=>val.data.projectIds.indexOf(project.rowId) > -1);
-    console.log("VALUE", value)
     return (<Popup
         onOpen={()=>setOpen(true)}
         onClose={()=>setOpen(false)}
-        trigger={<button>Menu</button>} position={"left center"}>
+        trigger={<div>
+            <button className={'menuButton'}>&#9679;&#9679;&#9679;</button>
+        </div>} position={"left center"}>
         <div style={{
             backgroundColor: '#fff',
             border: `1px solid ${project.color}`,
@@ -50,6 +48,7 @@ export const ProjectMenu = observer(({project, setOpen}: {project: Project, setO
         }}>
             Add to Group
             <Creatable
+                placeholder={"Select or Create New"}
                 value={options.find(val=>val.data.projectIds.indexOf(project.rowId) > -1)}
                 options={options}
                 onCreateOption={createGroup}

@@ -14,7 +14,7 @@ interface IGroup {
 
 export class Group extends Row{
     @observable public projectIds: string[] = [];
-    public name: string = '';
+    @observable public name: string = '';
     public readonly type = 'group';
 
     constructor({name, rowId, projectIds, color}: IGroup, workSpace: WorkSpace) {
@@ -51,6 +51,16 @@ export class Group extends Row{
 
             return acc;
         }, {}));
+    }
+
+    @action public setColor(color: string){
+        this.color = color;
+        this.workSpace.setGroups();
+    }
+
+    @action public setName(name: string){
+        this.name = name;
+        this.workSpace.setGroups();
     }
 
     @computed public get entries(){
