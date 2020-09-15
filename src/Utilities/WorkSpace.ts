@@ -25,6 +25,7 @@ export class WorkSpace{
     @observable public projects: Project[] = [];
     @observable public groups: Group[] = [];
     @observable public expanded: string[] = [];
+    @observable public emailHash: {[key: string]: string[]} = {};
 
     constructor({id, name, api_token}: IWorkSpace, apiToken?: string) {
         this.id = id;
@@ -33,6 +34,7 @@ export class WorkSpace{
         this.projectOrder = JSON.parse(window.localStorage.getItem(`workspaceOrder_${id}`) || '[]');
         this.getGroups();
         this.getExpanded();
+        this.getEmailHash();
     }
 
     @action setExpanded(expanded: string[]){
@@ -43,6 +45,16 @@ export class WorkSpace{
     @action public getExpanded(){
         const serializedExpanded = window.localStorage.getItem(`workspaceExpanded_${this.id}`)
         this.expanded = (JSON.parse(serializedExpanded || "[]"));
+    }
+
+    @action setEmailhash(emailHash: {[key: string]: string[]}){
+        this.emailHash = emailHash;
+        window.localStorage.setItem(`workspaceEmailHash_${this.id}`, JSON.stringify(emailHash));
+    }
+
+    @action public getEmailHash(){
+        const serializedEmailHash = window.localStorage.getItem(`workspaceEmailHash_${this.id}`)
+        this.emailHash = (JSON.parse(serializedEmailHash || "{}"));
     }
 
 
