@@ -2,7 +2,7 @@ import React, {useMemo} from 'react';
 import {observer} from "mobx-react-lite";
 import {WorkSpace} from "../Utilities/WorkSpace";
 
-export const EmailList = observer(({workspace}: {workspace: WorkSpace})=>{
+export const EmailList = observer(({workSpace}: {workSpace: WorkSpace})=>{
 
     return (<div>
         <hr/>
@@ -18,14 +18,14 @@ export const EmailList = observer(({workspace}: {workspace: WorkSpace})=>{
             </thead>
 
             <tbody>
-            {workspace.emails.map((val, index)=>(<EmailRow key={index} workSpace={workspace} email={val}/>))}
+            {workSpace.emails.map((val, index)=>(<EmailRow key={index} workSpace={workSpace} email={val}/>))}
             </tbody>
         </table>
     </div>)
 })
 
 const EmailRow = observer(({workSpace, email}: {email: string, workSpace: WorkSpace})=>{
-    const emailRows = useMemo(()=>workSpace.getEmailRows(email), []);
+    const emailRows = useMemo(()=>workSpace.getEmailRows(email), [email, workSpace]);
     const subject = "Timekeeping Update";
     const body = emailRows.map(val=>val.name).join("%0A");
 
