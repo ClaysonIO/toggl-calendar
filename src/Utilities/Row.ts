@@ -91,5 +91,6 @@ export abstract class Row{
             }
             return acc;
         }, [])
+            .sort((a,b)=>a.localeCompare(b, 'en'))
     }
 }
