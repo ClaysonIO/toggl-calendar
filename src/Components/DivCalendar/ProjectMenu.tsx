@@ -55,6 +55,16 @@ export const ProjectMenu = observer(({project, setOpen}: {project: Project, setO
                 //@ts-ignore
                 onChange={(item)=>selectGroup(item.data)}
             />
+            Set Emails
+            <Creatable
+                placeholder={"Select or Create New"}
+                isMulti={true}
+                value={project.emails.map(val=>({value: val, label: val}))}
+                options={project.workSpace.emails.map(val=>({value: val, label: val}))}
+                onCreateOption={project.createEmail}
+                //@ts-ignore
+                onChange={(item)=>project.setEmails((item || []).map(val=>val.value))}
+            />
         </div>
     </Popup>)
 })

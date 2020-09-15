@@ -2,6 +2,7 @@ import React from 'react';
 import {observer} from "mobx-react-lite";
 import {Group} from "../../Utilities/Group";
 import Popup from "reactjs-popup";
+import Creatable from "react-select/creatable";
 
 export const GroupMenu = observer(({group, setOpen}: {group: Group, setOpen: Function})=>{
     return (<Popup
@@ -28,6 +29,20 @@ export const GroupMenu = observer(({group, setOpen}: {group: Group, setOpen: Fun
             <div style={{display: 'flex', marginTop: '20px',  flexDirection: 'column'}}>
                 <label htmlFor={`color_${group.rowId}`} style={{marginRight: '10px'}}>Set Color</label>
                 <input style={{width: '100%'}} name={`color_${group.rowId}`} type={'color'} value={group.color} onChange={(e)=>{group.setColor(e.currentTarget.value)}}/>
+            </div>
+
+
+            <div style={{display: 'flex', marginTop: '20px',  flexDirection: 'column'}}>
+                Set Emails
+                <Creatable
+                    placeholder={"Select or Create New"}
+                    isMulti={true}
+                    value={group.emails.map(val=>({value: val, label: val}))}
+                    options={group.workSpace.emails.map(val=>({value: val, label: val}))}
+                    onCreateOption={group.createEmail}
+                    //@ts-ignore
+                    onChange={(item)=>group.setEmails((item || []).map(val=>val.value))}
+                />
             </div>
         </div>
     </Popup>)

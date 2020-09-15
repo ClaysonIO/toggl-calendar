@@ -19,6 +19,17 @@ export abstract class Row{
         this.setExpanded = this.setExpanded.bind(this);
     }
 
+    @computed public get emails(): string[]{
+        return this.workSpace.emailHash[this.rowId] || [];
+    }
+
+    public setEmails(emails: string[]){
+        this.workSpace.setEmailItem({rowId: this.rowId, emails});
+    }
+
+    @action.bound public createEmail(email: string){
+        this.setEmails(this.emails.concat(email));
+    }
 
     @computed public get dateHash(){
         return this.days.reduce((acc: {[key: string]: Day}, val)=>{

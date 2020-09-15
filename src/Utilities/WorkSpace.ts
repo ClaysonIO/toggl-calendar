@@ -47,9 +47,20 @@ export class WorkSpace{
         this.expanded = (JSON.parse(serializedExpanded || "[]"));
     }
 
-    @action setEmailhash(emailHash: {[key: string]: string[]}){
-        this.emailHash = emailHash;
-        window.localStorage.setItem(`workspaceEmailHash_${this.id}`, JSON.stringify(emailHash));
+    @action setEmailItem({rowId, emails}: {rowId: string, emails: string[]}){
+        this.emailHash[rowId] = emails;
+        window.localStorage.setItem(`workspaceEmailHash_${this.id}`, JSON.stringify(this.emailHash));
+    }
+
+    @computed public get emails(){
+        return Object.values(this.emailHash)
+            .reduce((acc, val)=>acc.concat(val), [])
+            .reduce((acc: string[], val)=>{
+                if(acc.indexOf(val)=== -1){
+                    acc.push(val);
+                }
+                return acc;
+            }, []);
     }
 
     @action public getEmailHash(){
