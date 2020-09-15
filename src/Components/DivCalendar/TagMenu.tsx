@@ -1,11 +1,7 @@
-import React, {useMemo} from 'react';
+import React from 'react';
 import {observer} from "mobx-react-lite";
 import Creatable from "react-select/creatable";
 import Popup from "reactjs-popup";
-import {Project} from "../../Utilities/Project";
-import {Group} from "../../Utilities/Group";
-import {appState} from "../../App";
-import {WorkSpaceSelect} from "../WorkSpaceSelect";
 import {Tag} from "../../Utilities/Tag";
 
 export const TagMenu = observer(({tag, setOpen}: {tag: Tag, setOpen: Function})=>{

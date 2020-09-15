@@ -9,6 +9,7 @@ import {DecimalToClockTime} from "./Functions/DecimalToClockTime";
 import {DecimalToRoundedTime} from "./Functions/DecimalToRoundedTime";
 import {Row} from "./Row";
 import {Group} from "./Group";
+import {Tag} from "./Tag";
 
 export interface IWorkSpace{
     id: number;
@@ -60,7 +61,8 @@ export class WorkSpace{
                     acc.push(val);
                 }
                 return acc;
-            }, []);
+            }, [])
+            .sort((a,b)=>a.localeCompare(b, 'en'));
     }
 
     @action public getEmailHash(){
@@ -68,6 +70,41 @@ export class WorkSpace{
         this.emailHash = (JSON.parse(serializedEmailHash || "{}"));
     }
 
+    public getEmailRows(email: string){
+        return Object.keys(this.emailHash)
+            .reduce((acc: string[], val)=>{
+                return this.emailHash[val]?.indexOf(email) > -1 ? acc.concat(val) : acc;
+            }, [])
+            .map(val=>{
+                return this.GroupHash[val] || this.ProjectHash[val] || this.TagHash[val] || undefined;
+            })
+            .filter(val=>val);
+    }
+
+    @computed public get GroupHash(){
+        return this.groups.reduce((acc: {[key: string]: Group}, val)=>{
+            acc[val.rowId] = val;
+            return acc;
+        }, {})
+    }
+
+    @computed public get ProjectHash(){
+        return this.projects.reduce((acc: {[key: string]: Project}, val)=>{
+            acc[val.rowId] = val;
+            return acc;
+        }, {})
+    }
+
+    @computed public get TagHash(){
+        return this.projects.reduce((acc: {[key: string]: Tag}, val)=>{
+            val.tags
+                .filter(tag=>tag)
+                .forEach(tag=>{
+                    acc[tag.rowId] = tag;
+                })
+            return acc;
+        }, {})
+    }
 
     public getGroups(){
         const serializedGroups = window.localStorage.getItem(`workspaceGroups_${this.id}`)
@@ -89,12 +126,8 @@ export class WorkSpace{
 
             currentOrder.splice(destination.index, 0, item);
 
-            // this.saveProjectOrder(currentOrder);
-
             this.projectOrder = currentOrder;
             window.localStorage.setItem(`workspaceOrder_${this.id}`, JSON.stringify(currentOrder));
-
-            //TODO: Work out an algorithm to merge the existing array, and the new array, in a manner that keeps both in sync (if possible)
         }
     }
 

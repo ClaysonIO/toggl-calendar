@@ -7,6 +7,7 @@ import dayjs, {Dayjs} from "dayjs";
 import {splitQuery} from "../Utilities/Functions/SplitQuery";
 import {DisplayTypeSelect} from "../Components/DisplayTypeSelect";
 import {CalendarDateNav} from "../Components/CalendarDateNav";
+import {EmailList} from "../Components/EmailList";
 
 export const CalendarPage = () =>{
 
@@ -48,7 +49,11 @@ export const CalendarPage = () =>{
                 <CalendarDateNav/>
             </div>
 
-            {appState.selectedWorkSpace ? <CalendarContainer workSpace={appState.selectedWorkSpace} displayType={displayType} dates={dates}/> : ""}
+            {appState.selectedWorkSpace ?
+                <CalendarContainer workSpace={appState.selectedWorkSpace} displayType={displayType} dates={dates}/> : ""}
+
+            {appState.selectedWorkSpace && appState.selectedWorkSpace.emails.length ?
+                <EmailList workspace={appState.selectedWorkSpace}/> : <React.Fragment/> }
         </Layout>
     )
 }
