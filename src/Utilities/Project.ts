@@ -19,7 +19,6 @@ export class Project extends Row{
     // @observable public entries: Entry[] = [];
     // @observable public days: Day[] = [];
     @observable public tags: Tag[] = [];
-    public name: string;
     public readonly type = 'project';
 
     constructor({pid, project, client, project_hex_color}: IProject, workSpace: WorkSpace) {

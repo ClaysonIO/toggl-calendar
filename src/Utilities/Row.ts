@@ -7,6 +7,7 @@ import {WorkSpace} from "./WorkSpace";
 //This class provides the functions to calculate
 export abstract class Row{
     public rowId: string = (Math.random() * 1000000000).toString()
+    public name: string = '';
     @observable public entries: Entry[] = [];
     @observable public days: Day[] = [];
     @computed public get expanded(): boolean {return this.workSpace.expanded.indexOf(this.rowId) > -1};
@@ -20,7 +21,7 @@ export abstract class Row{
     }
 
     @computed public get emails(): string[]{
-        return this.workSpace.emailHash[this.rowId] || [];
+        return this.workSpace.rowToEmailHash[this.rowId] || [];
     }
 
     public setEmails(emails: string[]){
