@@ -53,7 +53,7 @@ export const CalendarPage = () =>{
                 <CalendarContainer workSpace={appState.selectedWorkSpace} displayType={displayType} dates={dates}/> : ""}
 
             {appState.selectedWorkSpace && appState.selectedWorkSpace.emails.length ?
-                <EmailList workspace={appState.selectedWorkSpace}/> : <React.Fragment/> }
+                <EmailList workSpace={appState.selectedWorkSpace}/> : <React.Fragment/> }
         </Layout>
     )
 }
