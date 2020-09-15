@@ -89,9 +89,15 @@ export class WorkSpace{
             return {
                 email,
                 rows: this.emailToRowHash[email]?.map(rowId=>{
-                    return this.GroupHash[rowId] || this.ProjectHash[rowId] || this.TagHash[rowId] || undefined;
+                    if(this.GroupHash[rowId] && this.GroupHash[rowId].projects.length){
+                        return this.GroupHash[rowId]
+                    } else if(this.ProjectHash[rowId]){
+                        return this.ProjectHash[rowId]
+                    } else if(this.TagHash[rowId]){
+                        return this.TagHash[rowId]
+                    }
                 })
-                    .filter(val=>val)
+                    .filter(val=>val) as Row[]
             }
 
         })
@@ -159,7 +165,7 @@ export class WorkSpace{
             const project = this.projects.find(val=>val.rowId === orderedId);
             if(project) return project;
             const group = this.groups.find(val=>val.rowId === orderedId);
-            if(group) return group;
+            if(group && group.projects.length) return group;
 
             return null;
         })
