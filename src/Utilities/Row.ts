@@ -80,4 +80,16 @@ export abstract class Row{
     public roundedHours(startDate: string, endDate: string): string{
         return (Math.round(this.timeAsHours(startDate, endDate) / .25) * .25).toFixed(2)
     }
+
+    public tasks(startDate: string, endDate: string): string[]{
+        const dates = this.getDates(startDate, endDate);
+        const entries = dates.reduce((acc: Entry[], val)=>acc.concat(val.entries), [])
+
+        return entries.reduce((acc: string[], val: Entry)=>{
+            if(acc.indexOf(val.description) === -1){
+                acc.push(val.description);
+            }
+            return acc;
+        }, [])
+    }
 }
