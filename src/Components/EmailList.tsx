@@ -42,10 +42,10 @@ const EmailRow = observer(({rows, email, startDate, endDate}: {email: string, ro
             <td>{email}</td>
             <td>{rows.map(val=>val?.name).join(', ')}</td>
             <td>
-                <a href={`mailto:${email}?subject=${subject}&&body=${timeBody}`} target={'_blank'} rel={"noopener noreferrer"}>
+                <a href={`mailto:${email}?subject=${subject}&body=${timeBody}`} target={'_blank'} rel={"noopener noreferrer"}>
                     <button>Time</button>
                 </a>
-                <a href={`mailto:${email}?subject=${subject}&&body=${timeAndTaskBody}`} target={'_blank'} rel={"noopener noreferrer"}>
+                <a href={`mailto:${email}?subject=${subject}&body=${timeAndTaskBody}`} target={'_blank'} rel={"noopener noreferrer"}>
                     <button>Time and Description</button>
                 </a>
             </td>
