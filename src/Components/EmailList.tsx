@@ -14,17 +14,19 @@ export const EmailList = observer(({workSpace, startDate, endDate}: {workSpace: 
             <tr>
                 <th style={{width: '20rem'}}>Email</th>
                 <th>Projects</th>
-                <th style={{width: '200px'}}>Email Types</th>
+                <th style={{width: '300px', textAlign: "right"}}>Email Types</th>
             </tr>
             </thead>
 
             <tbody>
-            {workSpace.emailRows.map((val, index)=>(<EmailRow key={index}
-                                                              rows={val.rows}
-                                                              email={val.email}
-                                                              startDate={startDate}
-                                                              endDate={endDate}
-            />))}
+            {workSpace.emailRows
+                .filter(val=>val.rows.length)
+                .map((val, index)=>(<EmailRow key={index}
+                                              rows={val.rows}
+                                              email={val.email}
+                                              startDate={startDate}
+                                              endDate={endDate}
+                />))}
             </tbody>
         </table>
     </div>)
@@ -40,14 +42,17 @@ const EmailRow = observer(({rows, email, startDate, endDate}: {email: string, ro
     return (
         <tr>
             <td>{email}</td>
-            <td>{rows.map(val=>val?.name).join(', ')}</td>
+            <td>{rows.map(val=>(<div className={'emailProject'} style={{color: val.color}}>({val.roundedHours(startDate, endDate)}) {val?.name}</div>))}</td>
             <td>
-                <a href={`mailto:${email}?subject=${subject}&body=${timeBody}`} target={'_blank'} rel={"noopener noreferrer"}>
-                    <button>Time</button>
-                </a>
-                <a href={`mailto:${email}?subject=${subject}&body=${timeAndTaskBody}`} target={'_blank'} rel={"noopener noreferrer"}>
-                    <button>Time and Description</button>
-                </a>
+                <div style={{display: 'flex', justifyContent: 'flex-end'}}>
+
+                    <a href={`mailto:${email}?subject=${subject}&body=${timeBody}`} target={'_blank'} rel={"noopener noreferrer"}>
+                        <button className={'calendarHeaderButton '}>Time</button>
+                    </a>
+                    <a href={`mailto:${email}?subject=${subject}&body=${timeAndTaskBody}`} target={'_blank'} rel={"noopener noreferrer"}>
+                        <button className={'calendarHeaderButton '}>Time and Description</button>
+                    </a>
+                </div>
             </td>
         </tr>)
 })

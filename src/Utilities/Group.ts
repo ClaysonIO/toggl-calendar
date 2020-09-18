@@ -41,7 +41,7 @@ export class Group extends Row{
                 }
                 day.entries.forEach(entry=>{
                     acc[day.date.format('YYYYMMDD')].addEntry(new Entry({
-                        description: `${project.client} / ${project.name} / ${entry.description}`,
+                        description: [project.client, project.name, entry.description].filter(v=>v).join(' / '),
                         dur: entry.dur,
                         start: entry.date.toISOString(),
                         tags: entry.tags.split(', ')

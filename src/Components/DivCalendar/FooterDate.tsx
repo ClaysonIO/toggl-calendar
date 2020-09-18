@@ -9,6 +9,6 @@ export const FooterDate = ({day, rows, displayType}: {day: Dayjs, rows: (Row|nul
     }, 0);
 
     return <div>
-        <div>{DecimalToDisplayType(decimalHours, displayType)}</div>
+        <div className={'title'}>{DecimalToDisplayType(decimalHours, displayType)}</div>
     </div>
 }

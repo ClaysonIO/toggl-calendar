@@ -10,7 +10,7 @@ export const HeaderRow = observer(({dates, gridCols}: {dates: Dayjs[], gridCols:
             <div>Project</div>
             <div>Company</div>
             {dates.map((val, index)=>(<HeaderDate key={index} date={val}/>))}
-            <div>Sum of Time</div>
+            <div className={'sumCol'}>Sum of Time</div>
         </div>
     )
 })

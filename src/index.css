@@ -67,6 +67,16 @@ main{
   color: darkgrey;
 }
 
+.emailProject{
+  margin-right: 10px;
+}
+
+th{
+  text-align: left;
+}
+tr{
+  padding-top: 20px;
+}
 
 /*Loading Script */
 

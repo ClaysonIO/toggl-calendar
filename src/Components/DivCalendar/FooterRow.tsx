@@ -14,12 +14,12 @@ export const FooterRow = observer(({dates, rows, displayType, gridCols}: {dates:
     }, 0);
 
     return (
-        <div className={"row header"} style={{gridTemplateColumns: gridCols}}>
-            <div></div>
-            <div></div>
-            <div></div>
+        <div className={"row projectRow"} style={{gridTemplateColumns: gridCols}}>
+            <div/>
+            <div className={'title'}>Total</div>
+            <div/>
             {dates.map((val, index)=>(<FooterDate key={index} day={val} rows={rows} displayType={displayType}/>))}
-            <div>{DecimalToDisplayType(decimalHours, displayType)}</div>
+            <div className={'title sumCol'}>{DecimalToDisplayType(decimalHours, displayType)}</div>
         </div>
     )
 })
