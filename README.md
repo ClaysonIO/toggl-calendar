@@ -1,3 +1,5 @@
+[![Netlify Status](https://api.netlify.com/api/v1/badges/74dafb6e-12ff-47af-bef8-c9d19e404199/deploy-status)](https://app.netlify.com/sites/toggl-clayson-io/deploys)
+
 # Toggl Calendar
 
 This project was built to simplify the movement of data from Toggl to Tenrox. Every week, I go through a process of using Toggl's weekly report and transferring hours from Toggl into Tenrox. Once this is done, I then need to go through the individual tasks for each day, and add them to the notes section. It can take a while. 
