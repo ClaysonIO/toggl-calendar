@@ -2,6 +2,9 @@ import React from 'react';
 import {observer} from "mobx-react-lite";
 import {WorkSpace} from "../Utilities/WorkSpace";
 import {Row} from "../Utilities/Row";
+import {Project} from "../Utilities/Project";
+import {Tag} from "../Utilities/Tag";
+import {Group} from "../Utilities/Group";
 
 export const EmailList = observer(({workSpace, startDate, endDate}: {workSpace: WorkSpace, startDate: string, endDate: string})=>{
 
@@ -33,7 +36,19 @@ export const EmailList = observer(({workSpace, startDate, endDate}: {workSpace: 
 })
 
 const EmailRow = observer(({rows, email, startDate, endDate}: {email: string, rows: Row[], startDate: string, endDate: string})=>{
-    const subject = "Timekeeping Update";
+    const projects = rows.reduce((acc: Project[], row)=>{
+        if(row instanceof Project) return acc.concat([row])
+        if(row instanceof Tag) return acc.concat([row.project])
+        if(row instanceof Group) return acc.concat(row.projects)
+
+        return acc;
+    }, [])
+
+    const addressee = email.split('@').shift()?.split('.').shift();
+
+    const bodyStart = `Hi ${addressee}, %0A%0A`
+
+    const subject = `Timekeeping: ${projects.map(val=>`${val.client} ${val.name}`.trim()).join(', ')}`;
     const timeBody = rows.map(val=>`${val.name} (${val.roundedHours(startDate, endDate)})`).join("%0A");
     const timeAndTaskBody = rows.map(val=>{
         return [`${val.name} (${val.roundedHours(startDate, endDate)})`].concat(val.tasks(startDate, endDate).map(val=>`     ${val}`)).join("%0A");
@@ -46,10 +61,10 @@ const EmailRow = observer(({rows, email, startDate, endDate}: {email: string, ro
             <td>
                 <div style={{display: 'flex', justifyContent: 'flex-end'}}>
 
-                    <a href={`mailto:${email}?subject=${subject}&body=${timeBody}`} target={'_blank'} rel={"noopener noreferrer"}>
+                    <a href={`mailto:${email}?subject=${subject}&body=${bodyStart + timeBody}`} target={'_blank'} rel={"noopener noreferrer"}>
                         <button className={'calendarHeaderButton '}>Time</button>
                     </a>
-                    <a href={`mailto:${email}?subject=${subject}&body=${timeAndTaskBody}`} target={'_blank'} rel={"noopener noreferrer"}>
+                    <a href={`mailto:${email}?subject=${subject}&body=${bodyStart + timeAndTaskBody}`} target={'_blank'} rel={"noopener noreferrer"}>
                         <button className={'calendarHeaderButton '}>Time and Description</button>
                     </a>
                 </div>
