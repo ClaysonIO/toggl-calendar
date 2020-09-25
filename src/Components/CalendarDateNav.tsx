@@ -23,7 +23,7 @@ export const CalendarDateNav = ()=>{
 
     function clickToday(event: any){
         //Force refresh of tasks if clicked when on this week
-        if(navLinks.today.slice(1) === window.location.search){
+        if(navLinks.today.split('?').pop() === window.location.search.split('?').pop()){
             event.stopPropagation();
             appState.selectedWorkSpace?.getTasks(dayjs(startDate), dayjs(endDate))
                 .catch(err=>{
