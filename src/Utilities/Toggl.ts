@@ -9,7 +9,7 @@ export class Toggl{
 
     static GetUser(apiKey: string): Promise<IUser>{
         return new Promise((resolve, reject)=>{
-            axios.get('https://www.toggl.com/api/v8/me', {
+            axios.get('https://track.toggl.com/api/v8/me', {
                 auth: {username: apiKey, password: "api_token"}
             })
                 .then((result)=>{
@@ -25,7 +25,7 @@ export class Toggl{
             //Note that Pages in Toggl begin at 1, not 0
             const currentPage = page ? page : 1;
 
-            axios.get('https://toggl.com/reports/api/v2/details', {
+            axios.get('https://track.toggl.com/reports/api/v2/details', {
                 params: {
                     since: startDate.isBefore(endDate) ? startDate.format('YYYY-MM-DD') : endDate.format('YYYY-MM-DD'),
                     until: startDate.isBefore(endDate) ? endDate.format('YYYY-MM-DD') : startDate.format('YYYY-MM-DD'),
