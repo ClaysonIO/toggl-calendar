@@ -62,7 +62,7 @@
   },
   "devDependencies": {
     "electron-builder": "^22.7.0",
-    "electron": "^9.0.2"
+    "electron": "^15.5.5"
   },
   "build": {
     "appId": "io.clayson.toggl",
