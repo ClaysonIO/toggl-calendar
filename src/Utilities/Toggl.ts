@@ -9,11 +9,16 @@ export class Toggl{
 
     static GetUser(apiKey: string): Promise<IUser>{
         return new Promise((resolve, reject)=>{
-            axios.get('https://track.toggl.com/api/v8/me', {
+            axios.get('https://api.track.toggl.com/api/v9/workspaces', {
                 auth: {username: apiKey, password: "api_token"}
             })
                 .then((result)=>{
-                    resolve(result.data.data as IUser);
+                    const workspaces = result.data;
+                    resolve({
+                        workspaces
+                    } as IUser)
+                    
+                    //resolve(result.data.data as IUser);
                 })
                 .catch(err=>reject(err));
         })
