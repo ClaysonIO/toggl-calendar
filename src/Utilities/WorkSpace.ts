@@ -37,6 +37,8 @@ export class WorkSpace{
         this.getGroups();
         this.getExpanded();
         this.getRowToEmailHash();
+
+        this.addTasksToProjects = this.addTasksToProjects.bind(this);
     }
 
     setExpanded(expanded: string[]){
@@ -220,6 +222,7 @@ export class WorkSpace{
     public getTasks(startDate: Dayjs, endDate: Dayjs){
         this.setLoading(true);
         return new Promise((resolve, reject)=>{
+            console.log("Should Get Tasks", appState.user)
             if(appState.user?.id){
                 Toggl.FetchDateRangeDetails(this.api_token, appState.user.id, this.id.toString(), startDate, endDate)
                     .then(result=>{

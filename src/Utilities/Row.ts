@@ -1,4 +1,4 @@
-import {action, computed, observable} from "mobx";
+import {action, computed, makeAutoObservable, observable} from "mobx";
 import {Entry} from "./Entry";
 import {Day} from "./Day";
 import dayjs from "dayjs";
@@ -9,15 +9,20 @@ export abstract class Row{
     public rowId: string = (Math.random() * 1000000000).toString()
     public name: string = '';
     public entries: Entry[] = [];
-    public days: Day[] = [];
+    public _days: Day[] = [];
     public get expanded(): boolean {return this.workSpace.expanded.indexOf(this.rowId) > -1};
     public color: string = "#ff8330";
     public readonly workSpace: WorkSpace;
     public abstract readonly type: 'group' | 'project' | 'tag';
 
     constructor({workSpace}: {workSpace: WorkSpace}) {
+        makeAutoObservable(this);
         this.workSpace = workSpace;
         this.setExpanded = this.setExpanded.bind(this);
+    }
+
+    public get days(){
+        return this._days
     }
 
     public get emails(): string[]{

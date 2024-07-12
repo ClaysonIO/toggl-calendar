@@ -9,16 +9,25 @@ export class Toggl{
 
     static GetUser(apiKey: string): Promise<IUser>{
         return new Promise((resolve, reject)=>{
-            axios.get('https://api.track.toggl.com/api/v9/workspaces', {
-                auth: {username: apiKey, password: "api_token"}
-            })
-                .then((result)=>{
-                    const workspaces = result.data;
+            Promise.all([
+                axios.get('https://api.track.toggl.com/api/v9/me', {
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    auth: {username: apiKey, password: "api_token"}
+                }),
+                axios.get('https://api.track.toggl.com/api/v9/workspaces', {
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    auth: {username: apiKey, password: "api_token"}
+                })
+            ])
+                .then(([user, workspaces])=>{
                     resolve({
-                        workspaces
+                        ...user.data,
+                        workspaces: workspaces.data
                     } as IUser)
-                    
-                    //resolve(result.data.data as IUser);
                 })
                 .catch(err=>reject(err));
         })
@@ -38,6 +47,9 @@ export class Toggl{
                     workspace_id: workspace_id.toString(),
                     user_ids: appState.user?.id,
                     page: currentPage
+                },
+                headers: {
+                    "Content-Type": "application/json"
                 },
                 auth: {username: apiKey, password: "api_token"}
             })
