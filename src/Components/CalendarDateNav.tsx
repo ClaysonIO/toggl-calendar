@@ -1,5 +1,5 @@
 import React, {useEffect} from "react";
-import {Link, useHistory, useLocation} from "react-router-dom";
+import {Link, useLocation, useNavigate} from "react-router-dom";
 import dayjs from "dayjs";
 import {splitQuery} from "../Utilities/Functions/SplitQuery";
 import {appState} from "../App";
@@ -7,7 +7,7 @@ import {appState} from "../App";
 export const CalendarDateNav = ()=>{
     const location = useLocation();
     const {startDate, endDate} = splitQuery(location.search);
-    const history = useHistory();
+    const navigate = useNavigate();
 
     const navLinks = {
         back: `/calendar?startDate=${
@@ -35,7 +35,7 @@ export const CalendarDateNav = ()=>{
 
     useEffect(()=>{
             if(!startDate || !endDate){
-                history.push(`/calendar?startDate=${
+                navigate(`/calendar?startDate=${
                     dayjs().startOf('week').format('YYYY-MM-DD')
                 }&endDate=${dayjs().endOf('week').format('YYYY-MM-DD')}`)
             }

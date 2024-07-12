@@ -1,5 +1,5 @@
 import React, {useState} from 'react';
-import {observer} from "mobx-react-lite";
+import {observer} from "mobx-react";
 import {Group} from "../../Utilities/Group";
 import {Dayjs} from "dayjs";
 import {ExpandButton} from "../ExpandButton";
@@ -9,7 +9,7 @@ import {EmptyRow} from "./ExmptyRow";
 import {ProjectRow} from "./ProjectRow";
 import {GroupMenu} from "./GroupMenu";
 
-export const GroupRow = observer(({group, dates, displayType, gridCols, isDragging}: {group: Group, dates: Dayjs[], displayType: string, gridCols: string, isDragging: boolean})=>{
+export const GroupRow = observer(({group, dates, displayType, gridCols}: {group: Group, dates: Dayjs[], displayType: string, gridCols: string})=>{
     const [open, setOpen] = useState(false);
     const color = group.color || "#ff8330";
     const textColor = "white";
@@ -18,7 +18,7 @@ export const GroupRow = observer(({group, dates, displayType, gridCols, isDraggi
         <div className={'rowContainer'}
              style={{
                  backgroundColor: color,
-                 boxShadow: `${isDragging || open ? '0 2px .8rem' : "0 0 0"} ${color}`,
+                 boxShadow: `0 0 0 ${color}`,
              }}>
             <div
                 className={"row projectRow"}
@@ -39,7 +39,7 @@ export const GroupRow = observer(({group, dates, displayType, gridCols, isDraggi
             {group.expanded ?
                 <React.Fragment>
                     {group.projects.length ? group.projects.map((project, index)=>{
-                        return (<ProjectRow key={index} project={project} dates={dates} displayType={displayType} gridCols={gridCols} isDragging={isDragging} inheritBackgroundColor={true}/>)
+                        return (<ProjectRow key={index} project={project} dates={dates} displayType={displayType} gridCols={gridCols} inheritBackgroundColor={true}/>)
                     }) : <EmptyRow/>}
                 </React.Fragment>
                 : <React.Fragment/>}

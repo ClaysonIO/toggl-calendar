@@ -1,5 +1,5 @@
 import React from 'react';
-import {observer} from "mobx-react-lite";
+import {observer} from "mobx-react";
 import {Dayjs} from "dayjs";
 import {Row} from "../../Utilities/Row";
 import {FooterDate} from "./FooterDate";

@@ -1,6 +1,6 @@
 import {Project} from "./Project";
 import {Row} from "./Row";
-import {action, computed, observable} from "mobx";
+import {action, computed, makeAutoObservable, observable} from "mobx";
 import {Entry} from "./Entry";
 import {WorkSpace} from "./WorkSpace";
 import {Day} from "./Day";
@@ -13,23 +13,24 @@ interface IGroup {
 }
 
 export class Group extends Row{
-    @observable public projectIds: string[] = [];
-    @observable public name: string = '';
+    public projectIds: string[] = [];
+    public name: string = '';
     public readonly type = 'group';
 
     constructor({name, rowId, projectIds, color}: IGroup, workSpace: WorkSpace) {
         super({workSpace});
+        makeAutoObservable(this);
         this.name = name;
         this.projectIds = projectIds || this.projectIds;
         this.rowId = rowId || `Group_${name}`
         this.color = color || this.color;
     }
 
-    @computed public get projects(){
+    public get projects(){
         return this.workSpace.projects.filter(val=>this.projectIds.indexOf(val.rowId) > -1)
     }
 
-    @computed public get days(){
+    public get days(){
         //Sort into buckets of days
 
         //Add all entries into date
@@ -53,23 +54,23 @@ export class Group extends Row{
         }, {}));
     }
 
-    @action public setColor(color: string){
+    public setColor(color: string){
         this.color = color;
         this.workSpace.setGroups();
     }
 
-    @action public setName(name: string){
+    public setName(name: string){
         this.name = name;
         this.workSpace.setGroups();
     }
 
-    @computed public get entries(){
+    public get entries(){
         return this.projects.reduce((acc: Entry[], val: Project)=>{
             return acc.concat(val.entries);
         }, [])
     }
 
-    @action public setProjectIds(projectIds: string[]){
+    public setProjectIds(projectIds: string[]){
         this.projectIds = projectIds;
     }
 

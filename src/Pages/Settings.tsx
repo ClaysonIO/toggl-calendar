@@ -1,17 +1,17 @@
 import React from 'react';
 import {Layout} from "../Components/Layout";
 import {appState} from "../App";
-import {observer} from "mobx-react-lite";
+import {observer} from "mobx-react";
 import {WorkSpace} from "../Utilities/WorkSpace";
-import {useHistory} from "react-router";
+import {useNavigate} from "react-router-dom";
 
 export const SettingsPage = observer(()=>{
 
-    const history = useHistory();
+    const navigate = useNavigate();
 
     function selectWorkSpace(workSpace?: WorkSpace){
         appState.selectWorkSpace(workSpace);
-        history.push(`/calendar`);
+        navigate(`/calendar`);
     }
 
     return (

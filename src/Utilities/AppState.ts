@@ -1,16 +1,17 @@
 import {Settings} from "./Settings";
 import {IWorkSpace, WorkSpace} from "./WorkSpace";
 import {Toggl} from "./Toggl";
-import {action, observable} from "mobx";
+import {action, makeAutoObservable, observable} from "mobx";
 import {User} from "./User";
 
 export class AppState{
     public readonly settings: Settings;
-    @observable public user?: User;
-    @observable public workSpaces: WorkSpace[] = [];
-    @observable public selectedWorkSpace?: WorkSpace;
+    public user?: User;
+    public workSpaces: WorkSpace[] = [];
+    public selectedWorkSpace?: WorkSpace;
 
     constructor() {
+        makeAutoObservable(this);
         this.settings = new Settings();
 
         if(this.settings.apiToken){
@@ -23,12 +24,12 @@ export class AppState{
         this.getWorkSpaces = this.getWorkSpaces.bind(this);
     }
 
-    @action public selectWorkSpace(workSpace?: WorkSpace){
+    public selectWorkSpace(workSpace?: WorkSpace){
         this.selectedWorkSpace = workSpace;
         window.localStorage.setItem("workSpaceId", this.selectedWorkSpace?.id.toString() || "");
     }
 
-    @action public setUser(user?: User){
+    public setUser(user?: User){
         this.user = user;
         if(user){
             window.localStorage.setItem("user", JSON.stringify(user.toInterface()));
@@ -49,7 +50,7 @@ export class AppState{
         }
     }
 
-    @action private setWorkSpaces(workSpaces: WorkSpace[]){
+    private setWorkSpaces(workSpaces: WorkSpace[]){
         this.workSpaces = workSpaces.sort((a,b)=>a.name.toLowerCase().localeCompare(b.name.toLowerCase(), 'en', {numeric: true}));
 
         window.localStorage.setItem("workSpaces", JSON.stringify(this.workSpaces.map(val=>val.toInterface())));

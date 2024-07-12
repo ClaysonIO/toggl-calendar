@@ -8,10 +8,10 @@ import {WorkSpace} from "./WorkSpace";
 export abstract class Row{
     public rowId: string = (Math.random() * 1000000000).toString()
     public name: string = '';
-    @observable public entries: Entry[] = [];
-    @observable public days: Day[] = [];
-    @computed public get expanded(): boolean {return this.workSpace.expanded.indexOf(this.rowId) > -1};
-    @observable public color: string = "#ff8330";
+    public entries: Entry[] = [];
+    public days: Day[] = [];
+    public get expanded(): boolean {return this.workSpace.expanded.indexOf(this.rowId) > -1};
+    public color: string = "#ff8330";
     public readonly workSpace: WorkSpace;
     public abstract readonly type: 'group' | 'project' | 'tag';
 
@@ -20,7 +20,7 @@ export abstract class Row{
         this.setExpanded = this.setExpanded.bind(this);
     }
 
-    @computed public get emails(): string[]{
+    public get emails(): string[]{
         return this.workSpace.rowToEmailHash[this.rowId] || [];
     }
 
@@ -28,18 +28,18 @@ export abstract class Row{
         this.workSpace.setEmailItem({rowId: this.rowId, emails});
     }
 
-    @action.bound public createEmail(email: string){
+    public createEmail(email: string){
         this.setEmails(this.emails.concat(email));
     }
 
-    @computed public get dateHash(){
+    public get dateHash(){
         return this.days.reduce((acc: {[key: string]: Day}, val)=>{
             acc[val.date.format('YYYYMMDD')] = val;
             return acc;
         }, {});
     }
 
-    @action public setExpanded(state: boolean){
+    public setExpanded(state: boolean){
         if(this.expanded && !state){
             this.workSpace.setExpanded(this.workSpace.expanded.filter(val=>val !== this.rowId));
         } else if(!this.expanded && state){

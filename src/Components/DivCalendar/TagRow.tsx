@@ -1,5 +1,5 @@
 import React, {useState} from 'react';
-import {observer} from "mobx-react-lite";
+import {observer} from "mobx-react";
 import {Tag} from "../../Utilities/Tag";
 import {ExpandButton} from "../ExpandButton";
 import {Cell} from "./Cell";

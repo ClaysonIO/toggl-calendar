@@ -1,5 +1,5 @@
 import React, {useState} from 'react';
-import {observer} from "mobx-react-lite";
+import {observer} from "mobx-react";
 import {Project} from "../../Utilities/Project";
 import {Dayjs} from "dayjs";
 import {Cell} from "./Cell";
@@ -8,16 +8,16 @@ import {DecimalToDisplayType} from "../../Utilities/Functions/DecimalToDisplayTy
 import {TagRow} from "./TagRow";
 import {ProjectMenu} from "./ProjectMenu";
 
-export const ProjectRow = observer(({project, dates, displayType, gridCols, isDragging, inheritBackgroundColor}: {project: Project, dates: Dayjs[], displayType: string, gridCols: string, isDragging: boolean, inheritBackgroundColor?: boolean})=>{
+export const ProjectRow = observer(({project, dates, displayType, gridCols, inheritBackgroundColor}: {project: Project, dates: Dayjs[], displayType: string, gridCols: string, inheritBackgroundColor?: boolean})=>{
     const [open, setOpen] = useState(false);
 
     return (
         <div className={'rowContainer'}
              style={{
-                 boxShadow: `${isDragging || open ? '0 2px .8rem' : "0 0 0"} ${project.color}`
+                 boxShadow: `0 0 0 ${project.color}`
              }}>
             <div
-                className={`row projectRow ${isDragging ? 'selected' : ''}`}
+                className={`row projectRow`}
                 style={{
                     gridTemplateColumns: gridCols,
                     borderColor: project.color,

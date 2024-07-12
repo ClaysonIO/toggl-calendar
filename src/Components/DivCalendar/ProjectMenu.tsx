@@ -1,5 +1,5 @@
 import React, {useMemo} from 'react';
-import {observer} from "mobx-react-lite";
+import {observer} from "mobx-react";
 import Creatable from "react-select/creatable";
 import Popup from "reactjs-popup";
 import {Project} from "../../Utilities/Project";

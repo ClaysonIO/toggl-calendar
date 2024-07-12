@@ -1,5 +1,5 @@
 import React from 'react';
-import {Redirect, Route, Switch} from "react-router-dom";
+import {Navigate, Route, Routes} from "react-router-dom";
 import {SettingsPage} from "./Pages/Settings";
 import {AppState} from "./Utilities/AppState";
 import {CalendarPage} from "./Pages/Calendar";
@@ -9,17 +9,16 @@ export const appState = new AppState();
 
 function App() {
 
-    return (
-            <Switch>
-                <Route path={'/settings'} component={SettingsPage}/>
-                <Route path={'/calendar'} component={CalendarPage}/>
-                <Route path={'/main'} component={MainPage}/>
+    const hasWorkspaceId = !!localStorage.getItem('workSpaceId')
 
-                <Route
-                    render={()=>{
-                        return localStorage.getItem('workSpaceId') ? <Redirect to={'/calendar'}/> : <Redirect to={'/main'}/>
-                    }}/>
-            </Switch>
+    return (
+            <Routes>
+                <Route path={'/settings'} element={<SettingsPage/>}/>
+                <Route path={'/calendar'} element={<CalendarPage/>}/>
+                <Route path={'/main'} element={<MainPage/>}/>
+
+                <Route path={"*"} element={hasWorkspaceId  ? <Navigate to={'/calendar'}/> : <Navigate to={'/main'}/>}/>
+            </Routes>
     );
 }
 

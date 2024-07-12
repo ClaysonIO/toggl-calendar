@@ -1,6 +1,6 @@
 import {Day} from "./Day";
 import {Entry} from "./Entry";
-import {action, observable} from "mobx";
+import {action, makeAutoObservable, observable} from "mobx";
 import {Tag} from "./Tag";
 import {Row} from "./Row";
 import {WorkSpace} from "./WorkSpace";
@@ -16,13 +16,14 @@ interface IProject {
 export class Project extends Row{
     public pid: number;
     public client: string;
-    // @observable public entries: Entry[] = [];
-    // @observable public days: Day[] = [];
-    @observable public tags: Tag[] = [];
+    // public entries: Entry[] = [];
+    // public days: Day[] = [];
+    public tags: Tag[] = [];
     public readonly type = 'project';
 
     constructor({pid, project, client, project_hex_color}: IProject, workSpace: WorkSpace) {
         super({workSpace});
+        makeAutoObservable(this);
         this.rowId = pid.toString();
         this.pid = pid;
         this.name = project || "Without Project";
@@ -31,7 +32,7 @@ export class Project extends Row{
     }
 
 
-    @action public addEntry(entry: Entry){
+    public addEntry(entry: Entry){
         this.entries.push(entry);
 
         let day = this.dateHash[entry.date.format('YYYYMMDD')];

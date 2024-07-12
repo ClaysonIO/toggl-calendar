@@ -2,7 +2,7 @@ import {Project} from "./Project";
 import {Dayjs} from "dayjs";
 import {Toggl} from "./Toggl";
 import {appState} from "../App";
-import {action, computed, observable, runInAction} from "mobx";
+import {action, computed, makeAutoObservable, observable, runInAction} from "mobx";
 import {ITaskResponse} from "./Interfaces/ITaskResponse";
 import {Entry} from "./Entry";
 import {DecimalToClockTime} from "./Functions/DecimalToClockTime";
@@ -21,14 +21,15 @@ export class WorkSpace{
     public id: number;
     public name: string;
     public api_token: string;
-    @observable public projectOrder: string[] = [];
-    @observable public loading: boolean = true;
-    @observable public projects: Project[] = [];
-    @observable public groups: Group[] = [];
-    @observable public expanded: string[] = [];
-    @observable public rowToEmailHash: {[key: string]: string[]} = {};
+    public projectOrder: string[] = [];
+    public loading: boolean = true;
+    public projects: Project[] = [];
+    public groups: Group[] = [];
+    public expanded: string[] = [];
+    public rowToEmailHash: {[key: string]: string[]} = {};
 
     constructor({id, name, api_token}: IWorkSpace, apiToken?: string) {
+        makeAutoObservable(this);
         this.id = id;
         this.name = name;
         this.api_token = apiToken || api_token;
@@ -38,22 +39,22 @@ export class WorkSpace{
         this.getRowToEmailHash();
     }
 
-    @action setExpanded(expanded: string[]){
+    setExpanded(expanded: string[]){
         this.expanded = expanded;
         window.localStorage.setItem(`workspaceExpanded_${this.id}`, JSON.stringify(expanded));
     }
 
-    @action public getExpanded(){
+    public getExpanded(){
         const serializedExpanded = window.localStorage.getItem(`workspaceExpanded_${this.id}`)
         this.expanded = (JSON.parse(serializedExpanded || "[]"));
     }
 
-    @action setEmailItem({rowId, emails}: {rowId: string, emails: string[]}){
+    setEmailItem({rowId, emails}: {rowId: string, emails: string[]}){
         this.rowToEmailHash[rowId] = emails;
         window.localStorage.setItem(`workspaceEmailHash_${this.id}`, JSON.stringify(this.rowToEmailHash));
     }
 
-    @computed public get emails(){
+    public get emails(){
         return Object.values(this.rowToEmailHash)
             .reduce((acc, val)=>acc.concat(val), [])
             .reduce((acc: string[], val)=>{
@@ -65,12 +66,12 @@ export class WorkSpace{
             .sort((a,b)=>a.localeCompare(b, 'en'));
     }
 
-    @action public getRowToEmailHash(){
+    public getRowToEmailHash(){
         const serializedEmailHash = window.localStorage.getItem(`workspaceEmailHash_${this.id}`)
         this.rowToEmailHash = (JSON.parse(serializedEmailHash || "{}"));
     }
 
-    @computed public get emailToRowHash(){
+    public get emailToRowHash(){
         return Object.keys(this.rowToEmailHash)
             .reduce((acc: {[key: string]: string[]}, rowId)=>{
                 this.rowToEmailHash[rowId].forEach(email=>{
@@ -83,7 +84,7 @@ export class WorkSpace{
             }, {})
     }
 
-    @computed public get emailRows(){
+    public get emailRows(){
         return this.emails.map(email=>{
 
             return {
@@ -103,7 +104,7 @@ export class WorkSpace{
         })
     }
 
-    @computed public get GroupHash(){
+    public get GroupHash(){
         return this.groups.reduce((acc: {[key: string]: Group}, val)=>{
             acc[val.rowId] = val;
             return acc;
@@ -118,7 +119,7 @@ export class WorkSpace{
         return hash;
     }
 
-    @computed public get TagHash(){
+    public get TagHash(){
         return this.projects.reduce((acc: {[key: string]: Tag}, val)=>{
             val.tags
                 .filter(tag=>tag)
@@ -141,7 +142,7 @@ export class WorkSpace{
         window.localStorage.setItem(`workspaceGroups_${this.id}`, serializedGroups)
     }
 
-    @action.bound public orderProject({ destination, source, reason }: any){
+    public orderProject({ destination, source, reason }: any){
         if(source && destination){
 
             const currentOrder = this.projectOrder.slice();
@@ -154,7 +155,7 @@ export class WorkSpace{
         }
     }
 
-    @computed public get orderedProjects(): (Row | null)[]{
+    public get orderedProjects(): (Row | null)[]{
         //Create a temporary array
         const projectIdsInGroups = this.groups
             .reduce((acc: string[], val)=>acc.concat(val.projectIds), []);
@@ -171,11 +172,11 @@ export class WorkSpace{
         })
     }
 
-    @action public setLoading(state: boolean){
+    public setLoading(state: boolean){
         this.loading = state;
     }
 
-    @action public createGroup(name: string){
+    public createGroup(name: string){
         var newGroup = new Group({name}, this);
         if(!this.groups.filter(val=>val.rowId === newGroup.rowId).length){
             this.groups = this.groups.concat(newGroup);
@@ -188,7 +189,7 @@ export class WorkSpace{
         return this.groups.find(val=>val.rowId === newGroup.rowId);
     }
 
-    @action addTasksToProjects(taskResponses: ITaskResponse[]){
+    addTasksToProjects(taskResponses: ITaskResponse[]){
         let projectHash: {[key: number]: Project} = {};
         let projects: Project[] = []
 
