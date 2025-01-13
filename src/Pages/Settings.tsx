@@ -4,10 +4,20 @@ import {appState} from "../App";
 import {observer} from "mobx-react";
 import {WorkSpace} from "../Utilities/WorkSpace";
 import {useNavigate} from "react-router-dom";
+import {useTogglApiKey} from "../Utilities/useTogglApiKey";
 
 export const SettingsPage = observer(()=>{
 
     const navigate = useNavigate();
+    const [apiToken, setApiToken] = React.useState(appState.settings.apiToken);
+    const {togglApiKey, setTogglApiKey} = useTogglApiKey();
+
+    function setApiTokenEverywhere(token: string){
+        appState.settings.setApiToken(token);
+        setApiToken(token);
+        localStorage.setItem('togglApiKey', token)
+        setTogglApiKey(token);
+    }
 
     function selectWorkSpace(workSpace?: WorkSpace){
         appState.selectWorkSpace(workSpace);
@@ -25,8 +35,8 @@ export const SettingsPage = observer(()=>{
                         style={{flex: 1}}
                         placeholder={"Put your token here..."}
                         type={'password'}
-                        value={appState.settings.apiToken}
-                        onChange={(e)=>{appState.settings.setApiToken(e.currentTarget.value)}}
+                        value={apiToken}
+                        onChange={(e)=>{setApiTokenEverywhere(e.currentTarget.value)}}
                         onBlur={appState.getWorkSpaces}
                     />
                     <button onClick={appState.getWorkSpaces} disabled={!appState.settings.apiToken}>Fetch Workspaces</button>

@@ -45,7 +45,7 @@ export class Toggl{
                     until: startDate.isBefore(endDate) ? endDate.format('YYYY-MM-DD') : startDate.format('YYYY-MM-DD'),
                     user_agent: window.location.origin,
                     workspace_id: workspace_id.toString(),
-                    user_ids: appState.user?.id,
+                    user_ids: user_id.toString(),
                     page: currentPage
                 },
                 headers: {
@@ -68,6 +68,22 @@ export class Toggl{
                         }, 1000)
                     }
                 })
+                .catch(err=>{
+                    reject(err)
+                })
+        })
+    }
+
+    static fetchProjects(apiKey: string, workspace_id: string): Promise<any[]>{
+        return new Promise((resolve, reject)=>{
+
+            axios.get(`https://api.track.toggl.com/api/v9/workspaces/${workspace_id}/projects`, {
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                auth: {username: apiKey, password: "api_token"}
+            })
+                .then(result=> resolve(result.data))
                 .catch(err=>{
                     reject(err)
                 })
