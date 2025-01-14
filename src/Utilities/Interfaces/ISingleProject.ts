@@ -1,8 +1,9 @@
 export interface ISingleProject{
-    status: string,
-    workspace_id: string,
-    client_id: string,
+    id: number,
+    workspace_id: number,
+    client_id: number,
     client_name: string,
     name: string,
-    color: string
+    color: string,
+    status: string,
 }

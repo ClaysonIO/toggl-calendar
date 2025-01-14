@@ -4,7 +4,7 @@ import {SettingsPage} from "./Pages/Settings";
 import {AppState} from "./Utilities/AppState";
 import {CalendarPage} from "./Pages/Calendar";
 import {MainPage} from "./Pages/Main";
-import {ProjectsPage} from "./Pages/Projects";
+import {ProjectsPage} from "./Pages/ProjectsPage";
 
 export const appState = new AppState();
 
