@@ -7,6 +7,7 @@ export function DecimalToClockTime(decimalHours: number){
         hours += 1;
         minutes = 0;
     }
+    if(decimalHours === 0){ return '---'}
 
     return `${hours}:${`0${minutes > 0 ? minutes : 0}`.slice(-2)}`;
 }
