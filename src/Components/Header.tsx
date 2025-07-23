@@ -13,6 +13,7 @@ export const Header = ()=>{
             <WorkSpaceSelect/>
             <Link to={`/projects/${dayjs().startOf('week').format('YYYY-MM-DD')}/${dayjs().endOf('week').format('YYYY-MM-DD')}`}>Projects</Link>
             {appState.workSpaces.length ? <Link to={'/calendar'} >Calendar</Link> : ""}
+            {appState.workSpaces.length ? <Link to={'/treeview'} >Tree View</Link> : ""}
             <Link to={'/settings'} >Settings</Link>
             <GithubLogo/>
         </header>

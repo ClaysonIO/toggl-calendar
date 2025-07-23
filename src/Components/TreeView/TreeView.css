@@ -1,0 +1,106 @@
+.treeview-container {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.treeview-root {
+    width: 100%;
+}
+
+.treeview-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.treeview-list li {
+    margin: 0;
+    padding: 0;
+}
+
+/* Tree node styles - inheriting from calendar styles */
+.treenode-row {
+    background-color: white;
+    transition: all ease-in .3s;
+    margin-bottom: 2px;
+}
+
+.treenode-row.groupRow {
+    font-weight: bold;
+}
+
+.treenode-row.projectRow {
+    border-style: solid;
+    border-width: 2px;
+}
+
+.treenode-row.tagRow {
+    border-style: solid;
+    border-width: 1px 0 0 0;
+}
+
+/* Reuse styles from calendar */
+.treenode-row .title {
+    font-weight: bold;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.treenode-row .sumCol {
+    text-align: right;
+}
+
+/* Expander button styling */
+.treenode-row .expander {
+    height: 30px !important;
+    width: 30px !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    margin: 0;
+    background: none;
+    border: none;
+    cursor: pointer;
+    outline: none;
+    font-size: larger;
+}
+
+.treenode-row .rotater {
+    transition: ease .25s;
+}
+
+.treenode-row .rotated {
+    transform: rotate(90deg);
+}
+
+/* Header row */
+.treeview-header {
+    display: grid;
+    grid-gap: 5px;
+    padding: 5px;
+    font-weight: bold;
+    background-color: #f5f5f5;
+    border-bottom: 2px solid #ddd;
+    margin-bottom: 10px;
+}
+
+/* Drag and drop styles */
+.treeview-drop-target {
+    background-color: rgba(0, 123, 255, 0.1);
+}
+
+.treeview-dragging {
+    opacity: 0.5;
+}
+
+/* Indent for nested items */
+.treeview-list > li > ul {
+    margin-left: 0;
+}
+
+/* Override default tree view padding */
+.treeview-list > li {
+    position: relative;
+}
