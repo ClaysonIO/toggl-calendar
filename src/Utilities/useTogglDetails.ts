@@ -23,17 +23,32 @@ export function useTogglDetails(workspace_id: string, startDate: string, endDate
 
     const simplifiedDetails = response.data
         ?.reduce((acc: {[key: number]: ISingleProjectTasks}, val)=>{
+            if(!Number.isFinite(val?.pid)) return acc;
 
             if(!acc[val.pid]){
                 acc[val.pid] = {
                     project_id: val.pid,
+                    project_name: val.project || undefined,
+                    client_name: val.client || undefined,
+                    project_hex_color: val.project_hex_color || undefined,
                     dates: {}
                 }
             }
 
+            const projectSummary = acc[val.pid];
+            if (!projectSummary.project_name && val.project) {
+                projectSummary.project_name = val.project;
+            }
+            if (!projectSummary.client_name && val.client) {
+                projectSummary.client_name = val.client;
+            }
+            if (!projectSummary.project_hex_color && val.project_hex_color) {
+                projectSummary.project_hex_color = val.project_hex_color;
+            }
+
             const startDate = dayjs(val.start).format('YYYY-MM-DD');
-            if(!acc[val.pid].dates[startDate]) {
-                acc[val.pid].dates[startDate] = {
+            if(!projectSummary.dates[startDate]) {
+                projectSummary.dates[startDate] = {
                     date: startDate,
                     hours: 0,
                     roundedHours: 0,
@@ -41,10 +56,16 @@ export function useTogglDetails(workspace_id: string, startDate: string, endDate
                 }
             }
 
-            acc[val.pid].dates[startDate].hours += val.dur / 1000 / 60 / 60;
-            acc[val.pid].dates[startDate].roundedHours = +DecimalToRoundedTime(acc[val.pid].dates[startDate].hours)
-            val.description.split(',').map((val: string)=>val.trim()).forEach(desc=>{
-                acc[val.pid].dates[startDate].taskDescriptions.add(desc)
+            projectSummary.dates[startDate].hours += val.dur / 1000 / 60 / 60;
+            projectSummary.dates[startDate].roundedHours = +DecimalToRoundedTime(projectSummary.dates[startDate].hours)
+
+            const descriptionChunks = (val.description || "")
+                .split(',')
+                .map((description: string)=>description.trim())
+                .filter((description: string)=>!!description);
+
+            descriptionChunks.forEach(description=>{
+                projectSummary.dates[startDate].taskDescriptions.add(description)
             });
 
             return acc;
