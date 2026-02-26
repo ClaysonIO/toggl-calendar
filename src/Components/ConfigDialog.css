@@ -1,0 +1,135 @@
+.configOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.configDialog {
+    background: #fff;
+    border-radius: 10px;
+    padding: 24px 28px 20px;
+    width: 420px;
+    max-width: 90vw;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+}
+
+.configDialogHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+}
+
+.configDialogHeader h3 {
+    margin: 0;
+}
+
+.configCloseButton {
+    border: none;
+    background: transparent;
+    font-size: 1.4rem;
+    cursor: pointer;
+    color: #666;
+    padding: 0 4px;
+    line-height: 1;
+}
+
+.configCloseButton:hover {
+    color: #000;
+}
+
+.configLabel {
+    display: block;
+    font-weight: 600;
+    font-size: 0.85rem;
+    margin-bottom: 4px;
+    color: #333;
+}
+
+.configTokenRow {
+    display: flex;
+    gap: 8px;
+}
+
+.configInput {
+    flex: 1;
+    padding: 6px 10px;
+    font-size: 0.875rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.configInput:focus {
+    outline: none;
+    border-color: #2f81f7;
+}
+
+.configButton {
+    padding: 6px 14px;
+    font-size: 0.85rem;
+    border: none;
+    background: darkred;
+    color: #fff;
+    border-radius: 4px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.configButton:hover {
+    background: #9a1515;
+}
+
+.configButton:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.configHint {
+    display: block;
+    color: #777;
+    font-size: 0.78rem;
+    margin-top: 4px;
+}
+
+.configHint a {
+    color: #2f81f7;
+}
+
+.configWorkspaceList {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.configWorkspaceItem {
+    border: 1px solid #ddd;
+    background: #fafafa;
+    padding: 8px 12px;
+    border-radius: 6px;
+    text-align: left;
+    cursor: pointer;
+    font-size: 0.875rem;
+}
+
+.configWorkspaceItem:hover {
+    background: #f0f0f0;
+}
+
+.configWorkspaceItem.selected {
+    border-color: darkred;
+    background: #fde8e8;
+    font-weight: 600;
+}
+
+.configEmpty {
+    color: #888;
+    font-style: italic;
+    font-size: 0.85rem;
+    margin: 4px 0;
+}
