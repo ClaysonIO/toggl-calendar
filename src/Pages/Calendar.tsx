@@ -2,7 +2,8 @@ import React, {useCallback, useEffect, useMemo, useRef, useState} from "react";
 import {Layout} from "../Components/Layout";
 import {appState} from "../App";
 import {CalendarDateNav} from "../Components/CalendarDateNav";
-import {useLocation, Link} from "react-router-dom";
+import {useLocation} from "react-router-dom";
+import {ConfigDialog} from "../Components/ConfigDialog";
 import dayjs from "dayjs";
 import {splitQuery} from "../Utilities/Functions/SplitQuery";
 import {useTogglProjects} from "../Utilities/useTogglProjects";
@@ -126,6 +127,27 @@ const sortSymbol = (sortState: false | "asc" | "desc") => {
     return "↕";
 };
 
+const getProgressBarColor = (actual: number, projected: number, hasWeeklyPlan: boolean): string => {
+    if (!hasWeeklyPlan || projected <= 0) return "#2f81f7";
+
+    const ratio = actual / projected;
+
+    if (ratio > 1.2) return "#9b59b6";
+
+    const pct = Math.min(ratio, 1);
+    if (pct <= 0.5) {
+        const r = Math.round(220 + (255 - 220) * (pct / 0.5));
+        const g = Math.round(50 + (193 - 50) * (pct / 0.5));
+        const b = Math.round(50 + (7 - 50) * (pct / 0.5));
+        return `rgb(${r},${g},${b})`;
+    }
+    const t = (pct - 0.5) / 0.5;
+    const r = Math.round(255 + (40 - 255) * t);
+    const g = Math.round(193 + (167 - 193) * t);
+    const b = Math.round(7 + (70 - 7) * t);
+    return `rgb(${r},${g},${b})`;
+};
+
 const TotalHoursCell = React.memo(({row, formatHours, onProjectedChange}: {
     row: ICalendarTableRow,
     formatHours: (h: number) => string,
@@ -136,6 +158,7 @@ const TotalHoursCell = React.memo(({row, formatHours, onProjectedChange}: {
     const projected = row.projectedHours;
     const actual = row.totalHours;
     const progressPct = projected > 0 ? Math.min((actual / projected) * 100, 100) : (actual > 0 ? 100 : 0);
+    const barColor = getProgressBarColor(actual, projected, row.hasWeeklyPlan);
 
     useEffect(() => {
         if (editing && inputRef.current) {
@@ -180,8 +203,8 @@ const TotalHoursCell = React.memo(({row, formatHours, onProjectedChange}: {
             </span>
             <div className={"progressBarTrack"}>
                 <div
-                    className={`progressBarFill ${actual > projected && projected > 0 ? "over" : ""}`}
-                    style={{width: `${progressPct}%`}}
+                    className={"progressBarFill"}
+                    style={{width: `${progressPct}%`, background: barColor}}
                 />
             </div>
         </div>
@@ -276,7 +299,7 @@ const ProjectSearchBar = React.memo(({projects, weeklyPlanProjectIds, onAddProje
 export const CalendarPage = () => {
     const location = useLocation();
     const {startDate, endDate} = splitQuery(location.search);
-    const [sorting, setSorting] = useState<SortingState>([{id: "projectName", desc: false}]);
+    const [sorting, setSorting] = useState<SortingState>([{id: "clientName", desc: false}]);
     const [timeDisplayMode, setTimeDisplayMode] = useState<TimeDisplayMode>(() => loadTimeDisplayMode());
     const [rowDisplayMode, setRowDisplayMode] = useState<RowDisplayMode>(() => loadRowDisplayMode());
 
@@ -597,6 +620,16 @@ export const CalendarPage = () => {
     const columns = useMemo<ColumnDef<ICalendarTableRow>[]>(() => {
         return [
             {
+                id: "clientName",
+                accessorFn: row => row.clientName,
+                header: ({column}) => (
+                    <button className={"calendarSortButton"} onClick={column.getToggleSortingHandler()} type={"button"}>
+                        Client <span>{sortSymbol(column.getIsSorted())}</span>
+                    </button>
+                ),
+                cell: ({row}) => <span className={"calendarClientName"}>{row.original.clientName || "-"}</span>
+            },
+            {
                 id: "projectName",
                 accessorFn: row => row.projectName,
                 header: ({column}) => (
@@ -620,16 +653,6 @@ export const CalendarPage = () => {
                         </span>
                     </button>
                 )
-            },
-            {
-                id: "clientName",
-                accessorFn: row => row.clientName,
-                header: ({column}) => (
-                    <button className={"calendarSortButton"} onClick={column.getToggleSortingHandler()} type={"button"}>
-                        Client <span>{sortSymbol(column.getIsSorted())}</span>
-                    </button>
-                ),
-                cell: ({row}) => <span className={"calendarClientName"}>{row.original.clientName || "-"}</span>
             },
             ...dateKeys.map(date => ({
                 id: date,
@@ -670,13 +693,24 @@ export const CalendarPage = () => {
         getRowId: row => row.id
     });
 
+    const [showConfigPrompt, setShowConfigPrompt] = useState(false);
+
     if (!workspace) {
         return (
             <Layout>
                 <h2>Calendar</h2>
                 <p>
-                    Select a workspace in <Link to={"/settings"}>Settings</Link> to view your calendar.
+                    No workspace selected.{" "}
+                    <button
+                        className={"calendarHeaderButton"}
+                        onClick={() => setShowConfigPrompt(true)}
+                        type={"button"}
+                    >
+                        Open Config
+                    </button>
+                    {" "}to set your API key and choose a workspace.
                 </p>
+                <ConfigDialog open={showConfigPrompt} onClose={() => setShowConfigPrompt(false)}/>
             </Layout>
         );
     }
