@@ -188,20 +188,82 @@ const TotalHoursCell = React.memo(({row, formatHours, onProjectedChange}: {
     );
 });
 
-const useDebounce = <T,>(value: T, delay: number): T => {
-    const [debouncedValue, setDebouncedValue] = useState(value);
-    useEffect(() => {
-        const timer = setTimeout(() => setDebouncedValue(value), delay);
-        return () => clearTimeout(timer);
-    }, [value, delay]);
-    return debouncedValue;
-};
+const ProjectSearchBar = React.memo(({projects, weeklyPlanProjectIds, onAddProject}: {
+    projects: ISingleProject[],
+    weeklyPlanProjectIds: Set<number>,
+    onAddProject: (projectId: number) => void
+}) => {
+    const [searchValue, setSearchValue] = useState("");
+    const [debouncedSearch, setDebouncedSearch] = useState("");
+    const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+
+    const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        const val = e.currentTarget.value;
+        setSearchValue(val);
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(() => setDebouncedSearch(val), 180);
+    }, []);
+
+    useEffect(() => () => { if (debounceRef.current) clearTimeout(debounceRef.current); }, []);
+
+    const results = useMemo(() => {
+        const normalized = debouncedSearch.trim().toLowerCase();
+        if (!normalized) return [];
+        return projects
+            .filter(p => !weeklyPlanProjectIds.has(p.id))
+            .filter(p => p.name.toLowerCase().includes(normalized) || (p.client_name || "").toLowerCase().includes(normalized))
+            .sort((a, b) => a.name.localeCompare(b.name, "en", {numeric: true}))
+            .slice(0, 8);
+    }, [debouncedSearch, projects, weeklyPlanProjectIds]);
+
+    const handleAdd = useCallback((id: number) => {
+        onAddProject(id);
+        setSearchValue("");
+        setDebouncedSearch("");
+    }, [onAddProject]);
+
+    return (
+        <>
+            <div className={"calendarSearch"}>
+                <input
+                    type={"text"}
+                    value={searchValue}
+                    placeholder={"Search project name and press Enter to add to this week"}
+                    onChange={handleChange}
+                    onKeyDown={e => {
+                        if (e.key === "Enter" && results.length) handleAdd(results[0].id);
+                    }}
+                />
+                <button
+                    className={"calendarHeaderButton"}
+                    onClick={() => { if (results.length) handleAdd(results[0].id); }}
+                    disabled={!results.length}
+                >
+                    Add
+                </button>
+            </div>
+            {debouncedSearch.trim().length > 0 && (
+                <div className={"calendarSearchResults"}>
+                    {results.length ? results.map(project => (
+                        <button
+                            key={project.id}
+                            className={"calendarSearchResult"}
+                            onClick={() => handleAdd(project.id)}
+                        >
+                            <span>{project.name}</span>
+                            <small>{project.client_name || "No client"}</small>
+                        </button>
+                    )) : <div className={"calendarSearchResultEmpty"}>No projects found.</div>}
+                </div>
+            )}
+        </>
+    );
+});
 
 export const CalendarPage = () => {
     const location = useLocation();
     const {startDate, endDate} = splitQuery(location.search);
     const [sorting, setSorting] = useState<SortingState>([{id: "projectName", desc: false}]);
-    const [searchValue, setSearchValue] = useState("");
     const [timeDisplayMode, setTimeDisplayMode] = useState<TimeDisplayMode>(() => loadTimeDisplayMode());
     const [rowDisplayMode, setRowDisplayMode] = useState<RowDisplayMode>(() => loadRowDisplayMode());
 
@@ -447,26 +509,9 @@ export const CalendarPage = () => {
 
     const weeklyPlanProjectIds = useMemo(() => new Set(safeWeeklyPlans.map(plan => plan.projectId)), [safeWeeklyPlans]);
 
-    const debouncedSearchValue = useDebounce(searchValue, 150);
-
-    const projectSearchResults = useMemo(() => {
-        const normalizedSearch = debouncedSearchValue.trim().toLowerCase();
-        if (!normalizedSearch) return [];
-
-        return projects
-            .filter(project => !weeklyPlanProjectIds.has(project.id))
-            .filter(project => (
-                project.name.toLowerCase().includes(normalizedSearch)
-                || (project.client_name || "").toLowerCase().includes(normalizedSearch)
-            ))
-            .sort((a, b) => a.name.localeCompare(b.name, "en", {numeric: true}))
-            .slice(0, 8);
-    }, [debouncedSearchValue, projects, weeklyPlanProjectIds]);
-
     const addProjectToSelectedWeek = useCallback(async (projectId: number) => {
         const projectedHours = weeklyPlanByProjectId[projectId]?.projectedWeekHours || 0;
         await upsertWeeklyPlan(projectId, projectedHours);
-        setSearchValue("");
     }, [upsertWeeklyPlan, weeklyPlanByProjectId]);
 
     const editBillableTarget = useCallback(async () => {
@@ -677,45 +722,11 @@ export const CalendarPage = () => {
                 </div>
             </div>
 
-            <div className={"calendarSearch"}>
-                <input
-                    type={"text"}
-                    value={searchValue}
-                    placeholder={"Search project name and press Enter to add to this week"}
-                    onChange={event => setSearchValue(event.currentTarget.value)}
-                    onKeyDown={event => {
-                        if (event.key === "Enter" && projectSearchResults.length) {
-                            void addProjectToSelectedWeek(projectSearchResults[0].id);
-                        }
-                    }}
-                />
-                <button
-                    className={"calendarHeaderButton"}
-                    onClick={() => {
-                        if (projectSearchResults.length) {
-                            void addProjectToSelectedWeek(projectSearchResults[0].id);
-                        }
-                    }}
-                    disabled={!projectSearchResults.length}
-                >
-                    Add
-                </button>
-            </div>
-
-            {searchValue.trim().length > 0 && (
-                <div className={"calendarSearchResults"}>
-                    {projectSearchResults.length ? projectSearchResults.map(project => (
-                        <button
-                            key={project.id}
-                            className={"calendarSearchResult"}
-                            onClick={() => void addProjectToSelectedWeek(project.id)}
-                        >
-                            <span>{project.name}</span>
-                            <small>{project.client_name || "No client"}</small>
-                        </button>
-                    )) : <div className={"calendarSearchResultEmpty"}>No projects found for this week.</div>}
-                </div>
-            )}
+            <ProjectSearchBar
+                projects={projects}
+                weeklyPlanProjectIds={weeklyPlanProjectIds}
+                onAddProject={addProjectToSelectedWeek}
+            />
 
             <div className={"metricsContainer"}>
                 <div className={"metricsBar"}>
