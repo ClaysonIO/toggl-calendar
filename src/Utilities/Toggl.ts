@@ -4,19 +4,21 @@ import {IUser} from "./Interfaces/IUser";
 import {appState} from "../App";
 import {ITaskResponse} from "./Interfaces/ITaskResponse";
 
+const TOGGL_API = import.meta.env.DEV ? '/toggl-api' : 'https://api.track.toggl.com';
+const TOGGL_REPORTS = import.meta.env.DEV ? '/toggl-reports' : 'https://track.toggl.com';
 
 export class Toggl{
 
     static GetUser(apiKey: string): Promise<IUser>{
         return new Promise((resolve, reject)=>{
             Promise.all([
-                axios.get('https://api.track.toggl.com/api/v9/me', {
+                axios.get(`${TOGGL_API}/api/v9/me`, {
                     headers: {
                         "Content-Type": "application/json"
                     },
                     auth: {username: apiKey, password: "api_token"}
                 }),
-                axios.get('https://api.track.toggl.com/api/v9/workspaces', {
+                axios.get(`${TOGGL_API}/api/v9/workspaces`, {
                     headers: {
                         "Content-Type": "application/json"
                     },
@@ -39,7 +41,7 @@ export class Toggl{
             //Note that Pages in Toggl begin at 1, not 0
             const currentPage = page ? page : 1;
 
-            axios.get('https://track.toggl.com/reports/api/v2/details', {
+            axios.get(`${TOGGL_REPORTS}/reports/api/v2/details`, {
                 params: {
                     since: startDate.isBefore(endDate) ? startDate.format('YYYY-MM-DD') : endDate.format('YYYY-MM-DD'),
                     until: startDate.isBefore(endDate) ? endDate.format('YYYY-MM-DD') : startDate.format('YYYY-MM-DD'),
@@ -77,7 +79,7 @@ export class Toggl{
     static fetchProjects(apiKey: string, workspace_id: string): Promise<any[]>{
         return new Promise((resolve, reject)=>{
 
-            axios.get(`https://api.track.toggl.com/api/v9/workspaces/${workspace_id}/projects`, {
+            axios.get(`${TOGGL_API}/api/v9/workspaces/${workspace_id}/projects`, {
                 headers: {
                     "Content-Type": "application/json"
                 },
