@@ -284,9 +284,13 @@ const ProjectSearchBar = React.memo(({projects, weeklyPlanProjectIds, onAddProje
                         <button
                             key={project.id}
                             className={"calendarSearchResult"}
+                            style={{
+                                borderColor: project.color || "#ddd",
+                                backgroundColor: (project.color || "#7A7A7A") + "18"
+                            }}
                             onClick={() => handleAdd(project.id)}
                         >
-                            <span>{project.name}</span>
+                            <span style={{color: project.color || "inherit", fontWeight: 600}}>{project.name}</span>
                             <small>{project.client_name || "No client"}</small>
                         </button>
                     )) : <div className={"calendarSearchResultEmpty"}>No projects found.</div>}
@@ -591,6 +595,11 @@ export const CalendarPage = () => {
         [tableRows, dateKeys]
     );
 
+    const totalSummary = useMemo(
+        () => summarizeRows(tableRows, dateKeys),
+        [tableRows, dateKeys]
+    );
+
     const formatHoursForDisplay = useCallback((hours: number) => {
         return formatHours(hours, timeDisplayMode);
     }, [timeDisplayMode]);
@@ -627,7 +636,7 @@ export const CalendarPage = () => {
                         Client <span>{sortSymbol(column.getIsSorted())}</span>
                     </button>
                 ),
-                cell: ({row}) => <span className={"calendarClientName"}>{row.original.clientName || "-"}</span>
+                cell: ({row}) => <span className={"calendarClientName"} style={{color: row.original.projectColor}}>{row.original.clientName || "-"}</span>
             },
             {
                 id: "projectName",
@@ -643,11 +652,7 @@ export const CalendarPage = () => {
                         type={"button"}
                         onClick={() => void toggleProjectBillable(row.original.projectId, row.original.billable)}
                     >
-                        <span
-                            className={"calendarProjectSwatch"}
-                            style={{backgroundColor: row.original.projectColor}}
-                        />
-                        <span className={"calendarProjectName"}>{row.original.projectName}</span>
+                        <span className={"calendarProjectName"} style={{color: row.original.projectColor}}>{row.original.projectName}</span>
                         <span className={row.original.billable ? "billableBadge billable" : "billableBadge nonBillable"}>
                             {row.original.billable ? "B" : "NB"}
                         </span>
@@ -854,6 +859,14 @@ export const CalendarPage = () => {
                             <th key={`non-billable-${date}`}>{formatHoursForDisplay(nonBillableSummary.dailyHours[date] || 0)}</th>
                         ))}
                         <th>{formatHoursForDisplay(nonBillableSummary.totalHours)}{nonBillableSummary.projectedHours > 0 ? ` / ${formatHoursForDisplay(nonBillableSummary.projectedHours)}` : ""}</th>
+                    </tr>
+                    <tr className={"summaryTotal"}>
+                        <th>Total</th>
+                        <th/>
+                        {dateKeys.map(date => (
+                            <th key={`total-${date}`}>{formatHoursForDisplay(totalSummary.dailyHours[date] || 0)}</th>
+                        ))}
+                        <th>{formatHoursForDisplay(totalSummary.totalHours)}{totalSummary.projectedHours > 0 ? ` / ${formatHoursForDisplay(totalSummary.projectedHours)}` : ""}</th>
                     </tr>
                     </tfoot>
                 </table>
