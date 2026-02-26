@@ -11,7 +11,8 @@ export function useTogglDetails(workspace_id: string, startDate: string, endDate
     const {data: user} = useTogglUser();
 
     const response = useQuery({
-        queryKey: ['togglDetails', {togglApiKey, startDate, endDate}],
+        queryKey: ['togglDetails', {togglApiKey, workspace_id, startDate, endDate}],
+        enabled: !!togglApiKey && !!workspace_id && !!user?.id && !!startDate && !!endDate,
         queryFn: async () => Toggl.FetchDateRangeDetails(
             togglApiKey,
             user?.id ?? 0,

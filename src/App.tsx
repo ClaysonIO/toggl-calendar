@@ -5,12 +5,13 @@ import {AppState} from "./Utilities/AppState";
 import {CalendarPage} from "./Pages/Calendar";
 import {MainPage} from "./Pages/Main";
 import {ProjectsPage} from "./Pages/ProjectsPage";
+import {TEST_TOGGL_API_KEY, TEST_TOGGL_WORKSPACE_NAME} from "./Utilities/testingEnv";
 
 export const appState = new AppState();
 
 function App() {
 
-    const hasWorkspaceId = !!localStorage.getItem('workSpaceId')
+  const hasWorkspaceId = !!localStorage.getItem('workSpaceId') || (!!TEST_TOGGL_API_KEY && !!TEST_TOGGL_WORKSPACE_NAME)
 
     return (
             <Routes>

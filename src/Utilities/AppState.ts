@@ -3,6 +3,7 @@ import {IWorkSpace, WorkSpace} from "./WorkSpace";
 import {Toggl} from "./Toggl";
 import {action, makeAutoObservable, observable} from "mobx";
 import {User} from "./User";
+import {TEST_TOGGL_API_KEY, TEST_TOGGL_WORKSPACE_NAME} from "./testingEnv";
 
 export class AppState{
     public readonly settings: Settings;
@@ -19,6 +20,13 @@ export class AppState{
             const user = window.localStorage.getItem("user") ? JSON.parse(window.localStorage.getItem("user")||"") : undefined;
             this.setWorkSpaces(workSpaces.map(val=>new WorkSpace(val)))
             this.setUser(user ? new User(user) : undefined);
+
+            // For local testing, allow env-based bootstrap without manual settings clicks.
+            const shouldAutoFetch = !!TEST_TOGGL_API_KEY
+                && (!this.workSpaces.length || (!!TEST_TOGGL_WORKSPACE_NAME && !this.selectedWorkSpace));
+            if (shouldAutoFetch) {
+                this.getWorkSpaces();
+            }
         }
 
         this.getWorkSpaces = this.getWorkSpaces.bind(this);
@@ -54,6 +62,16 @@ export class AppState{
         this.workSpaces = workSpaces.sort((a,b)=>a.name.toLowerCase().localeCompare(b.name.toLowerCase(), 'en', {numeric: true}));
 
         window.localStorage.setItem("workSpaces", JSON.stringify(this.workSpaces.map(val=>val.toInterface())));
+
+        if(TEST_TOGGL_WORKSPACE_NAME){
+            const normalizedWorkspaceName = TEST_TOGGL_WORKSPACE_NAME.toLowerCase();
+            const exactMatch = this.workSpaces.find(val=>val.name.toLowerCase() === normalizedWorkspaceName);
+            const partialMatch = this.workSpaces.find(val=>val.name.toLowerCase().includes(normalizedWorkspaceName));
+            if (exactMatch || partialMatch) {
+                this.selectWorkSpace(exactMatch || partialMatch);
+                return;
+            }
+        }
 
         const lastSelectedWorkSpace = window.localStorage.getItem("workSpaceId");
 
