@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useMemo, useState} from "react";
+import React, {useCallback, useEffect, useMemo, useRef, useState} from "react";
 import {Layout} from "../Components/Layout";
 import {appState} from "../App";
 import {CalendarDateNav} from "../Components/CalendarDateNav";
@@ -124,6 +124,77 @@ const sortSymbol = (sortState: false | "asc" | "desc") => {
     if (sortState === "asc") return "▲";
     if (sortState === "desc") return "▼";
     return "↕";
+};
+
+const TotalHoursCell = React.memo(({row, formatHours, onProjectedChange}: {
+    row: ICalendarTableRow,
+    formatHours: (h: number) => string,
+    onProjectedChange: (projectId: number, value: number) => void
+}) => {
+    const [editing, setEditing] = useState(false);
+    const inputRef = useRef<HTMLInputElement>(null);
+    const projected = row.projectedHours;
+    const actual = row.totalHours;
+    const progressPct = projected > 0 ? Math.min((actual / projected) * 100, 100) : (actual > 0 ? 100 : 0);
+
+    useEffect(() => {
+        if (editing && inputRef.current) {
+            inputRef.current.focus();
+            inputRef.current.select();
+        }
+    }, [editing]);
+
+    const commitEdit = (value: string) => {
+        setEditing(false);
+        const parsed = Number(value);
+        const safe = Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+        onProjectedChange(row.projectId, safe);
+    };
+
+    return (
+        <div className={"totalHoursCell"}>
+            <span className={"totalHoursText"}>
+                <strong>{formatHours(actual)}</strong>
+                <span className={"totalHoursSeparator"}>/</span>
+                {editing ? (
+                    <input
+                        ref={inputRef}
+                        className={"projectedInlineInput"}
+                        type={"number"}
+                        min={0}
+                        step={0.25}
+                        defaultValue={projected}
+                        onBlur={e => commitEdit(e.currentTarget.value)}
+                        onKeyDown={e => { if (e.key === "Enter") e.currentTarget.blur(); }}
+                    />
+                ) : (
+                    <button
+                        className={"projectedInlineButton"}
+                        type={"button"}
+                        onClick={() => setEditing(true)}
+                        title={"Click to edit projected hours"}
+                    >
+                        {projected > 0 ? formatHours(projected) : "--"}
+                    </button>
+                )}
+            </span>
+            <div className={"progressBarTrack"}>
+                <div
+                    className={`progressBarFill ${actual > projected && projected > 0 ? "over" : ""}`}
+                    style={{width: `${progressPct}%`}}
+                />
+            </div>
+        </div>
+    );
+});
+
+const useDebounce = <T,>(value: T, delay: number): T => {
+    const [debouncedValue, setDebouncedValue] = useState(value);
+    useEffect(() => {
+        const timer = setTimeout(() => setDebouncedValue(value), delay);
+        return () => clearTimeout(timer);
+    }, [value, delay]);
+    return debouncedValue;
 };
 
 export const CalendarPage = () => {
@@ -376,8 +447,10 @@ export const CalendarPage = () => {
 
     const weeklyPlanProjectIds = useMemo(() => new Set(safeWeeklyPlans.map(plan => plan.projectId)), [safeWeeklyPlans]);
 
+    const debouncedSearchValue = useDebounce(searchValue, 150);
+
     const projectSearchResults = useMemo(() => {
-        const normalizedSearch = searchValue.trim().toLowerCase();
+        const normalizedSearch = debouncedSearchValue.trim().toLowerCase();
         if (!normalizedSearch) return [];
 
         return projects
@@ -388,7 +461,7 @@ export const CalendarPage = () => {
             ))
             .sort((a, b) => a.name.localeCompare(b.name, "en", {numeric: true}))
             .slice(0, 8);
-    }, [searchValue, projects, weeklyPlanProjectIds]);
+    }, [debouncedSearchValue, projects, weeklyPlanProjectIds]);
 
     const addProjectToSelectedWeek = useCallback(async (projectId: number) => {
         const projectedHours = weeklyPlanByProjectId[projectId]?.projectedWeekHours || 0;
@@ -483,7 +556,7 @@ export const CalendarPage = () => {
                         />
                         <span className={"calendarProjectName"}>{row.original.projectName}</span>
                         <span className={row.original.billable ? "billableBadge billable" : "billableBadge nonBillable"}>
-                            {row.original.billable ? "Billable" : "Non-billable"}
+                            {row.original.billable ? "B" : "NB"}
                         </span>
                     </button>
                 )
@@ -497,38 +570,6 @@ export const CalendarPage = () => {
                     </button>
                 ),
                 cell: ({row}) => <span className={"calendarClientName"}>{row.original.clientName || "-"}</span>
-            },
-            {
-                id: "projectedHours",
-                accessorFn: row => row.projectedHours,
-                header: ({column}) => (
-                    <button className={"calendarSortButton"} onClick={column.getToggleSortingHandler()} type={"button"}>
-                        Projected <span>{sortSymbol(column.getIsSorted())}</span>
-                    </button>
-                ),
-                cell: ({row}) => (
-                    <input
-                        key={`${row.original.projectId}-${row.original.projectedHours}`}
-                        className={"projectedHoursInput"}
-                        type={"number"}
-                        min={0}
-                        step={0.25}
-                        defaultValue={row.original.projectedHours}
-                        onBlur={(event) => {
-                            const parsedValue = Number(event.currentTarget.value);
-                            const safeValue = Number.isFinite(parsedValue) && parsedValue >= 0 ? parsedValue : 0;
-                            void upsertWeeklyPlan(row.original.projectId, safeValue);
-                            if (!Number.isFinite(parsedValue) || parsedValue < 0) {
-                                event.currentTarget.value = safeValue.toString();
-                            }
-                        }}
-                        onKeyDown={(event) => {
-                            if (event.key === "Enter") {
-                                event.currentTarget.blur();
-                            }
-                        }}
-                    />
-                )
             },
             ...dateKeys.map(date => ({
                 id: date,
@@ -545,13 +586,15 @@ export const CalendarPage = () => {
                 accessorFn: row => row.totalHours,
                 header: ({column}) => (
                     <button className={"calendarSortButton"} onClick={column.getToggleSortingHandler()} type={"button"}>
-                        Total Hours <span>{sortSymbol(column.getIsSorted())}</span>
+                        Hours <span>{sortSymbol(column.getIsSorted())}</span>
                     </button>
                 ),
                 cell: ({row}) => (
-                    <strong className={"calendarTotalHours"}>
-                        {formatHoursForDisplay(row.original.totalHours)}
-                    </strong>
+                    <TotalHoursCell
+                        row={row.original}
+                        formatHours={formatHoursForDisplay}
+                        onProjectedChange={(projectId, value) => void upsertWeeklyPlan(projectId, value)}
+                    />
                 )
             }
         ];
@@ -583,7 +626,7 @@ export const CalendarPage = () => {
 
     return (
         <Layout>
-            <h2>Calendar</h2>
+            <h2 style={{margin: "4px 0 6px"}}>Calendar</h2>
             <div className={"calendarHeader"}>
                 <div>
                     <strong>{weekStart.format("MMM D, YYYY")} - {weekEnd.format("MMM D, YYYY")}</strong>
@@ -737,22 +780,20 @@ export const CalendarPage = () => {
                     </tbody>
                     <tfoot>
                     <tr>
-                        <th>Billable Sum</th>
+                        <th>Billable</th>
                         <th/>
-                        <th>{formatHoursForDisplay(billableSummary.projectedHours)}</th>
                         {dateKeys.map(date => (
                             <th key={`billable-${date}`}>{formatHoursForDisplay(billableSummary.dailyHours[date] || 0)}</th>
                         ))}
-                        <th>{formatHoursForDisplay(billableSummary.totalHours)}</th>
+                        <th>{formatHoursForDisplay(billableSummary.totalHours)}{billableSummary.projectedHours > 0 ? ` / ${formatHoursForDisplay(billableSummary.projectedHours)}` : ""}</th>
                     </tr>
                     <tr>
-                        <th>Non-billable Sum</th>
+                        <th>Non-billable</th>
                         <th/>
-                        <th>{formatHoursForDisplay(nonBillableSummary.projectedHours)}</th>
                         {dateKeys.map(date => (
                             <th key={`non-billable-${date}`}>{formatHoursForDisplay(nonBillableSummary.dailyHours[date] || 0)}</th>
                         ))}
-                        <th>{formatHoursForDisplay(nonBillableSummary.totalHours)}</th>
+                        <th>{formatHoursForDisplay(nonBillableSummary.totalHours)}{nonBillableSummary.projectedHours > 0 ? ` / ${formatHoursForDisplay(nonBillableSummary.projectedHours)}` : ""}</th>
                     </tr>
                     </tfoot>
                 </table>
