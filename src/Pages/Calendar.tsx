@@ -187,6 +187,9 @@ export const CalendarPage = () => {
         DEFAULT_BILLABLE_TARGET_HOURS
     );
 
+    const safeProjectPreferences = (projectPreferences || []) as IProjectPreference[];
+    const safeWeeklyPlans = (weeklyPlans || []) as IWeeklyProjectPlan[];
+
     useEffect(() => {
         const ensureTargetSetting = async () => {
             const current = await calendarDb.settings.get(BILLABLE_TARGET_SETTING_KEY);
@@ -204,7 +207,7 @@ export const CalendarPage = () => {
     useEffect(() => {
         if (!workspaceId || !projects.length) return;
         const ensureProjectPreferences = async () => {
-            const existingProjectIds = new Set((projectPreferences || []).map(pref => pref.projectId));
+            const existingProjectIds = new Set(safeProjectPreferences.map(pref => pref.projectId));
             const missingProjectPreferences: IProjectPreference[] = projects
                 .filter(project => !existingProjectIds.has(project.id))
                 .map(project => ({
@@ -220,7 +223,7 @@ export const CalendarPage = () => {
             }
         };
         void ensureProjectPreferences();
-    }, [workspaceId, projects, projectPreferences]);
+    }, [workspaceId, projects, safeProjectPreferences]);
 
     const projectById = useMemo(
         () => projects.reduce((acc: {[projectId: number]: ISingleProject}, project) => {
@@ -231,19 +234,19 @@ export const CalendarPage = () => {
     );
 
     const preferenceByProjectId = useMemo(
-        () => (projectPreferences || []).reduce((acc: {[projectId: number]: IProjectPreference}, preference) => {
+        () => safeProjectPreferences.reduce((acc: {[projectId: number]: IProjectPreference}, preference) => {
             acc[preference.projectId] = preference;
             return acc;
         }, {}),
-        [projectPreferences]
+        [safeProjectPreferences]
     );
 
     const weeklyPlanByProjectId = useMemo(
-        () => (weeklyPlans || []).reduce((acc: {[projectId: number]: IWeeklyProjectPlan}, weeklyPlan) => {
+        () => safeWeeklyPlans.reduce((acc: {[projectId: number]: IWeeklyProjectPlan}, weeklyPlan) => {
             acc[weeklyPlan.projectId] = weeklyPlan;
             return acc;
         }, {}),
-        [weeklyPlans]
+        [safeWeeklyPlans]
     );
 
     const usageByProjectId = useMemo(() => {
@@ -295,7 +298,7 @@ export const CalendarPage = () => {
     const tableRows = useMemo<ICalendarTableRow[]>(() => {
         const visibleProjectIds = new Set<number>();
 
-        (weeklyPlans || []).forEach(plan => {
+        safeWeeklyPlans.forEach(plan => {
             visibleProjectIds.add(plan.projectId);
         });
 
@@ -325,9 +328,9 @@ export const CalendarPage = () => {
                 hasWeeklyPlan: !!weeklyPlan
             };
         }).sort((a, b) => a.projectName.localeCompare(b.projectName, "en", {numeric: true}));
-    }, [weeklyPlans, usageByProjectId, projectById, weeklyPlanByProjectId, preferenceByProjectId, workspaceId, weekStartKey, dateKeys]);
+    }, [safeWeeklyPlans, usageByProjectId, projectById, weeklyPlanByProjectId, preferenceByProjectId, workspaceId, weekStartKey, dateKeys]);
 
-    const weeklyPlanProjectIds = useMemo(() => new Set((weeklyPlans || []).map(plan => plan.projectId)), [weeklyPlans]);
+    const weeklyPlanProjectIds = useMemo(() => new Set(safeWeeklyPlans.map(plan => plan.projectId)), [safeWeeklyPlans]);
 
     const projectSearchResults = useMemo(() => {
         const normalizedSearch = searchValue.trim().toLowerCase();
