@@ -13,3 +13,14 @@ This tool was built as a 100% client-side application. All requests are made by 
 ## Run Locally
 
 It's a basic [CRA](https://create-react-app.dev/) application. To run it locally, clone the repository, run `npm install`, followed by `npm run start`. 
+
+### Optional testing env vars
+
+For cloud-agent testing (non-production), you can add a `.env` file with:
+
+```bash
+VITE_TOGGL_API_KEY=your_toggl_api_key
+VITE_TOGGL_WORKSPACE_NAME=Your Workspace Name
+```
+
+When set, the app will pre-populate the API key and try to auto-select the matching workspace name.
