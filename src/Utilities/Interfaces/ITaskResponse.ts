@@ -2,7 +2,7 @@ export interface ITaskResponse {
     billable?: null
     client: string
     cur?: null
-    description: string
+    description: string | null
     dur: number
     end: string
     id: number

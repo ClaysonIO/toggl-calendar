@@ -27,6 +27,7 @@ import {
     useReactTable
 } from "@tanstack/react-table";
 import {ISingleProject} from "../Utilities/Interfaces/ISingleProject";
+import {DecimalToRoundedTime} from "../Utilities/Functions/DecimalToRoundedTime";
 import "./Calendar.css";
 
 interface ICalendarTableRow {
@@ -39,6 +40,7 @@ interface ICalendarTableRow {
     projectedHours: number;
     totalHours: number;
     dailyHours: {[date: string]: number};
+    dailyTaskDescriptions: {[date: string]: string[]};
     hasWeeklyPlan: boolean;
 }
 
@@ -50,11 +52,53 @@ interface IHoursSummary {
 
 const roundHours = (hours: number) => Math.round(hours * 100) / 100;
 
-const formatHours = (hours: number) => roundHours(hours).toFixed(2);
+type TimeDisplayMode = "rounded" | "actual";
+type RowDisplayMode = "time" | "description" | "timeAndDescription";
+
+const TIME_DISPLAY_STORAGE_KEY = "calendarTimeDisplayMode";
+const ROW_DISPLAY_STORAGE_KEY = "calendarRowDisplayMode";
+
+const safeWindow = typeof window !== "undefined" ? window : undefined;
+
+const loadTimeDisplayMode = (): TimeDisplayMode => {
+    const storedValue = safeWindow?.localStorage.getItem(TIME_DISPLAY_STORAGE_KEY);
+    return storedValue === "actual" ? "actual" : "rounded";
+};
+
+const loadRowDisplayMode = (): RowDisplayMode => {
+    const storedValue = safeWindow?.localStorage.getItem(ROW_DISPLAY_STORAGE_KEY);
+    switch (storedValue) {
+        case "description":
+        case "timeAndDescription":
+        case "time":
+            return storedValue;
+        default:
+            return "time";
+    }
+};
+
+const formatClockHours = (hours: number) => {
+    const totalMinutes = Math.max(0, Math.round(hours * 60));
+    const wholeHours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    return `${wholeHours}:${minutes.toString().padStart(2, "0")}`;
+};
+
+const formatHours = (hours: number, displayMode: TimeDisplayMode) => (
+    displayMode === "actual"
+        ? formatClockHours(hours)
+        : DecimalToRoundedTime(hours)
+);
 
 const createEmptyDailyHours = (dateKeys: string[]) =>
     dateKeys.reduce((acc: {[date: string]: number}, date) => {
         acc[date] = 0;
+        return acc;
+    }, {});
+
+const createEmptyDailyTaskDescriptions = (dateKeys: string[]) =>
+    dateKeys.reduce((acc: {[date: string]: string[]}, date) => {
+        acc[date] = [];
         return acc;
     }, {});
 
@@ -82,45 +126,13 @@ const sortSymbol = (sortState: false | "asc" | "desc") => {
     return "↕";
 };
 
-const ProgressCircle = ({value, target}: {value: number, target: number}) => {
-    const boundedTarget = target > 0 ? target : 1;
-    const progress = Math.min(value / boundedTarget, 1);
-    const size = 38;
-    const strokeWidth = 4;
-    const radius = (size - strokeWidth) / 2;
-    const circumference = 2 * Math.PI * radius;
-    const strokeDashoffset = circumference * (1 - progress);
-
-    return (
-        <div className={"calendarProgress"} title={`${formatHours(value)} / ${formatHours(target)} hours`}>
-            <svg width={size} height={size}>
-                <circle
-                    className={"calendarProgressTrack"}
-                    strokeWidth={strokeWidth}
-                    r={radius}
-                    cx={size / 2}
-                    cy={size / 2}
-                />
-                <circle
-                    className={"calendarProgressValue"}
-                    strokeWidth={strokeWidth}
-                    strokeDasharray={`${circumference} ${circumference}`}
-                    strokeDashoffset={strokeDashoffset}
-                    r={radius}
-                    cx={size / 2}
-                    cy={size / 2}
-                />
-            </svg>
-            <span className={"calendarProgressLabel"}>{Math.round(progress * 100)}%</span>
-        </div>
-    );
-};
-
 export const CalendarPage = () => {
     const location = useLocation();
     const {startDate, endDate} = splitQuery(location.search);
     const [sorting, setSorting] = useState<SortingState>([{id: "projectName", desc: false}]);
     const [searchValue, setSearchValue] = useState("");
+    const [timeDisplayMode, setTimeDisplayMode] = useState<TimeDisplayMode>(() => loadTimeDisplayMode());
+    const [rowDisplayMode, setRowDisplayMode] = useState<RowDisplayMode>(() => loadRowDisplayMode());
 
     const fallbackStart = dayjs().startOf("week");
     const normalizedStartDate = startDate && dayjs(startDate).isValid()
@@ -191,6 +203,14 @@ export const CalendarPage = () => {
     const safeWeeklyPlans = (weeklyPlans || []) as IWeeklyProjectPlan[];
 
     useEffect(() => {
+        safeWindow?.localStorage.setItem(TIME_DISPLAY_STORAGE_KEY, timeDisplayMode);
+    }, [timeDisplayMode]);
+
+    useEffect(() => {
+        safeWindow?.localStorage.setItem(ROW_DISPLAY_STORAGE_KEY, rowDisplayMode);
+    }, [rowDisplayMode]);
+
+    useEffect(() => {
         const ensureTargetSetting = async () => {
             const current = await calendarDb.settings.get(BILLABLE_TARGET_SETTING_KEY);
             if (!current) {
@@ -251,19 +271,42 @@ export const CalendarPage = () => {
 
     const usageByProjectId = useMemo(() => {
         return Object.keys(simpleData || {})
-            .reduce((acc: {[projectId: number]: {totalHours: number, dailyHours: {[date: string]: number}}}, projectIdAsString) => {
+            .reduce((acc: {[projectId: number]: {
+                totalHours: number,
+                dailyHours: {[date: string]: number},
+                dailyTaskDescriptions: {[date: string]: string[]},
+                projectName: string,
+                clientName: string,
+                projectColor: string
+            }}, projectIdAsString) => {
                 const projectId = Number(projectIdAsString);
-                const details = simpleData?.[projectId]?.dates || {};
+                if (!Number.isFinite(projectId)) return acc;
+
+                const projectDetails = simpleData?.[projectId];
+                const details = projectDetails?.dates || {};
 
                 const dailyHours = createEmptyDailyHours(dateKeys);
+                const dailyTaskDescriptions = createEmptyDailyTaskDescriptions(dateKeys);
                 let totalHours = 0;
+
                 dateKeys.forEach(date => {
-                    const dayHours = details[date]?.hours || 0;
+                    const dayDetails = details[date];
+                    const dayHours = dayDetails?.hours || 0;
                     dailyHours[date] = dayHours;
                     totalHours += dayHours;
+                    dailyTaskDescriptions[date] = Array.from(dayDetails?.taskDescriptions || [])
+                        .map(description => description.trim())
+                        .filter(description => !!description);
                 });
 
-                acc[projectId] = {totalHours, dailyHours};
+                acc[projectId] = {
+                    totalHours,
+                    dailyHours,
+                    dailyTaskDescriptions,
+                    projectName: projectDetails?.project_name || "",
+                    clientName: projectDetails?.client_name || "",
+                    projectColor: projectDetails?.project_hex_color || ""
+                };
                 return acc;
             }, {});
     }, [simpleData, dateKeys]);
@@ -318,13 +361,14 @@ export const CalendarPage = () => {
             return {
                 id: `${workspaceId}-${weekStartKey}-${projectId}`,
                 projectId,
-                projectName: project?.name || `Project ${projectId}`,
-                clientName: project?.client_name || "",
-                projectColor: project?.color || "#7A7A7A",
+                projectName: project?.name || usage?.projectName || `Project ${projectId}`,
+                clientName: project?.client_name || usage?.clientName || "",
+                projectColor: project?.color || usage?.projectColor || "#7A7A7A",
                 billable: preference?.billable ?? true,
                 projectedHours: weeklyPlan?.projectedWeekHours || 0,
                 totalHours: usage?.totalHours || 0,
                 dailyHours: usage?.dailyHours || createEmptyDailyHours(dateKeys),
+                dailyTaskDescriptions: usage?.dailyTaskDescriptions || createEmptyDailyTaskDescriptions(dateKeys),
                 hasWeeklyPlan: !!weeklyPlan
             };
         }).sort((a, b) => a.projectName.localeCompare(b.projectName, "en", {numeric: true}));
@@ -391,6 +435,32 @@ export const CalendarPage = () => {
         [tableRows, dateKeys]
     );
 
+    const formatHoursForDisplay = useCallback((hours: number) => {
+        return formatHours(hours, timeDisplayMode);
+    }, [timeDisplayMode]);
+
+    const renderDailyCellContent = useCallback((row: ICalendarTableRow, date: string) => {
+        const dayHours = row.dailyHours[date] || 0;
+        const descriptionText = (row.dailyTaskDescriptions[date] || []).join(", ");
+        const hasDescription = !!descriptionText;
+        const timeText = dayHours > 0 ? formatHoursForDisplay(dayHours) : "";
+
+        switch (rowDisplayMode) {
+            case "description":
+                return hasDescription ? <span className={"calendarDayDescription"}>{descriptionText}</span> : "";
+            case "timeAndDescription":
+                if (!hasDescription && !timeText) return "";
+                return (
+                    <div className={"calendarDayCellCombined"}>
+                        {timeText ? <strong>{timeText}</strong> : null}
+                        {hasDescription ? <span className={"calendarDayDescription"}>{descriptionText}</span> : null}
+                    </div>
+                );
+            default:
+                return timeText ? <span>{timeText}</span> : "";
+        }
+    }, [formatHoursForDisplay, rowDisplayMode]);
+
     const columns = useMemo<ColumnDef<ICalendarTableRow>[]>(() => {
         return [
             {
@@ -426,7 +496,7 @@ export const CalendarPage = () => {
                         Client <span>{sortSymbol(column.getIsSorted())}</span>
                     </button>
                 ),
-                cell: ({row}) => <span>{row.original.clientName || "-"}</span>
+                cell: ({row}) => <span className={"calendarClientName"}>{row.original.clientName || "-"}</span>
             },
             {
                 id: "projectedHours",
@@ -468,9 +538,7 @@ export const CalendarPage = () => {
                         {dayjs(date).format("ddd D")} <span>{sortSymbol(column.getIsSorted())}</span>
                     </button>
                 ),
-                cell: ({row}: any) => (
-                    <span>{row.original.dailyHours[date] ? formatHours(row.original.dailyHours[date]) : ""}</span>
-                )
+                cell: ({row}: any) => renderDailyCellContent(row.original, date)
             })),
             {
                 id: "totalHours",
@@ -481,14 +549,13 @@ export const CalendarPage = () => {
                     </button>
                 ),
                 cell: ({row}) => (
-                    <div className={"calendarTotalCell"}>
-                        <ProgressCircle value={row.original.totalHours} target={safeBillableTarget}/>
-                        <strong>{formatHours(row.original.totalHours)}</strong>
-                    </div>
+                    <strong className={"calendarTotalHours"}>
+                        {formatHoursForDisplay(row.original.totalHours)}
+                    </strong>
                 )
             }
         ];
-    }, [dateKeys, safeBillableTarget, toggleProjectBillable, upsertWeeklyPlan]);
+    }, [dateKeys, formatHoursForDisplay, renderDailyCellContent, toggleProjectBillable, upsertWeeklyPlan]);
 
     const table = useReactTable({
         data: tableRows,
@@ -521,7 +588,50 @@ export const CalendarPage = () => {
                 <div>
                     <strong>{weekStart.format("MMM D, YYYY")} - {weekEnd.format("MMM D, YYYY")}</strong>
                 </div>
-                <CalendarDateNav/>
+                <div className={"calendarHeaderControls"}>
+                    <CalendarDateNav/>
+                    <div className={"calendarDisplayControls"}>
+                        <div className={"calendarDisplayButtonGroup"}>
+                            <button
+                                className={`calendarHeaderButton ${timeDisplayMode === "rounded" ? "selected" : ""}`}
+                                type={"button"}
+                                onClick={() => setTimeDisplayMode("rounded")}
+                            >
+                                Rounded
+                            </button>
+                            <button
+                                className={`calendarHeaderButton ${timeDisplayMode === "actual" ? "selected" : ""}`}
+                                type={"button"}
+                                onClick={() => setTimeDisplayMode("actual")}
+                            >
+                                Actual
+                            </button>
+                        </div>
+                        <div className={"calendarDisplayButtonGroup"}>
+                            <button
+                                className={`calendarHeaderButton ${rowDisplayMode === "time" ? "selected" : ""}`}
+                                type={"button"}
+                                onClick={() => setRowDisplayMode("time")}
+                            >
+                                Time
+                            </button>
+                            <button
+                                className={`calendarHeaderButton ${rowDisplayMode === "description" ? "selected" : ""}`}
+                                type={"button"}
+                                onClick={() => setRowDisplayMode("description")}
+                            >
+                                Descriptions
+                            </button>
+                            <button
+                                className={`calendarHeaderButton ${rowDisplayMode === "timeAndDescription" ? "selected" : ""}`}
+                                type={"button"}
+                                onClick={() => setRowDisplayMode("timeAndDescription")}
+                            >
+                                Time + Descriptions
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div className={"calendarSearch"}>
@@ -575,9 +685,9 @@ export const CalendarPage = () => {
                 </button>
             </div>
             <div className={"metricLegend"}>
-                <span><strong>Current Billable:</strong> {formatHours(currentBillableHours)}</span>
-                <span><strong>Projected:</strong> {formatHours(projectedHoursTotal)}</span>
-                <span><strong>Target:</strong> {formatHours(safeBillableTarget)}</span>
+                <span><strong>Current Billable:</strong> {formatHoursForDisplay(currentBillableHours)}</span>
+                <span><strong>Projected:</strong> {formatHoursForDisplay(projectedHoursTotal)}</span>
+                <span><strong>Target:</strong> {formatHoursForDisplay(safeBillableTarget)}</span>
             </div>
 
             <div className={"calendarTableContainer"}>
@@ -629,20 +739,20 @@ export const CalendarPage = () => {
                     <tr>
                         <th>Billable Sum</th>
                         <th/>
-                        <th>{formatHours(billableSummary.projectedHours)}</th>
+                        <th>{formatHoursForDisplay(billableSummary.projectedHours)}</th>
                         {dateKeys.map(date => (
-                            <th key={`billable-${date}`}>{formatHours(billableSummary.dailyHours[date] || 0)}</th>
+                            <th key={`billable-${date}`}>{formatHoursForDisplay(billableSummary.dailyHours[date] || 0)}</th>
                         ))}
-                        <th>{formatHours(billableSummary.totalHours)}</th>
+                        <th>{formatHoursForDisplay(billableSummary.totalHours)}</th>
                     </tr>
                     <tr>
                         <th>Non-billable Sum</th>
                         <th/>
-                        <th>{formatHours(nonBillableSummary.projectedHours)}</th>
+                        <th>{formatHoursForDisplay(nonBillableSummary.projectedHours)}</th>
                         {dateKeys.map(date => (
-                            <th key={`non-billable-${date}`}>{formatHours(nonBillableSummary.dailyHours[date] || 0)}</th>
+                            <th key={`non-billable-${date}`}>{formatHoursForDisplay(nonBillableSummary.dailyHours[date] || 0)}</th>
                         ))}
-                        <th>{formatHours(nonBillableSummary.totalHours)}</th>
+                        <th>{formatHoursForDisplay(nonBillableSummary.totalHours)}</th>
                     </tr>
                     </tfoot>
                 </table>
