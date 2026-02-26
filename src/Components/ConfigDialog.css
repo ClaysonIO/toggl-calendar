@@ -1,7 +1,7 @@
 .configOverlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.45);
+    background: var(--overlay-bg);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -9,12 +9,13 @@
 }
 
 .configDialog {
-    background: #fff;
+    background: var(--dialog-bg);
+    color: var(--text-primary);
     border-radius: 10px;
     padding: 24px 28px 20px;
     width: 420px;
     max-width: 90vw;
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+    box-shadow: 0 8px 30px var(--dialog-shadow);
 }
 
 .configDialogHeader {
@@ -33,13 +34,13 @@
     background: transparent;
     font-size: 1.4rem;
     cursor: pointer;
-    color: #666;
+    color: var(--text-muted);
     padding: 0 4px;
     line-height: 1;
 }
 
 .configCloseButton:hover {
-    color: #000;
+    color: var(--text-primary);
 }
 
 .configLabel {
@@ -47,7 +48,7 @@
     font-weight: 600;
     font-size: 0.85rem;
     margin-bottom: 4px;
-    color: #333;
+    color: var(--text-secondary);
 }
 
 .configTokenRow {
@@ -59,13 +60,15 @@
     flex: 1;
     padding: 6px 10px;
     font-size: 0.875rem;
-    border: 1px solid #ccc;
+    border: 1px solid var(--border-input);
     border-radius: 4px;
+    background: var(--bg-input);
+    color: var(--text-primary);
 }
 
 .configInput:focus {
     outline: none;
-    border-color: #2f81f7;
+    border-color: var(--link-color);
 }
 
 .configButton {
@@ -90,13 +93,13 @@
 
 .configHint {
     display: block;
-    color: #777;
+    color: var(--projected-text);
     font-size: 0.78rem;
     margin-top: 4px;
 }
 
 .configHint a {
-    color: #2f81f7;
+    color: var(--link-color);
 }
 
 .configWorkspaceList {
@@ -108,8 +111,9 @@
 }
 
 .configWorkspaceItem {
-    border: 1px solid #ddd;
-    background: #fafafa;
+    border: 1px solid var(--border-search);
+    background: var(--config-workspace-bg);
+    color: var(--text-primary);
     padding: 8px 12px;
     border-radius: 6px;
     text-align: left;
@@ -118,17 +122,17 @@
 }
 
 .configWorkspaceItem:hover {
-    background: #f0f0f0;
+    background: var(--config-workspace-hover);
 }
 
 .configWorkspaceItem.selected {
-    border-color: darkred;
-    background: #fde8e8;
+    border-color: var(--config-workspace-selected-border);
+    background: var(--config-workspace-selected-bg);
     font-weight: 600;
 }
 
 .configEmpty {
-    color: #888;
+    color: var(--text-muted);
     font-style: italic;
     font-size: 0.85rem;
     margin: 4px 0;

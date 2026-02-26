@@ -38,6 +38,10 @@
     min-width: 220px;
     padding: 5px 8px;
     font-size: 0.875rem;
+    background: var(--bg-input);
+    color: var(--text-primary);
+    border: 1px solid var(--border-input);
+    border-radius: 4px;
 }
 
 .calendarSearchResults {
@@ -48,8 +52,9 @@
 }
 
 .calendarSearchResult {
-    border: 1px solid #ddd;
-    background: #f8f8f8;
+    border: 1px solid var(--border-search);
+    background: var(--search-result-bg);
+    color: var(--text-primary);
     cursor: pointer;
     padding: 6px 10px;
     border-radius: 6px;
@@ -59,11 +64,11 @@
 }
 
 .calendarSearchResult:hover {
-    background: #efefef;
+    background: var(--search-result-hover);
 }
 
 .calendarSearchResultEmpty {
-    color: #6b6b6b;
+    color: var(--text-muted);
     font-style: italic;
     padding: 2px;
 }
@@ -80,7 +85,7 @@
     display: flex;
     border-radius: 999px;
     overflow: hidden;
-    border: 1px solid #ddd;
+    border: 1px solid var(--border-search);
     min-height: 16px;
 }
 
@@ -111,8 +116,9 @@
 .calendarTableContainer {
     width: 100%;
     overflow-x: auto;
-    border: 1px solid #e3e3e3;
+    border: 1px solid var(--border-primary);
     border-radius: 8px;
+    background: var(--bg-table-container);
 }
 
 .calendarTable {
@@ -123,7 +129,7 @@
 
 .calendarTable th,
 .calendarTable td {
-    border-bottom: 1px solid #ececec;
+    border-bottom: 1px solid var(--border-secondary);
     padding: 4px 6px;
     vertical-align: middle;
     white-space: nowrap;
@@ -132,20 +138,21 @@
 }
 
 .calendarTable thead th {
-    background: #fafafa;
+    background: var(--bg-secondary);
     position: sticky;
     top: 0;
     z-index: 2;
 }
 
 .calendarTable tfoot th {
-    background: #f8f8f8;
+    background: var(--bg-tertiary);
     font-weight: 700;
 }
 
 .calendarSortButton {
     border: none;
     background: transparent;
+    color: var(--text-primary);
     width: 100%;
     display: flex;
     justify-content: space-between;
@@ -158,6 +165,7 @@
 .calendarProjectButton {
     border: none;
     background: transparent;
+    color: var(--text-primary);
     width: 100%;
     display: flex;
     align-items: center;
@@ -165,13 +173,6 @@
     cursor: pointer;
     text-align: left;
     padding: 0;
-}
-
-.calendarProjectSwatch {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    flex-shrink: 0;
 }
 
 .calendarProjectName {
@@ -221,7 +222,7 @@
 
 .totalHoursSeparator {
     margin: 0 2px;
-    color: #999;
+    color: var(--text-faint);
 }
 
 .projectedInlineButton {
@@ -229,33 +230,35 @@
     background: transparent;
     cursor: pointer;
     padding: 0;
-    color: #777;
+    color: var(--projected-text);
     font-size: 0.875rem;
     text-decoration: underline dotted;
     text-underline-offset: 2px;
 }
 
 .projectedInlineButton:hover {
-    color: #333;
+    color: var(--projected-text-hover);
 }
 
 .projectedInlineInput {
     width: 52px;
     padding: 0 2px;
     font-size: 0.8rem;
-    border: 1px solid #bbb;
+    border: 1px solid var(--border-input);
     border-radius: 3px;
     outline: none;
+    background: var(--bg-input);
+    color: var(--text-primary);
 }
 
 .projectedInlineInput:focus {
-    border-color: #2f81f7;
+    border-color: var(--link-color);
 }
 
 .progressBarTrack {
     width: 100%;
     height: 3px;
-    background: #e8e8e8;
+    background: var(--progress-track);
     border-radius: 2px;
     overflow: hidden;
 }
@@ -275,13 +278,13 @@
 }
 
 .billableBadge.billable {
-    background-color: #dafbe1;
-    color: #106225;
+    background-color: var(--badge-billable-bg);
+    color: var(--badge-billable-text);
 }
 
 .billableBadge.nonBillable {
-    background-color: #ffe2e0;
-    color: #8f2d2d;
+    background-color: var(--badge-nonbillable-bg);
+    color: var(--badge-nonbillable-text);
 }
 
 /* .projectedHoursInput removed — now inline in total column */
@@ -292,5 +295,10 @@
     justify-content: center;
     align-items: center;
     min-height: 120px;
-    color: #666;
+    color: var(--text-muted);
+}
+
+.calendarTable tfoot tr.summaryTotal th {
+    border-top: 2px solid var(--border-primary);
+    font-weight: 800;
 }

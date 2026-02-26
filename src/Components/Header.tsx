@@ -1,12 +1,36 @@
-import React, {useState} from "react";
+import React, {useCallback, useEffect, useState} from "react";
 import {Link} from "react-router-dom";
 import {appState} from "../App";
 import {GithubLogo} from "./GithubLogo";
 import {ConfigDialog} from "./ConfigDialog";
 import {observer} from "mobx-react";
 
+const DARK_MODE_STORAGE_KEY = "calendarDarkMode";
+
+const loadDarkMode = (): boolean => {
+    try {
+        return localStorage.getItem(DARK_MODE_STORAGE_KEY) === "true";
+    } catch {
+        return false;
+    }
+};
+
+const applyTheme = (dark: boolean) => {
+    document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
+};
+
+applyTheme(loadDarkMode());
+
 export const Header = observer(() => {
     const [configOpen, setConfigOpen] = useState(false);
+    const [darkMode, setDarkMode] = useState(loadDarkMode);
+
+    useEffect(() => {
+        applyTheme(darkMode);
+        localStorage.setItem(DARK_MODE_STORAGE_KEY, darkMode ? "true" : "false");
+    }, [darkMode]);
+
+    const toggleDark = useCallback(() => setDarkMode(prev => !prev), []);
 
     return (
         <>
@@ -18,6 +42,14 @@ export const Header = observer(() => {
                         {appState.selectedWorkSpace.name}
                     </span>
                 ) : null}
+                <button
+                    className={"menuButton"}
+                    onClick={toggleDark}
+                    title={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+                    style={{fontSize: "1rem"}}
+                >
+                    {darkMode ? "\u2600\uFE0F Light" : "\uD83C\uDF19 Dark"}
+                </button>
                 <button
                     className={"menuButton"}
                     onClick={() => setConfigOpen(true)}
