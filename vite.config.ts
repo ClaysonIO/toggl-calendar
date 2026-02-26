@@ -5,6 +5,18 @@ import { defineConfig } from 'vite'
 export default defineConfig({
   plugins: [react()],
   server:{
-    cors: false
+    cors: false,
+    proxy: {
+      '/toggl-api': {
+        target: 'https://api.track.toggl.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/toggl-api/, ''),
+      },
+      '/toggl-reports': {
+        target: 'https://track.toggl.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/toggl-reports/, ''),
+      },
+    },
   }
 })
