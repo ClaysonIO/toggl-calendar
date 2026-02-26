@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useMemo, useState} from "react";
+import React, {useCallback, useEffect, useMemo, useRef, useState} from "react";
 import {Layout} from "../Components/Layout";
 import {appState} from "../App";
 import {CalendarDateNav} from "../Components/CalendarDateNav";
@@ -126,11 +126,157 @@ const sortSymbol = (sortState: false | "asc" | "desc") => {
     return "↕";
 };
 
+const TotalHoursCell = React.memo(({row, formatHours, onProjectedChange}: {
+    row: ICalendarTableRow,
+    formatHours: (h: number) => string,
+    onProjectedChange: (projectId: number, value: number) => void
+}) => {
+    const [editing, setEditing] = useState(false);
+    const inputRef = useRef<HTMLInputElement>(null);
+    const projected = row.projectedHours;
+    const actual = row.totalHours;
+    const progressPct = projected > 0 ? Math.min((actual / projected) * 100, 100) : (actual > 0 ? 100 : 0);
+
+    useEffect(() => {
+        if (editing && inputRef.current) {
+            inputRef.current.focus();
+            inputRef.current.select();
+        }
+    }, [editing]);
+
+    const commitEdit = (value: string) => {
+        setEditing(false);
+        const parsed = Number(value);
+        const safe = Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+        onProjectedChange(row.projectId, safe);
+    };
+
+    return (
+        <div className={"totalHoursCell"}>
+            <span className={"totalHoursText"}>
+                <strong>{formatHours(actual)}</strong>
+                <span className={"totalHoursSeparator"}>/</span>
+                {editing ? (
+                    <input
+                        ref={inputRef}
+                        className={"projectedInlineInput"}
+                        type={"number"}
+                        min={0}
+                        step={0.25}
+                        defaultValue={projected}
+                        onBlur={e => commitEdit(e.currentTarget.value)}
+                        onKeyDown={e => { if (e.key === "Enter") e.currentTarget.blur(); }}
+                    />
+                ) : (
+                    <button
+                        className={"projectedInlineButton"}
+                        type={"button"}
+                        onClick={() => setEditing(true)}
+                        title={"Click to edit projected hours"}
+                    >
+                        {projected > 0 ? formatHours(projected) : "--"}
+                    </button>
+                )}
+            </span>
+            <div className={"progressBarTrack"}>
+                <div
+                    className={`progressBarFill ${actual > projected && projected > 0 ? "over" : ""}`}
+                    style={{width: `${progressPct}%`}}
+                />
+            </div>
+        </div>
+    );
+});
+
+const ProjectSearchBar = React.memo(({projects, weeklyPlanProjectIds, onAddProject}: {
+    projects: ISingleProject[],
+    weeklyPlanProjectIds: Set<number>,
+    onAddProject: (projectId: number) => void
+}) => {
+    const [results, setResults] = useState<ISingleProject[]>([]);
+    const [showResults, setShowResults] = useState(false);
+    const inputRef = useRef<HTMLInputElement>(null);
+    const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+    const projectsRef = useRef(projects);
+    const planIdsRef = useRef(weeklyPlanProjectIds);
+    projectsRef.current = projects;
+    planIdsRef.current = weeklyPlanProjectIds;
+
+    const doSearch = useCallback((query: string) => {
+        const normalized = query.trim().toLowerCase();
+        if (!normalized) {
+            setResults([]);
+            setShowResults(false);
+            return;
+        }
+        const filtered = projectsRef.current
+            .filter(p => !planIdsRef.current.has(p.id))
+            .filter(p => p.name.toLowerCase().includes(normalized) || (p.client_name || "").toLowerCase().includes(normalized))
+            .sort((a, b) => a.name.localeCompare(b.name, "en", {numeric: true}))
+            .slice(0, 8);
+        setResults(filtered);
+        setShowResults(true);
+    }, []);
+
+    const handleInput = useCallback(() => {
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(() => {
+            doSearch(inputRef.current?.value || "");
+        }, 250);
+    }, [doSearch]);
+
+    useEffect(() => () => { if (debounceRef.current) clearTimeout(debounceRef.current); }, []);
+
+    const handleAdd = useCallback((id: number) => {
+        onAddProject(id);
+        if (inputRef.current) inputRef.current.value = "";
+        setResults([]);
+        setShowResults(false);
+    }, [onAddProject]);
+
+    return (
+        <>
+            <div className={"calendarSearch"}>
+                <input
+                    ref={inputRef}
+                    type={"text"}
+                    defaultValue={""}
+                    placeholder={"Search project name and press Enter to add to this week"}
+                    onInput={handleInput}
+                    onKeyDown={e => {
+                        if (e.key === "Enter" && results.length) handleAdd(results[0].id);
+                    }}
+                />
+                <button
+                    className={"calendarHeaderButton"}
+                    onClick={() => { if (results.length) handleAdd(results[0].id); }}
+                    disabled={!results.length}
+                >
+                    Add
+                </button>
+            </div>
+            {showResults && (
+                <div className={"calendarSearchResults"}>
+                    {results.length ? results.map(project => (
+                        <button
+                            key={project.id}
+                            className={"calendarSearchResult"}
+                            onClick={() => handleAdd(project.id)}
+                        >
+                            <span>{project.name}</span>
+                            <small>{project.client_name || "No client"}</small>
+                        </button>
+                    )) : <div className={"calendarSearchResultEmpty"}>No projects found.</div>}
+                </div>
+            )}
+        </>
+    );
+});
+
 export const CalendarPage = () => {
     const location = useLocation();
     const {startDate, endDate} = splitQuery(location.search);
     const [sorting, setSorting] = useState<SortingState>([{id: "projectName", desc: false}]);
-    const [searchValue, setSearchValue] = useState("");
     const [timeDisplayMode, setTimeDisplayMode] = useState<TimeDisplayMode>(() => loadTimeDisplayMode());
     const [rowDisplayMode, setRowDisplayMode] = useState<RowDisplayMode>(() => loadRowDisplayMode());
 
@@ -227,7 +373,9 @@ export const CalendarPage = () => {
     useEffect(() => {
         if (!workspaceId || !projects.length) return;
         const ensureProjectPreferences = async () => {
-            const existingProjectIds = new Set(safeProjectPreferences.map(pref => pref.projectId));
+            const existing = await calendarDb.projectPreferences
+                .where("workspaceId").equals(workspaceId).toArray();
+            const existingProjectIds = new Set(existing.map(pref => pref.projectId));
             const missingProjectPreferences: IProjectPreference[] = projects
                 .filter(project => !existingProjectIds.has(project.id))
                 .map(project => ({
@@ -243,7 +391,7 @@ export const CalendarPage = () => {
             }
         };
         void ensureProjectPreferences();
-    }, [workspaceId, projects, safeProjectPreferences]);
+    }, [workspaceId, projects]);
 
     const projectById = useMemo(
         () => projects.reduce((acc: {[projectId: number]: ISingleProject}, project) => {
@@ -376,24 +524,9 @@ export const CalendarPage = () => {
 
     const weeklyPlanProjectIds = useMemo(() => new Set(safeWeeklyPlans.map(plan => plan.projectId)), [safeWeeklyPlans]);
 
-    const projectSearchResults = useMemo(() => {
-        const normalizedSearch = searchValue.trim().toLowerCase();
-        if (!normalizedSearch) return [];
-
-        return projects
-            .filter(project => !weeklyPlanProjectIds.has(project.id))
-            .filter(project => (
-                project.name.toLowerCase().includes(normalizedSearch)
-                || (project.client_name || "").toLowerCase().includes(normalizedSearch)
-            ))
-            .sort((a, b) => a.name.localeCompare(b.name, "en", {numeric: true}))
-            .slice(0, 8);
-    }, [searchValue, projects, weeklyPlanProjectIds]);
-
     const addProjectToSelectedWeek = useCallback(async (projectId: number) => {
         const projectedHours = weeklyPlanByProjectId[projectId]?.projectedWeekHours || 0;
         await upsertWeeklyPlan(projectId, projectedHours);
-        setSearchValue("");
     }, [upsertWeeklyPlan, weeklyPlanByProjectId]);
 
     const editBillableTarget = useCallback(async () => {
@@ -483,7 +616,7 @@ export const CalendarPage = () => {
                         />
                         <span className={"calendarProjectName"}>{row.original.projectName}</span>
                         <span className={row.original.billable ? "billableBadge billable" : "billableBadge nonBillable"}>
-                            {row.original.billable ? "Billable" : "Non-billable"}
+                            {row.original.billable ? "B" : "NB"}
                         </span>
                     </button>
                 )
@@ -497,38 +630,6 @@ export const CalendarPage = () => {
                     </button>
                 ),
                 cell: ({row}) => <span className={"calendarClientName"}>{row.original.clientName || "-"}</span>
-            },
-            {
-                id: "projectedHours",
-                accessorFn: row => row.projectedHours,
-                header: ({column}) => (
-                    <button className={"calendarSortButton"} onClick={column.getToggleSortingHandler()} type={"button"}>
-                        Projected <span>{sortSymbol(column.getIsSorted())}</span>
-                    </button>
-                ),
-                cell: ({row}) => (
-                    <input
-                        key={`${row.original.projectId}-${row.original.projectedHours}`}
-                        className={"projectedHoursInput"}
-                        type={"number"}
-                        min={0}
-                        step={0.25}
-                        defaultValue={row.original.projectedHours}
-                        onBlur={(event) => {
-                            const parsedValue = Number(event.currentTarget.value);
-                            const safeValue = Number.isFinite(parsedValue) && parsedValue >= 0 ? parsedValue : 0;
-                            void upsertWeeklyPlan(row.original.projectId, safeValue);
-                            if (!Number.isFinite(parsedValue) || parsedValue < 0) {
-                                event.currentTarget.value = safeValue.toString();
-                            }
-                        }}
-                        onKeyDown={(event) => {
-                            if (event.key === "Enter") {
-                                event.currentTarget.blur();
-                            }
-                        }}
-                    />
-                )
             },
             ...dateKeys.map(date => ({
                 id: date,
@@ -545,13 +646,15 @@ export const CalendarPage = () => {
                 accessorFn: row => row.totalHours,
                 header: ({column}) => (
                     <button className={"calendarSortButton"} onClick={column.getToggleSortingHandler()} type={"button"}>
-                        Total Hours <span>{sortSymbol(column.getIsSorted())}</span>
+                        Hours <span>{sortSymbol(column.getIsSorted())}</span>
                     </button>
                 ),
                 cell: ({row}) => (
-                    <strong className={"calendarTotalHours"}>
-                        {formatHoursForDisplay(row.original.totalHours)}
-                    </strong>
+                    <TotalHoursCell
+                        row={row.original}
+                        formatHours={formatHoursForDisplay}
+                        onProjectedChange={(projectId, value) => void upsertWeeklyPlan(projectId, value)}
+                    />
                 )
             }
         ];
@@ -583,7 +686,7 @@ export const CalendarPage = () => {
 
     return (
         <Layout>
-            <h2>Calendar</h2>
+            <h2 style={{margin: "4px 0 6px"}}>Calendar</h2>
             <div className={"calendarHeader"}>
                 <div>
                     <strong>{weekStart.format("MMM D, YYYY")} - {weekEnd.format("MMM D, YYYY")}</strong>
@@ -634,45 +737,11 @@ export const CalendarPage = () => {
                 </div>
             </div>
 
-            <div className={"calendarSearch"}>
-                <input
-                    type={"text"}
-                    value={searchValue}
-                    placeholder={"Search project name and press Enter to add to this week"}
-                    onChange={event => setSearchValue(event.currentTarget.value)}
-                    onKeyDown={event => {
-                        if (event.key === "Enter" && projectSearchResults.length) {
-                            void addProjectToSelectedWeek(projectSearchResults[0].id);
-                        }
-                    }}
-                />
-                <button
-                    className={"calendarHeaderButton"}
-                    onClick={() => {
-                        if (projectSearchResults.length) {
-                            void addProjectToSelectedWeek(projectSearchResults[0].id);
-                        }
-                    }}
-                    disabled={!projectSearchResults.length}
-                >
-                    Add
-                </button>
-            </div>
-
-            {searchValue.trim().length > 0 && (
-                <div className={"calendarSearchResults"}>
-                    {projectSearchResults.length ? projectSearchResults.map(project => (
-                        <button
-                            key={project.id}
-                            className={"calendarSearchResult"}
-                            onClick={() => void addProjectToSelectedWeek(project.id)}
-                        >
-                            <span>{project.name}</span>
-                            <small>{project.client_name || "No client"}</small>
-                        </button>
-                    )) : <div className={"calendarSearchResultEmpty"}>No projects found for this week.</div>}
-                </div>
-            )}
+            <ProjectSearchBar
+                projects={projects}
+                weeklyPlanProjectIds={weeklyPlanProjectIds}
+                onAddProject={addProjectToSelectedWeek}
+            />
 
             <div className={"metricsContainer"}>
                 <div className={"metricsBar"}>
@@ -737,22 +806,20 @@ export const CalendarPage = () => {
                     </tbody>
                     <tfoot>
                     <tr>
-                        <th>Billable Sum</th>
+                        <th>Billable</th>
                         <th/>
-                        <th>{formatHoursForDisplay(billableSummary.projectedHours)}</th>
                         {dateKeys.map(date => (
                             <th key={`billable-${date}`}>{formatHoursForDisplay(billableSummary.dailyHours[date] || 0)}</th>
                         ))}
-                        <th>{formatHoursForDisplay(billableSummary.totalHours)}</th>
+                        <th>{formatHoursForDisplay(billableSummary.totalHours)}{billableSummary.projectedHours > 0 ? ` / ${formatHoursForDisplay(billableSummary.projectedHours)}` : ""}</th>
                     </tr>
                     <tr>
-                        <th>Non-billable Sum</th>
+                        <th>Non-billable</th>
                         <th/>
-                        <th>{formatHoursForDisplay(nonBillableSummary.projectedHours)}</th>
                         {dateKeys.map(date => (
                             <th key={`non-billable-${date}`}>{formatHoursForDisplay(nonBillableSummary.dailyHours[date] || 0)}</th>
                         ))}
-                        <th>{formatHoursForDisplay(nonBillableSummary.totalHours)}</th>
+                        <th>{formatHoursForDisplay(nonBillableSummary.totalHours)}{nonBillableSummary.projectedHours > 0 ? ` / ${formatHoursForDisplay(nonBillableSummary.projectedHours)}` : ""}</th>
                     </tr>
                     </tfoot>
                 </table>
