@@ -193,43 +193,56 @@ const ProjectSearchBar = React.memo(({projects, weeklyPlanProjectIds, onAddProje
     weeklyPlanProjectIds: Set<number>,
     onAddProject: (projectId: number) => void
 }) => {
-    const [searchValue, setSearchValue] = useState("");
-    const [debouncedSearch, setDebouncedSearch] = useState("");
+    const [results, setResults] = useState<ISingleProject[]>([]);
+    const [showResults, setShowResults] = useState(false);
+    const inputRef = useRef<HTMLInputElement>(null);
     const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+    const projectsRef = useRef(projects);
+    const planIdsRef = useRef(weeklyPlanProjectIds);
+    projectsRef.current = projects;
+    planIdsRef.current = weeklyPlanProjectIds;
 
-    const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-        const val = e.currentTarget.value;
-        setSearchValue(val);
-        if (debounceRef.current) clearTimeout(debounceRef.current);
-        debounceRef.current = setTimeout(() => setDebouncedSearch(val), 180);
-    }, []);
-
-    useEffect(() => () => { if (debounceRef.current) clearTimeout(debounceRef.current); }, []);
-
-    const results = useMemo(() => {
-        const normalized = debouncedSearch.trim().toLowerCase();
-        if (!normalized) return [];
-        return projects
-            .filter(p => !weeklyPlanProjectIds.has(p.id))
+    const doSearch = useCallback((query: string) => {
+        const normalized = query.trim().toLowerCase();
+        if (!normalized) {
+            setResults([]);
+            setShowResults(false);
+            return;
+        }
+        const filtered = projectsRef.current
+            .filter(p => !planIdsRef.current.has(p.id))
             .filter(p => p.name.toLowerCase().includes(normalized) || (p.client_name || "").toLowerCase().includes(normalized))
             .sort((a, b) => a.name.localeCompare(b.name, "en", {numeric: true}))
             .slice(0, 8);
-    }, [debouncedSearch, projects, weeklyPlanProjectIds]);
+        setResults(filtered);
+        setShowResults(true);
+    }, []);
+
+    const handleInput = useCallback(() => {
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(() => {
+            doSearch(inputRef.current?.value || "");
+        }, 250);
+    }, [doSearch]);
+
+    useEffect(() => () => { if (debounceRef.current) clearTimeout(debounceRef.current); }, []);
 
     const handleAdd = useCallback((id: number) => {
         onAddProject(id);
-        setSearchValue("");
-        setDebouncedSearch("");
+        if (inputRef.current) inputRef.current.value = "";
+        setResults([]);
+        setShowResults(false);
     }, [onAddProject]);
 
     return (
         <>
             <div className={"calendarSearch"}>
                 <input
+                    ref={inputRef}
                     type={"text"}
-                    value={searchValue}
+                    defaultValue={""}
                     placeholder={"Search project name and press Enter to add to this week"}
-                    onChange={handleChange}
+                    onInput={handleInput}
                     onKeyDown={e => {
                         if (e.key === "Enter" && results.length) handleAdd(results[0].id);
                     }}
@@ -242,7 +255,7 @@ const ProjectSearchBar = React.memo(({projects, weeklyPlanProjectIds, onAddProje
                     Add
                 </button>
             </div>
-            {debouncedSearch.trim().length > 0 && (
+            {showResults && (
                 <div className={"calendarSearchResults"}>
                     {results.length ? results.map(project => (
                         <button
@@ -360,7 +373,9 @@ export const CalendarPage = () => {
     useEffect(() => {
         if (!workspaceId || !projects.length) return;
         const ensureProjectPreferences = async () => {
-            const existingProjectIds = new Set(safeProjectPreferences.map(pref => pref.projectId));
+            const existing = await calendarDb.projectPreferences
+                .where("workspaceId").equals(workspaceId).toArray();
+            const existingProjectIds = new Set(existing.map(pref => pref.projectId));
             const missingProjectPreferences: IProjectPreference[] = projects
                 .filter(project => !existingProjectIds.has(project.id))
                 .map(project => ({
@@ -376,7 +391,7 @@ export const CalendarPage = () => {
             }
         };
         void ensureProjectPreferences();
-    }, [workspaceId, projects, safeProjectPreferences]);
+    }, [workspaceId, projects]);
 
     const projectById = useMemo(
         () => projects.reduce((acc: {[projectId: number]: ISingleProject}, project) => {

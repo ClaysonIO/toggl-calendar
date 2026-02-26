@@ -1,3 +1,4 @@
+import {useMemo} from "react";
 import {useTogglApiKey} from "./useTogglApiKey";
 import {useTogglUser} from "./useTogglUser";
 import {useQuery} from "@tanstack/react-query";
@@ -21,8 +22,11 @@ export function useTogglDetails(workspace_id: string, startDate: string, endDate
             dayjs(endDate, 'YYYY-MM-DD'))
     })
 
-    const simplifiedDetails = response.data
-        ?.reduce((acc: {[key: number]: ISingleProjectTasks}, val)=>{
+    const rawData = response.data;
+
+    const simplifiedDetails = useMemo(() => {
+        if (!rawData) return undefined;
+        return rawData.reduce((acc: {[key: number]: ISingleProjectTasks}, val) => {
             if(!Number.isFinite(val?.pid)) return acc;
 
             if(!acc[val.pid]){
@@ -46,18 +50,18 @@ export function useTogglDetails(workspace_id: string, startDate: string, endDate
                 projectSummary.project_hex_color = val.project_hex_color;
             }
 
-            const startDate = dayjs(val.start).format('YYYY-MM-DD');
-            if(!projectSummary.dates[startDate]) {
-                projectSummary.dates[startDate] = {
-                    date: startDate,
+            const entryDate = dayjs(val.start).format('YYYY-MM-DD');
+            if(!projectSummary.dates[entryDate]) {
+                projectSummary.dates[entryDate] = {
+                    date: entryDate,
                     hours: 0,
                     roundedHours: 0,
                     taskDescriptions: new Set<string>()
                 }
             }
 
-            projectSummary.dates[startDate].hours += val.dur / 1000 / 60 / 60;
-            projectSummary.dates[startDate].roundedHours = +DecimalToRoundedTime(projectSummary.dates[startDate].hours)
+            projectSummary.dates[entryDate].hours += val.dur / 1000 / 60 / 60;
+            projectSummary.dates[entryDate].roundedHours = +DecimalToRoundedTime(projectSummary.dates[entryDate].hours)
 
             const descriptionChunks = (val.description || "")
                 .split(',')
@@ -65,11 +69,12 @@ export function useTogglDetails(workspace_id: string, startDate: string, endDate
                 .filter((description: string)=>!!description);
 
             descriptionChunks.forEach(description=>{
-                projectSummary.dates[startDate].taskDescriptions.add(description)
+                projectSummary.dates[entryDate].taskDescriptions.add(description)
             });
 
             return acc;
-    }, {})
+        }, {});
+    }, [rawData]);
 
     return {simpleData: simplifiedDetails, ...response};
 }
