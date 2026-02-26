@@ -7,6 +7,7 @@ export function useTogglProjects({workspace_id}: {workspace_id: string}){
     const {togglApiKey} = useTogglApiKey();
     const result = useQuery({
         queryKey: ['togglProjects', workspace_id],
+        enabled: !!togglApiKey && !!workspace_id,
         queryFn: async ({queryKey: [key, workspace_id]})=>{
             const response = await fetch(`https://api.track.toggl.com/api/v9/workspaces/${workspace_id}/projects`, {
                 headers: {

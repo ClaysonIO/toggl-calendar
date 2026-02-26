@@ -1,59 +1,649 @@
-import React, {useEffect, useState} from "react";
+import React, {useCallback, useEffect, useMemo, useState} from "react";
 import {Layout} from "../Components/Layout";
 import {appState} from "../App";
-import {CalendarContainer} from "../Components/DivCalendar/Container";
-import {useLocation} from "react-router";
-import dayjs, {Dayjs} from "dayjs";
-import {splitQuery} from "../Utilities/Functions/SplitQuery";
-import {DisplayTypeSelect} from "../Components/DisplayTypeSelect";
 import {CalendarDateNav} from "../Components/CalendarDateNav";
-import {EmailList} from "../Components/EmailList";
+import {useLocation, Link} from "react-router-dom";
+import dayjs from "dayjs";
+import {splitQuery} from "../Utilities/Functions/SplitQuery";
+import {useTogglProjects} from "../Utilities/useTogglProjects";
+import {useTogglDetails} from "../Utilities/useTogglDetails";
+import {Loading} from "../Components/Loading";
+import {useLiveQuery} from "dexie-react-hooks";
+import {
+    BILLABLE_TARGET_SETTING_KEY,
+    calendarDb,
+    DEFAULT_BILLABLE_TARGET_HOURS,
+    getProjectPreferenceKey,
+    getWeeklyPlanKey,
+    IProjectPreference,
+    IWeeklyProjectPlan
+} from "../Utilities/calendarDb";
+import {
+    ColumnDef,
+    flexRender,
+    getCoreRowModel,
+    getSortedRowModel,
+    SortingState,
+    useReactTable
+} from "@tanstack/react-table";
+import {ISingleProject} from "../Utilities/Interfaces/ISingleProject";
+import "./Calendar.css";
 
-export const CalendarPage = () =>{
+interface ICalendarTableRow {
+    id: string;
+    projectId: number;
+    projectName: string;
+    clientName: string;
+    projectColor: string;
+    billable: boolean;
+    projectedHours: number;
+    totalHours: number;
+    dailyHours: {[date: string]: number};
+    hasWeeklyPlan: boolean;
+}
 
+interface IHoursSummary {
+    projectedHours: number;
+    totalHours: number;
+    dailyHours: {[date: string]: number};
+}
+
+const roundHours = (hours: number) => Math.round(hours * 100) / 100;
+
+const formatHours = (hours: number) => roundHours(hours).toFixed(2);
+
+const createEmptyDailyHours = (dateKeys: string[]) =>
+    dateKeys.reduce((acc: {[date: string]: number}, date) => {
+        acc[date] = 0;
+        return acc;
+    }, {});
+
+const summarizeRows = (rows: ICalendarTableRow[], dateKeys: string[]): IHoursSummary => {
+    const summary: IHoursSummary = {
+        projectedHours: 0,
+        totalHours: 0,
+        dailyHours: createEmptyDailyHours(dateKeys)
+    };
+
+    rows.forEach(row => {
+        summary.projectedHours += row.projectedHours;
+        summary.totalHours += row.totalHours;
+        dateKeys.forEach(date => {
+            summary.dailyHours[date] += row.dailyHours[date] || 0;
+        });
+    });
+
+    return summary;
+};
+
+const sortSymbol = (sortState: false | "asc" | "desc") => {
+    if (sortState === "asc") return "▲";
+    if (sortState === "desc") return "▼";
+    return "↕";
+};
+
+const ProgressCircle = ({value, target}: {value: number, target: number}) => {
+    const boundedTarget = target > 0 ? target : 1;
+    const progress = Math.min(value / boundedTarget, 1);
+    const size = 38;
+    const strokeWidth = 4;
+    const radius = (size - strokeWidth) / 2;
+    const circumference = 2 * Math.PI * radius;
+    const strokeDashoffset = circumference * (1 - progress);
+
+    return (
+        <div className={"calendarProgress"} title={`${formatHours(value)} / ${formatHours(target)} hours`}>
+            <svg width={size} height={size}>
+                <circle
+                    className={"calendarProgressTrack"}
+                    strokeWidth={strokeWidth}
+                    r={radius}
+                    cx={size / 2}
+                    cy={size / 2}
+                />
+                <circle
+                    className={"calendarProgressValue"}
+                    strokeWidth={strokeWidth}
+                    strokeDasharray={`${circumference} ${circumference}`}
+                    strokeDashoffset={strokeDashoffset}
+                    r={radius}
+                    cx={size / 2}
+                    cy={size / 2}
+                />
+            </svg>
+            <span className={"calendarProgressLabel"}>{Math.round(progress * 100)}%</span>
+        </div>
+    );
+};
+
+export const CalendarPage = () => {
     const location = useLocation();
     const {startDate, endDate} = splitQuery(location.search);
+    const [sorting, setSorting] = useState<SortingState>([{id: "projectName", desc: false}]);
+    const [searchValue, setSearchValue] = useState("");
 
-    const [displayType, setDisplayType] = useState<'time' | 'description' | 'roundedTime'>(window.localStorage.getItem('displayType') as any || 'time')
+    const fallbackStart = dayjs().startOf("week");
+    const normalizedStartDate = startDate && dayjs(startDate).isValid()
+        ? dayjs(startDate).startOf("day")
+        : fallbackStart;
+    const normalizedEndDate = endDate && dayjs(endDate).isValid()
+        ? dayjs(endDate).startOf("day")
+        : normalizedStartDate.endOf("week").startOf("day");
 
+    const weekStart = normalizedStartDate.isBefore(normalizedEndDate, "day")
+        ? normalizedStartDate
+        : normalizedEndDate;
+    const weekEnd = normalizedStartDate.isBefore(normalizedEndDate, "day")
+        ? normalizedEndDate
+        : normalizedStartDate;
 
-    const dates: Dayjs[] = [];
-    if(startDate && endDate){
-        let startPoint = dayjs(startDate);
-        while(startPoint.isBefore(dayjs(endDate), 'day') || startPoint.isSame(dayjs(endDate), 'day')){
-            dates.push(startPoint);
-            startPoint = startPoint.add(1, 'day');
+    const weekStartKey = weekStart.format("YYYY-MM-DD");
+    const weekEndKey = weekEnd.format("YYYY-MM-DD");
+
+    const dateKeys = useMemo(() => {
+        const result: string[] = [];
+        let currentDate = weekStart;
+        while (currentDate.isBefore(weekEnd, "day") || currentDate.isSame(weekEnd, "day")) {
+            result.push(currentDate.format("YYYY-MM-DD"));
+            currentDate = currentDate.add(1, "day");
         }
+        return result;
+    }, [weekStartKey, weekEndKey]);
+
+    const workspace = appState.selectedWorkSpace;
+    const workspaceId = workspace?.id || 0;
+    const workspaceIdAsString = workspaceId ? workspaceId.toString() : "";
+
+    const {data: projects = [], isLoading: projectsLoading} = useTogglProjects({workspace_id: workspaceIdAsString});
+    const {simpleData, isLoading: detailsLoading} = useTogglDetails(workspaceIdAsString, weekStartKey, weekEndKey);
+
+    const projectPreferences = useLiveQuery(
+        async () => {
+            if (!workspaceId) return [];
+            return calendarDb.projectPreferences.where("workspaceId").equals(workspaceId).toArray();
+        },
+        [workspaceId],
+        []
+    );
+
+    const weeklyPlans = useLiveQuery(
+        async () => {
+            if (!workspaceId) return [];
+            return calendarDb.weeklyProjectPlans
+                .where("[workspaceId+weekStart]")
+                .equals([workspaceId, weekStartKey])
+                .toArray();
+        },
+        [workspaceId, weekStartKey],
+        []
+    );
+
+    const billableHoursTarget = useLiveQuery(
+        async () => {
+            const storedSetting = await calendarDb.settings.get(BILLABLE_TARGET_SETTING_KEY);
+            return storedSetting?.value ?? DEFAULT_BILLABLE_TARGET_HOURS;
+        },
+        [],
+        DEFAULT_BILLABLE_TARGET_HOURS
+    );
+
+    useEffect(() => {
+        const ensureTargetSetting = async () => {
+            const current = await calendarDb.settings.get(BILLABLE_TARGET_SETTING_KEY);
+            if (!current) {
+                await calendarDb.settings.put({
+                    key: BILLABLE_TARGET_SETTING_KEY,
+                    value: DEFAULT_BILLABLE_TARGET_HOURS,
+                    updatedAt: Date.now()
+                });
+            }
+        };
+        void ensureTargetSetting();
+    }, []);
+
+    useEffect(() => {
+        if (!workspaceId || !projects.length) return;
+        const ensureProjectPreferences = async () => {
+            const existingProjectIds = new Set((projectPreferences || []).map(pref => pref.projectId));
+            const missingProjectPreferences: IProjectPreference[] = projects
+                .filter(project => !existingProjectIds.has(project.id))
+                .map(project => ({
+                    key: getProjectPreferenceKey(workspaceId, project.id),
+                    workspaceId,
+                    projectId: project.id,
+                    billable: true,
+                    updatedAt: Date.now()
+                }));
+
+            if (missingProjectPreferences.length) {
+                await calendarDb.projectPreferences.bulkPut(missingProjectPreferences);
+            }
+        };
+        void ensureProjectPreferences();
+    }, [workspaceId, projects, projectPreferences]);
+
+    const projectById = useMemo(
+        () => projects.reduce((acc: {[projectId: number]: ISingleProject}, project) => {
+            acc[project.id] = project;
+            return acc;
+        }, {}),
+        [projects]
+    );
+
+    const preferenceByProjectId = useMemo(
+        () => (projectPreferences || []).reduce((acc: {[projectId: number]: IProjectPreference}, preference) => {
+            acc[preference.projectId] = preference;
+            return acc;
+        }, {}),
+        [projectPreferences]
+    );
+
+    const weeklyPlanByProjectId = useMemo(
+        () => (weeklyPlans || []).reduce((acc: {[projectId: number]: IWeeklyProjectPlan}, weeklyPlan) => {
+            acc[weeklyPlan.projectId] = weeklyPlan;
+            return acc;
+        }, {}),
+        [weeklyPlans]
+    );
+
+    const usageByProjectId = useMemo(() => {
+        return Object.keys(simpleData || {})
+            .reduce((acc: {[projectId: number]: {totalHours: number, dailyHours: {[date: string]: number}}}, projectIdAsString) => {
+                const projectId = Number(projectIdAsString);
+                const details = simpleData?.[projectId]?.dates || {};
+
+                const dailyHours = createEmptyDailyHours(dateKeys);
+                let totalHours = 0;
+                dateKeys.forEach(date => {
+                    const dayHours = details[date]?.hours || 0;
+                    dailyHours[date] = dayHours;
+                    totalHours += dayHours;
+                });
+
+                acc[projectId] = {totalHours, dailyHours};
+                return acc;
+            }, {});
+    }, [simpleData, dateKeys]);
+
+    const upsertWeeklyPlan = useCallback(async (projectId: number, projectedWeekHours: number) => {
+        if (!workspaceId) return;
+        const key = getWeeklyPlanKey(workspaceId, weekStartKey, projectId);
+        const existingWeeklyPlan = await calendarDb.weeklyProjectPlans.get(key);
+        await calendarDb.weeklyProjectPlans.put({
+            key,
+            workspaceId,
+            weekStart: weekStartKey,
+            projectId,
+            projectedWeekHours: roundHours(Math.max(projectedWeekHours, 0)),
+            projectedDailyHours: existingWeeklyPlan?.projectedDailyHours,
+            updatedAt: Date.now()
+        });
+    }, [workspaceId, weekStartKey]);
+
+    const toggleProjectBillable = useCallback(async (projectId: number, currentValue: boolean) => {
+        if (!workspaceId) return;
+        const key = getProjectPreferenceKey(workspaceId, projectId);
+        await calendarDb.projectPreferences.put({
+            key,
+            workspaceId,
+            projectId,
+            billable: !currentValue,
+            updatedAt: Date.now()
+        });
+    }, [workspaceId]);
+
+    const tableRows = useMemo<ICalendarTableRow[]>(() => {
+        const visibleProjectIds = new Set<number>();
+
+        (weeklyPlans || []).forEach(plan => {
+            visibleProjectIds.add(plan.projectId);
+        });
+
+        Object.keys(usageByProjectId).forEach(projectIdAsString => {
+            const projectId = Number(projectIdAsString);
+            if ((usageByProjectId[projectId]?.totalHours || 0) > 0) {
+                visibleProjectIds.add(projectId);
+            }
+        });
+
+        return Array.from(visibleProjectIds).map(projectId => {
+            const project = projectById[projectId];
+            const usage = usageByProjectId[projectId];
+            const weeklyPlan = weeklyPlanByProjectId[projectId];
+            const preference = preferenceByProjectId[projectId];
+
+            return {
+                id: `${workspaceId}-${weekStartKey}-${projectId}`,
+                projectId,
+                projectName: project?.name || `Project ${projectId}`,
+                clientName: project?.client_name || "",
+                projectColor: project?.color || "#7A7A7A",
+                billable: preference?.billable ?? true,
+                projectedHours: weeklyPlan?.projectedWeekHours || 0,
+                totalHours: usage?.totalHours || 0,
+                dailyHours: usage?.dailyHours || createEmptyDailyHours(dateKeys),
+                hasWeeklyPlan: !!weeklyPlan
+            };
+        }).sort((a, b) => a.projectName.localeCompare(b.projectName, "en", {numeric: true}));
+    }, [weeklyPlans, usageByProjectId, projectById, weeklyPlanByProjectId, preferenceByProjectId, workspaceId, weekStartKey, dateKeys]);
+
+    const weeklyPlanProjectIds = useMemo(() => new Set((weeklyPlans || []).map(plan => plan.projectId)), [weeklyPlans]);
+
+    const projectSearchResults = useMemo(() => {
+        const normalizedSearch = searchValue.trim().toLowerCase();
+        if (!normalizedSearch) return [];
+
+        return projects
+            .filter(project => !weeklyPlanProjectIds.has(project.id))
+            .filter(project => (
+                project.name.toLowerCase().includes(normalizedSearch)
+                || (project.client_name || "").toLowerCase().includes(normalizedSearch)
+            ))
+            .sort((a, b) => a.name.localeCompare(b.name, "en", {numeric: true}))
+            .slice(0, 8);
+    }, [searchValue, projects, weeklyPlanProjectIds]);
+
+    const addProjectToSelectedWeek = useCallback(async (projectId: number) => {
+        const projectedHours = weeklyPlanByProjectId[projectId]?.projectedWeekHours || 0;
+        await upsertWeeklyPlan(projectId, projectedHours);
+        setSearchValue("");
+    }, [upsertWeeklyPlan, weeklyPlanByProjectId]);
+
+    const editBillableTarget = useCallback(async () => {
+        const currentValue = billableHoursTarget ?? DEFAULT_BILLABLE_TARGET_HOURS;
+        const promptResult = window.prompt("Billable hours target per week", currentValue.toString());
+        if (promptResult === null) return;
+
+        const parsedValue = Number(promptResult);
+        if (!Number.isFinite(parsedValue) || parsedValue < 0) {
+            alert("Please provide a non-negative number.");
+            return;
+        }
+
+        await calendarDb.settings.put({
+            key: BILLABLE_TARGET_SETTING_KEY,
+            value: roundHours(parsedValue),
+            updatedAt: Date.now()
+        });
+    }, [billableHoursTarget]);
+
+    const safeBillableTarget = billableHoursTarget ?? DEFAULT_BILLABLE_TARGET_HOURS;
+    const currentBillableHours = tableRows
+        .filter(row => row.billable)
+        .reduce((acc, row) => acc + row.totalHours, 0);
+    const projectedHoursTotal = tableRows.reduce((acc, row) => acc + row.projectedHours, 0);
+
+    const metricTotal = currentBillableHours + projectedHoursTotal + safeBillableTarget;
+    const billableBarWidth = metricTotal > 0 ? (currentBillableHours / metricTotal) * 100 : 100 / 3;
+    const projectedBarWidth = metricTotal > 0 ? (projectedHoursTotal / metricTotal) * 100 : 100 / 3;
+    const targetBarWidth = metricTotal > 0 ? (safeBillableTarget / metricTotal) * 100 : 100 / 3;
+
+    const billableSummary = useMemo(
+        () => summarizeRows(tableRows.filter(row => row.billable), dateKeys),
+        [tableRows, dateKeys]
+    );
+
+    const nonBillableSummary = useMemo(
+        () => summarizeRows(tableRows.filter(row => !row.billable), dateKeys),
+        [tableRows, dateKeys]
+    );
+
+    const columns = useMemo<ColumnDef<ICalendarTableRow>[]>(() => {
+        return [
+            {
+                id: "projectName",
+                accessorFn: row => row.projectName,
+                header: ({column}) => (
+                    <button className={"calendarSortButton"} onClick={column.getToggleSortingHandler()} type={"button"}>
+                        Project <span>{sortSymbol(column.getIsSorted())}</span>
+                    </button>
+                ),
+                cell: ({row}) => (
+                    <button
+                        className={"calendarProjectButton"}
+                        type={"button"}
+                        onClick={() => void toggleProjectBillable(row.original.projectId, row.original.billable)}
+                    >
+                        <span
+                            className={"calendarProjectSwatch"}
+                            style={{backgroundColor: row.original.projectColor}}
+                        />
+                        <span className={"calendarProjectName"}>{row.original.projectName}</span>
+                        <span className={row.original.billable ? "billableBadge billable" : "billableBadge nonBillable"}>
+                            {row.original.billable ? "Billable" : "Non-billable"}
+                        </span>
+                    </button>
+                )
+            },
+            {
+                id: "clientName",
+                accessorFn: row => row.clientName,
+                header: ({column}) => (
+                    <button className={"calendarSortButton"} onClick={column.getToggleSortingHandler()} type={"button"}>
+                        Client <span>{sortSymbol(column.getIsSorted())}</span>
+                    </button>
+                ),
+                cell: ({row}) => <span>{row.original.clientName || "-"}</span>
+            },
+            {
+                id: "projectedHours",
+                accessorFn: row => row.projectedHours,
+                header: ({column}) => (
+                    <button className={"calendarSortButton"} onClick={column.getToggleSortingHandler()} type={"button"}>
+                        Projected <span>{sortSymbol(column.getIsSorted())}</span>
+                    </button>
+                ),
+                cell: ({row}) => (
+                    <input
+                        key={`${row.original.projectId}-${row.original.projectedHours}`}
+                        className={"projectedHoursInput"}
+                        type={"number"}
+                        min={0}
+                        step={0.25}
+                        defaultValue={row.original.projectedHours}
+                        onBlur={(event) => {
+                            const parsedValue = Number(event.currentTarget.value);
+                            const safeValue = Number.isFinite(parsedValue) && parsedValue >= 0 ? parsedValue : 0;
+                            void upsertWeeklyPlan(row.original.projectId, safeValue);
+                            if (!Number.isFinite(parsedValue) || parsedValue < 0) {
+                                event.currentTarget.value = safeValue.toString();
+                            }
+                        }}
+                        onKeyDown={(event) => {
+                            if (event.key === "Enter") {
+                                event.currentTarget.blur();
+                            }
+                        }}
+                    />
+                )
+            },
+            ...dateKeys.map(date => ({
+                id: date,
+                accessorFn: (row: ICalendarTableRow) => row.dailyHours[date] || 0,
+                header: ({column}: any) => (
+                    <button className={"calendarSortButton"} onClick={column.getToggleSortingHandler()} type={"button"}>
+                        {dayjs(date).format("ddd D")} <span>{sortSymbol(column.getIsSorted())}</span>
+                    </button>
+                ),
+                cell: ({row}: any) => (
+                    <span>{row.original.dailyHours[date] ? formatHours(row.original.dailyHours[date]) : ""}</span>
+                )
+            })),
+            {
+                id: "totalHours",
+                accessorFn: row => row.totalHours,
+                header: ({column}) => (
+                    <button className={"calendarSortButton"} onClick={column.getToggleSortingHandler()} type={"button"}>
+                        Total Hours <span>{sortSymbol(column.getIsSorted())}</span>
+                    </button>
+                ),
+                cell: ({row}) => (
+                    <div className={"calendarTotalCell"}>
+                        <ProgressCircle value={row.original.totalHours} target={safeBillableTarget}/>
+                        <strong>{formatHours(row.original.totalHours)}</strong>
+                    </div>
+                )
+            }
+        ];
+    }, [dateKeys, safeBillableTarget, toggleProjectBillable, upsertWeeklyPlan]);
+
+    const table = useReactTable({
+        data: tableRows,
+        columns,
+        state: {sorting},
+        onSortingChange: setSorting,
+        getCoreRowModel: getCoreRowModel(),
+        getSortedRowModel: getSortedRowModel(),
+        getRowId: row => row.id
+    });
+
+    if (!workspace) {
+        return (
+            <Layout>
+                <h2>Calendar</h2>
+                <p>
+                    Select a workspace in <Link to={"/settings"}>Settings</Link> to view your calendar.
+                </p>
+            </Layout>
+        );
     }
 
-    const workspace_id = appState.selectedWorkSpace?.id;
-    useEffect(()=>{
-            if(appState.selectedWorkSpace && startDate && endDate){
-                appState.selectedWorkSpace
-                    .getTasks(dayjs(startDate), dayjs(endDate))
-                    .catch(err=>{
-                        alert(err);
-                        console.error(err)
-                    });
-            }
-        }
-        , [workspace_id, startDate, endDate])
+    const showLoading = projectsLoading || detailsLoading;
+    const leafColumnCount = table.getAllLeafColumns().length;
 
     return (
         <Layout>
             <h2>Calendar</h2>
-
-            <div style={{display: 'flex', marginBottom: '20px'}}>
-                <DisplayTypeSelect displayType={displayType} setDisplayType={setDisplayType}/>
-                <div style={{flex: 1}}/>
+            <div className={"calendarHeader"}>
+                <div>
+                    <strong>{weekStart.format("MMM D, YYYY")} - {weekEnd.format("MMM D, YYYY")}</strong>
+                </div>
                 <CalendarDateNav/>
             </div>
 
-            {appState.selectedWorkSpace ?
-                <CalendarContainer workSpace={appState.selectedWorkSpace} displayType={displayType} dates={dates}/> : ""}
+            <div className={"calendarSearch"}>
+                <input
+                    type={"text"}
+                    value={searchValue}
+                    placeholder={"Search project name and press Enter to add to this week"}
+                    onChange={event => setSearchValue(event.currentTarget.value)}
+                    onKeyDown={event => {
+                        if (event.key === "Enter" && projectSearchResults.length) {
+                            void addProjectToSelectedWeek(projectSearchResults[0].id);
+                        }
+                    }}
+                />
+                <button
+                    className={"calendarHeaderButton"}
+                    onClick={() => {
+                        if (projectSearchResults.length) {
+                            void addProjectToSelectedWeek(projectSearchResults[0].id);
+                        }
+                    }}
+                    disabled={!projectSearchResults.length}
+                >
+                    Add
+                </button>
+            </div>
 
-            {appState.selectedWorkSpace && appState.selectedWorkSpace.emails.length ?
-                <EmailList workSpace={appState.selectedWorkSpace} startDate={startDate} endDate={endDate}/> : <React.Fragment/> }
+            {searchValue.trim().length > 0 && (
+                <div className={"calendarSearchResults"}>
+                    {projectSearchResults.length ? projectSearchResults.map(project => (
+                        <button
+                            key={project.id}
+                            className={"calendarSearchResult"}
+                            onClick={() => void addProjectToSelectedWeek(project.id)}
+                        >
+                            <span>{project.name}</span>
+                            <small>{project.client_name || "No client"}</small>
+                        </button>
+                    )) : <div className={"calendarSearchResultEmpty"}>No projects found for this week.</div>}
+                </div>
+            )}
+
+            <div className={"metricsContainer"}>
+                <div className={"metricsBar"}>
+                    <div className={"metricSegment currentBillable"} style={{width: `${billableBarWidth}%`}}/>
+                    <div className={"metricSegment projected"} style={{width: `${projectedBarWidth}%`}}/>
+                    <div className={"metricSegment target"} style={{width: `${targetBarWidth}%`}}/>
+                </div>
+                <button className={"calendarHeaderButton"} onClick={() => void editBillableTarget()}>
+                    Edit Target
+                </button>
+            </div>
+            <div className={"metricLegend"}>
+                <span><strong>Current Billable:</strong> {formatHours(currentBillableHours)}</span>
+                <span><strong>Projected:</strong> {formatHours(projectedHoursTotal)}</span>
+                <span><strong>Target:</strong> {formatHours(safeBillableTarget)}</span>
+            </div>
+
+            <div className={"calendarTableContainer"}>
+                <table className={"calendarTable"}>
+                    <thead>
+                    {table.getHeaderGroups().map(headerGroup => (
+                        <tr key={headerGroup.id}>
+                            {headerGroup.headers.map(header => (
+                                <th key={header.id}>
+                                    {header.isPlaceholder ? null : flexRender(
+                                        header.column.columnDef.header,
+                                        header.getContext()
+                                    )}
+                                </th>
+                            ))}
+                        </tr>
+                    ))}
+                    </thead>
+                    <tbody>
+                    {showLoading && !tableRows.length ? (
+                        <tr>
+                            <td colSpan={leafColumnCount}>
+                                <div className={"calendarLoading"}>
+                                    <Loading/>
+                                </div>
+                            </td>
+                        </tr>
+                    ) : (
+                        table.getRowModel().rows.length ? table.getRowModel().rows.map(row => (
+                            <tr key={row.id}>
+                                {row.getVisibleCells().map(cell => (
+                                    <td key={cell.id}>
+                                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                    </td>
+                                ))}
+                            </tr>
+                        )) : (
+                            <tr>
+                                <td colSpan={leafColumnCount}>
+                                    <div className={"calendarNoRows"}>
+                                        No projects yet. Track time or add a project to this week.
+                                    </div>
+                                </td>
+                            </tr>
+                        )
+                    )}
+                    </tbody>
+                    <tfoot>
+                    <tr>
+                        <th>Billable Sum</th>
+                        <th/>
+                        <th>{formatHours(billableSummary.projectedHours)}</th>
+                        {dateKeys.map(date => (
+                            <th key={`billable-${date}`}>{formatHours(billableSummary.dailyHours[date] || 0)}</th>
+                        ))}
+                        <th>{formatHours(billableSummary.totalHours)}</th>
+                    </tr>
+                    <tr>
+                        <th>Non-billable Sum</th>
+                        <th/>
+                        <th>{formatHours(nonBillableSummary.projectedHours)}</th>
+                        {dateKeys.map(date => (
+                            <th key={`non-billable-${date}`}>{formatHours(nonBillableSummary.dailyHours[date] || 0)}</th>
+                        ))}
+                        <th>{formatHours(nonBillableSummary.totalHours)}</th>
+                    </tr>
+                    </tfoot>
+                </table>
+            </div>
         </Layout>
-    )
-}
+    );
+};
