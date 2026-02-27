@@ -2,6 +2,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    margin-top: 4px;
     margin-bottom: 10px;
     gap: 12px;
 }
@@ -301,4 +302,110 @@
 .calendarTable tfoot tr.summaryTotal th {
     border-top: 2px solid var(--border-primary);
     font-weight: 800;
+}
+
+.welcomeContainer {
+    max-width: 720px;
+    margin: 32px auto;
+}
+
+.welcomeHero {
+    text-align: center;
+    margin-bottom: 36px;
+}
+
+.welcomeTitle {
+    font-size: 2rem;
+    margin: 0 0 12px;
+    color: var(--text-primary);
+}
+
+.welcomeSubtitle {
+    font-size: 1rem;
+    color: var(--text-muted);
+    line-height: 1.65;
+    margin: 0 auto;
+    max-width: 540px;
+}
+
+.welcomeFeatures {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 32px;
+}
+
+.welcomeFeature {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: 10px;
+    padding: 20px 18px;
+}
+
+.welcomeFeatureIcon {
+    color: var(--header-bg);
+    margin-bottom: 10px;
+}
+
+.welcomeFeature h3 {
+    margin: 0 0 6px;
+    font-size: 0.95rem;
+}
+
+.welcomeFeature p {
+    margin: 0;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    line-height: 1.55;
+}
+
+.welcomeSetup {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: 10px;
+    padding: 28px 32px;
+    text-align: center;
+}
+
+.welcomeSetup h2 {
+    margin: 0 0 14px;
+    font-size: 1.2rem;
+}
+
+.welcomeSteps {
+    text-align: left;
+    display: inline-block;
+    margin: 0 0 22px;
+    padding-left: 20px;
+    font-size: 0.88rem;
+    line-height: 2;
+    color: var(--text-secondary);
+}
+
+.welcomeSteps a {
+    color: var(--link-color);
+}
+
+.welcomeButton {
+    display: inline-block;
+    padding: 12px 36px;
+    font-size: 1rem;
+    font-weight: 600;
+    border: none;
+    background: var(--header-bg);
+    color: var(--header-text);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.welcomeButton:hover {
+    background: #9a1515;
+    transform: translateY(-1px);
+}
+
+@media (max-width: 640px) {
+    .welcomeFeatures {
+        grid-template-columns: 1fr;
+    }
 }

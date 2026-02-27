@@ -48,4 +48,7 @@ export const getProjectPreferenceKey = (workspaceId: number, projectId: number) 
 export const getWeeklyPlanKey = (workspaceId: number, weekStart: string, projectId: number) =>
     `${workspaceId}:${weekStart}:${projectId}`;
 
+export const getWeeklyTargetKey = (weekStart: string) =>
+    `weeklyBillableTarget:${weekStart}`;
+
 export const calendarDb = new CalendarDatabase();

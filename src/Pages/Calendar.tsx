@@ -16,9 +16,11 @@ import {
     DEFAULT_BILLABLE_TARGET_HOURS,
     getProjectPreferenceKey,
     getWeeklyPlanKey,
+    getWeeklyTargetKey,
     IProjectPreference,
     IWeeklyProjectPlan
 } from "../Utilities/calendarDb";
+import {InputDialog} from "../Components/InputDialog";
 import {
     ColumnDef,
     flexRender,
@@ -128,11 +130,11 @@ const sortSymbol = (sortState: false | "asc" | "desc") => {
 };
 
 const getProgressBarColor = (actual: number, projected: number, hasWeeklyPlan: boolean): string => {
-    if (!hasWeeklyPlan || projected <= 0) return "#2f81f7";
+    if (!hasWeeklyPlan || projected <= 0) return "var(--progress-track)";
 
     const ratio = actual / projected;
 
-    if (ratio > 1.2) return "#9b59b6";
+    if (ratio > 1.2) return "#2f81f7";
 
     const pct = Math.min(ratio, 1);
     if (pct <= 0.5) {
@@ -198,6 +200,68 @@ const TotalHoursCell = React.memo(({row, formatHours, onProjectedChange}: {
                         title={"Click to edit projected hours"}
                     >
                         {projected > 0 ? formatHours(projected) : "--"}
+                    </button>
+                )}
+            </span>
+            <div className={"progressBarTrack"}>
+                <div
+                    className={"progressBarFill"}
+                    style={{width: `${progressPct}%`, background: barColor}}
+                />
+            </div>
+        </div>
+    );
+});
+
+const WeeklyTargetCell = React.memo(({totalHours, targetHours, formatHours, onTargetChange}: {
+    totalHours: number,
+    targetHours: number,
+    formatHours: (h: number) => string,
+    onTargetChange: (value: number) => void
+}) => {
+    const [editing, setEditing] = useState(false);
+    const inputRef = useRef<HTMLInputElement>(null);
+    const progressPct = targetHours > 0 ? Math.min((totalHours / targetHours) * 100, 100) : 0;
+    const barColor = getProgressBarColor(totalHours, targetHours, true);
+
+    useEffect(() => {
+        if (editing && inputRef.current) {
+            inputRef.current.focus();
+            inputRef.current.select();
+        }
+    }, [editing]);
+
+    const commitEdit = (value: string) => {
+        setEditing(false);
+        const parsed = Number(value);
+        const safe = Number.isFinite(parsed) && parsed >= 0 ? parsed : targetHours;
+        onTargetChange(safe);
+    };
+
+    return (
+        <div className={"totalHoursCell"}>
+            <span className={"totalHoursText"}>
+                <strong>{formatHours(totalHours)}</strong>
+                <span className={"totalHoursSeparator"}>/</span>
+                {editing ? (
+                    <input
+                        ref={inputRef}
+                        className={"projectedInlineInput"}
+                        type={"number"}
+                        min={0}
+                        step={0.25}
+                        defaultValue={targetHours}
+                        onBlur={e => commitEdit(e.currentTarget.value)}
+                        onKeyDown={e => { if (e.key === "Enter") e.currentTarget.blur(); }}
+                    />
+                ) : (
+                    <button
+                        className={"projectedInlineButton"}
+                        type={"button"}
+                        onClick={() => setEditing(true)}
+                        title={"Click to edit weekly target"}
+                    >
+                        {formatHours(targetHours)}
                     </button>
                 )}
             </span>
@@ -363,12 +427,14 @@ export const CalendarPage = () => {
         []
     );
 
-    const billableHoursTarget = useLiveQuery(
+    const weeklyBillableTarget = useLiveQuery(
         async () => {
-            const storedSetting = await calendarDb.settings.get(BILLABLE_TARGET_SETTING_KEY);
-            return storedSetting?.value ?? DEFAULT_BILLABLE_TARGET_HOURS;
+            const weekSetting = await calendarDb.settings.get(getWeeklyTargetKey(weekStartKey));
+            if (weekSetting) return weekSetting.value;
+            const globalSetting = await calendarDb.settings.get(BILLABLE_TARGET_SETTING_KEY);
+            return globalSetting?.value ?? DEFAULT_BILLABLE_TARGET_HOURS;
         },
-        [],
+        [weekStartKey],
         DEFAULT_BILLABLE_TARGET_HOURS
     );
 
@@ -382,20 +448,6 @@ export const CalendarPage = () => {
     useEffect(() => {
         safeWindow?.localStorage.setItem(ROW_DISPLAY_STORAGE_KEY, rowDisplayMode);
     }, [rowDisplayMode]);
-
-    useEffect(() => {
-        const ensureTargetSetting = async () => {
-            const current = await calendarDb.settings.get(BILLABLE_TARGET_SETTING_KEY);
-            if (!current) {
-                await calendarDb.settings.put({
-                    key: BILLABLE_TARGET_SETTING_KEY,
-                    value: DEFAULT_BILLABLE_TARGET_HOURS,
-                    updatedAt: Date.now()
-                });
-            }
-        };
-        void ensureTargetSetting();
-    }, []);
 
     useEffect(() => {
         if (!workspaceId || !projects.length) return;
@@ -556,25 +608,17 @@ export const CalendarPage = () => {
         await upsertWeeklyPlan(projectId, projectedHours);
     }, [upsertWeeklyPlan, weeklyPlanByProjectId]);
 
-    const editBillableTarget = useCallback(async () => {
-        const currentValue = billableHoursTarget ?? DEFAULT_BILLABLE_TARGET_HOURS;
-        const promptResult = window.prompt("Billable hours target per week", currentValue.toString());
-        if (promptResult === null) return;
-
-        const parsedValue = Number(promptResult);
-        if (!Number.isFinite(parsedValue) || parsedValue < 0) {
-            alert("Please provide a non-negative number.");
-            return;
-        }
-
+    const updateWeeklyTarget = useCallback(async (value: number) => {
         await calendarDb.settings.put({
-            key: BILLABLE_TARGET_SETTING_KEY,
-            value: roundHours(parsedValue),
+            key: getWeeklyTargetKey(weekStartKey),
+            value: roundHours(Math.max(value, 0)),
             updatedAt: Date.now()
         });
-    }, [billableHoursTarget]);
+    }, [weekStartKey]);
 
-    const safeBillableTarget = billableHoursTarget ?? DEFAULT_BILLABLE_TARGET_HOURS;
+    const [showTargetDialog, setShowTargetDialog] = useState(false);
+
+    const safeBillableTarget = weeklyBillableTarget ?? DEFAULT_BILLABLE_TARGET_HOURS;
     const currentBillableHours = tableRows
         .filter(row => row.billable)
         .reduce((acc, row) => acc + row.totalHours, 0);
@@ -703,18 +747,61 @@ export const CalendarPage = () => {
     if (!workspace) {
         return (
             <Layout>
-                <h2>Calendar</h2>
-                <p>
-                    No workspace selected.{" "}
-                    <button
-                        className={"calendarHeaderButton"}
-                        onClick={() => setShowConfigPrompt(true)}
-                        type={"button"}
-                    >
-                        Open Config
-                    </button>
-                    {" "}to set your API key and choose a workspace.
-                </p>
+                <div className={"welcomeContainer"}>
+                    <div className={"welcomeHero"}>
+                        <h1 className={"welcomeTitle"}>Toggl Calendar View</h1>
+                        <p className={"welcomeSubtitle"}>
+                            A visual weekly planner that connects to your Toggl account to display
+                            tracked time alongside planned hours. Monitor progress, hit your targets,
+                            and understand where your time goes.
+                        </p>
+                    </div>
+
+                    <div className={"welcomeFeatures"}>
+                        <div className={"welcomeFeature"}>
+                            <div className={"welcomeFeatureIcon"} aria-hidden={"true"}>
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                            </div>
+                            <h3>Weekly Overview</h3>
+                            <p>See all tracked time entries organized by project and day in a clear weekly table.</p>
+                        </div>
+                        <div className={"welcomeFeature"}>
+                            <div className={"welcomeFeatureIcon"} aria-hidden={"true"}>
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                            </div>
+                            <h3>Hour Targets</h3>
+                            <p>Set projected hours per project and weekly billable targets to plan your time effectively.</p>
+                        </div>
+                        <div className={"welcomeFeature"}>
+                            <div className={"welcomeFeatureIcon"} aria-hidden={"true"}>
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                            </div>
+                            <h3>Billable Tracking</h3>
+                            <p>Distinguish billable and non-billable work with visual progress indicators.</p>
+                        </div>
+                    </div>
+
+                    <div className={"welcomeSetup"}>
+                        <h2>Get Started</h2>
+                        <ol className={"welcomeSteps"}>
+                            <li>
+                                Find your Toggl API token at{" "}
+                                <a href={"https://toggl.com/app/profile"} target={"_blank"} rel={"noopener noreferrer"}>
+                                    toggl.com/app/profile
+                                </a>
+                            </li>
+                            <li>Click the button below to enter your API token</li>
+                            <li>Select your workspace and start planning your week</li>
+                        </ol>
+                        <button
+                            className={"welcomeButton"}
+                            onClick={() => setShowConfigPrompt(true)}
+                            type={"button"}
+                        >
+                            Get Started
+                        </button>
+                    </div>
+                </div>
                 <ConfigDialog open={showConfigPrompt} onClose={() => setShowConfigPrompt(false)}/>
             </Layout>
         );
@@ -725,7 +812,6 @@ export const CalendarPage = () => {
 
     return (
         <Layout>
-            <h2 style={{margin: "4px 0 6px"}}>Calendar</h2>
             <div className={"calendarHeader"}>
                 <div>
                     <strong>{weekStart.format("MMM D, YYYY")} - {weekEnd.format("MMM D, YYYY")}</strong>
@@ -788,7 +874,7 @@ export const CalendarPage = () => {
                     <div className={"metricSegment projected"} style={{width: `${projectedBarWidth}%`}}/>
                     <div className={"metricSegment target"} style={{width: `${targetBarWidth}%`}}/>
                 </div>
-                <button className={"calendarHeaderButton"} onClick={() => void editBillableTarget()}>
+                <button className={"calendarHeaderButton"} onClick={() => setShowTargetDialog(true)}>
                     Edit Target
                 </button>
             </div>
@@ -866,11 +952,27 @@ export const CalendarPage = () => {
                         {dateKeys.map(date => (
                             <th key={`total-${date}`}>{formatHoursForDisplay(totalSummary.dailyHours[date] || 0)}</th>
                         ))}
-                        <th>{formatHoursForDisplay(totalSummary.totalHours)}{totalSummary.projectedHours > 0 ? ` / ${formatHoursForDisplay(totalSummary.projectedHours)}` : ""}</th>
+                        <th>
+                            <WeeklyTargetCell
+                                totalHours={totalSummary.totalHours}
+                                targetHours={safeBillableTarget}
+                                formatHours={formatHoursForDisplay}
+                                onTargetChange={value => void updateWeeklyTarget(value)}
+                            />
+                        </th>
                     </tr>
                     </tfoot>
                 </table>
             </div>
+            <InputDialog
+                open={showTargetDialog}
+                onClose={() => setShowTargetDialog(false)}
+                onConfirm={value => void updateWeeklyTarget(value)}
+                title={"Edit Weekly Target"}
+                description={`Set your billable hours target for the week of ${weekStart.format("MMM D")} - ${weekEnd.format("MMM D, YYYY")}.`}
+                label={"Hours per week"}
+                defaultValue={safeBillableTarget}
+            />
         </Layout>
     );
 };
