@@ -43,6 +43,7 @@ interface ICalendarTableRow {
     projectedHours: number;
     totalHours: number;
     dailyHours: {[date: string]: number};
+    dailyProjectedHours: {[date: string]: number};
     dailyTaskDescriptions: {[date: string]: string[]};
     hasWeeklyPlan: boolean;
 }
@@ -56,7 +57,7 @@ interface IHoursSummary {
 const roundHours = (hours: number) => Math.round(hours * 100) / 100;
 
 type TimeDisplayMode = "rounded" | "actual";
-type RowDisplayMode = "time" | "description" | "timeAndDescription";
+type RowDisplayMode = "time" | "description" | "timeAndDescription" | "projections";
 
 const TIME_DISPLAY_STORAGE_KEY = "calendarTimeDisplayMode";
 const ROW_DISPLAY_STORAGE_KEY = "calendarRowDisplayMode";
@@ -74,6 +75,7 @@ const loadRowDisplayMode = (): RowDisplayMode => {
         case "description":
         case "timeAndDescription":
         case "time":
+        case "projections":
             return storedValue;
         default:
             return "time";
@@ -275,6 +277,56 @@ const WeeklyTargetCell = React.memo(({totalHours, targetHours, formatHours, onTa
     );
 });
 
+const ProjectionCell = React.memo(({projectId, date, projectedHours, onProjectionChange}: {
+    projectId: number,
+    date: string,
+    projectedHours: number,
+    onProjectionChange: (projectId: number, date: string, hours: number) => void
+}) => {
+    const [editing, setEditing] = useState(false);
+    const inputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        if (editing && inputRef.current) {
+            inputRef.current.focus();
+            inputRef.current.select();
+        }
+    }, [editing]);
+
+    const commitEdit = (value: string) => {
+        setEditing(false);
+        const parsed = Number(value);
+        const safe = Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+        onProjectionChange(projectId, date, safe);
+    };
+
+    if (editing) {
+        return (
+            <input
+                ref={inputRef}
+                className={"projectedInlineInput"}
+                type={"number"}
+                min={0}
+                step={0.25}
+                defaultValue={projectedHours}
+                onBlur={e => commitEdit(e.currentTarget.value)}
+                onKeyDown={e => { if (e.key === "Enter") e.currentTarget.blur(); if (e.key === "Escape") { setEditing(false); } }}
+            />
+        );
+    }
+
+    return (
+        <button
+            className={"projectedInlineButton projectionDayButton"}
+            type={"button"}
+            onClick={() => setEditing(true)}
+            title={"Click to set projected hours for this day"}
+        >
+            {projectedHours > 0 ? String(projectedHours) : "--"}
+        </button>
+    );
+});
+
 const ProjectSearchBar = React.memo(({projects, weeklyPlanProjectIds, onAddProject}: {
     projects: ISingleProject[],
     weeklyPlanProjectIds: Set<number>,
@@ -368,6 +420,7 @@ export const CalendarPage = () => {
     const location = useLocation();
     const {startDate, endDate} = splitQuery(location.search);
     const [sorting, setSorting] = useState<SortingState>([{id: "clientName", desc: false}]);
+    const [varianceSorting, setVarianceSorting] = useState<SortingState>([{id: "clientName", desc: false}]);
     const [timeDisplayMode, setTimeDisplayMode] = useState<TimeDisplayMode>(() => loadTimeDisplayMode());
     const [rowDisplayMode, setRowDisplayMode] = useState<RowDisplayMode>(() => loadRowDisplayMode());
 
@@ -553,6 +606,23 @@ export const CalendarPage = () => {
         });
     }, [workspaceId, weekStartKey]);
 
+    const upsertDailyProjection = useCallback(async (projectId: number, date: string, hours: number) => {
+        if (!workspaceId) return;
+        const key = getWeeklyPlanKey(workspaceId, weekStartKey, projectId);
+        const existing = await calendarDb.weeklyProjectPlans.get(key);
+        const updatedDailyHours = {...(existing?.projectedDailyHours || {})};
+        updatedDailyHours[date] = roundHours(Math.max(hours, 0));
+        await calendarDb.weeklyProjectPlans.put({
+            key,
+            workspaceId,
+            weekStart: weekStartKey,
+            projectId,
+            projectedWeekHours: existing?.projectedWeekHours || 0,
+            projectedDailyHours: updatedDailyHours,
+            updatedAt: Date.now()
+        });
+    }, [workspaceId, weekStartKey]);
+
     const toggleProjectBillable = useCallback(async (projectId: number, currentValue: boolean) => {
         if (!workspaceId) return;
         const key = getProjectPreferenceKey(workspaceId, projectId);
@@ -585,6 +655,11 @@ export const CalendarPage = () => {
             const weeklyPlan = weeklyPlanByProjectId[projectId];
             const preference = preferenceByProjectId[projectId];
 
+            const dailyProjectedHours = dateKeys.reduce((acc: {[date: string]: number}, date) => {
+                acc[date] = weeklyPlan?.projectedDailyHours?.[date] || 0;
+                return acc;
+            }, {});
+
             return {
                 id: `${workspaceId}-${weekStartKey}-${projectId}`,
                 projectId,
@@ -595,6 +670,7 @@ export const CalendarPage = () => {
                 projectedHours: weeklyPlan?.projectedWeekHours || 0,
                 totalHours: usage?.totalHours || 0,
                 dailyHours: usage?.dailyHours || createEmptyDailyHours(dateKeys),
+                dailyProjectedHours,
                 dailyTaskDescriptions: usage?.dailyTaskDescriptions || createEmptyDailyTaskDescriptions(dateKeys),
                 hasWeeklyPlan: !!weeklyPlan
             };
@@ -617,6 +693,16 @@ export const CalendarPage = () => {
     }, [weekStartKey]);
 
     const [showTargetDialog, setShowTargetDialog] = useState(false);
+    const [copiedToast, setCopiedToast] = useState<string | null>(null);
+    const toastTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+
+    const copyToClipboard = useCallback((text: string) => {
+        void navigator.clipboard.writeText(text).then(() => {
+            if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+            setCopiedToast("Copied to clipboard");
+            toastTimeoutRef.current = setTimeout(() => setCopiedToast(null), 1500);
+        });
+    }, []);
 
     const safeBillableTarget = weeklyBillableTarget ?? DEFAULT_BILLABLE_TARGET_HOURS;
     const currentBillableHours = tableRows
@@ -644,9 +730,50 @@ export const CalendarPage = () => {
         [tableRows, dateKeys]
     );
 
+    const hasAnyDailyProjections = useMemo(
+        () => tableRows.some(row => dateKeys.some(d => (row.dailyProjectedHours[d] || 0) > 0)),
+        [tableRows, dateKeys]
+    );
+
+    const varianceRows = useMemo(
+        () => tableRows.filter(row => {
+            const hasActual = row.totalHours > 0;
+            const hasProjection = dateKeys.some(d => (row.dailyProjectedHours[d] || 0) > 0);
+            return hasActual || hasProjection;
+        }),
+        [tableRows, dateKeys]
+    );
+
     const formatHoursForDisplay = useCallback((hours: number) => {
         return formatHours(hours, timeDisplayMode);
     }, [timeDisplayMode]);
+
+    const formatVarianceSimple = useCallback((v: number) => {
+        if (Math.abs(v) < 0.005) return "0";
+        const sign = v > 0 ? "+" : "-";
+        return sign + formatHoursForDisplay(Math.abs(v));
+    }, [formatHoursForDisplay]);
+
+    const formatVariance = useCallback((v: number) => {
+        if (Math.abs(v) < 0.005) return "0";
+        const sign = v > 0 ? "+" : "";
+        return sign + formatHoursForDisplay(Math.abs(v)) + (v < 0 ? " short" : " over");
+    }, [formatHoursForDisplay]);
+
+    const dailyVarianceTotals = useMemo(
+        () => dateKeys.reduce((acc: {[date: string]: number}, date) => {
+            acc[date] = varianceRows.reduce((sum, row) => {
+                return sum + ((row.dailyProjectedHours[date] || 0) - (row.dailyHours[date] || 0));
+            }, 0);
+            return acc;
+        }, {}),
+        [varianceRows, dateKeys]
+    );
+
+    const totalVariance = useMemo(
+        () => Object.values(dailyVarianceTotals).reduce((a, b) => a + b, 0),
+        [dailyVarianceTotals]
+    );
 
     const renderDailyCellContent = useCallback((row: ICalendarTableRow, date: string) => {
         const dayHours = row.dailyHours[date] || 0;
@@ -655,20 +782,43 @@ export const CalendarPage = () => {
         const timeText = dayHours > 0 ? formatHoursForDisplay(dayHours) : "";
 
         switch (rowDisplayMode) {
-            case "description":
-                return hasDescription ? <span className={"calendarDayDescription"}>{descriptionText}</span> : "";
-            case "timeAndDescription":
-                if (!hasDescription && !timeText) return "";
+            case "description": {
+                if (!hasDescription) return "";
                 return (
-                    <div className={"calendarDayCellCombined"}>
+                    <div className={"calendarDayCellCopyable"} onClick={() => copyToClipboard(descriptionText)}>
+                        <span className={"calendarDayDescription"}>{descriptionText}</span>
+                    </div>
+                );
+            }
+            case "timeAndDescription": {
+                if (!hasDescription && !timeText) return "";
+                const copyText = [timeText, descriptionText].filter(Boolean).join(" — ");
+                return (
+                    <div className={"calendarDayCellCombined calendarDayCellCopyable"} onClick={() => copyToClipboard(copyText)}>
                         {timeText ? <strong>{timeText}</strong> : null}
                         {hasDescription ? <span className={"calendarDayDescription"}>{descriptionText}</span> : null}
                     </div>
                 );
-            default:
-                return timeText ? <span>{timeText}</span> : "";
+            }
+            case "projections":
+                return (
+                    <ProjectionCell
+                        projectId={row.projectId}
+                        date={date}
+                        projectedHours={row.dailyProjectedHours[date] || 0}
+                        onProjectionChange={(pid, d, h) => void upsertDailyProjection(pid, d, h)}
+                    />
+                );
+            default: {
+                if (!timeText) return "";
+                return (
+                    <div className={"calendarDayCellCopyable"} onClick={() => copyToClipboard(timeText)}>
+                        <span>{timeText}</span>
+                    </div>
+                );
+            }
         }
-    }, [formatHoursForDisplay, rowDisplayMode]);
+    }, [copyToClipboard, formatHoursForDisplay, rowDisplayMode, upsertDailyProjection]);
 
     const columns = useMemo<ColumnDef<ICalendarTableRow>[]>(() => {
         return [
@@ -732,11 +882,137 @@ export const CalendarPage = () => {
         ];
     }, [dateKeys, formatHoursForDisplay, renderDailyCellContent, toggleProjectBillable, upsertWeeklyPlan]);
 
+    const varianceColumns = useMemo<ColumnDef<ICalendarTableRow>[]>(() => {
+        return [
+            {
+                id: "clientName",
+                accessorFn: row => row.clientName,
+                header: ({column}) => (
+                    <button className={"calendarSortButton"} onClick={column.getToggleSortingHandler()} type={"button"}>
+                        Client <span>{sortSymbol(column.getIsSorted())}</span>
+                    </button>
+                ),
+                cell: ({row}) => <span className={"calendarClientName"} style={{color: row.original.projectColor}}>{row.original.clientName || "-"}</span>
+            },
+            {
+                id: "projectName",
+                accessorFn: row => row.projectName,
+                header: ({column}) => (
+                    <button className={"calendarSortButton"} onClick={column.getToggleSortingHandler()} type={"button"}>
+                        Project <span>{sortSymbol(column.getIsSorted())}</span>
+                    </button>
+                ),
+                cell: ({row}) => (
+                    <span style={{color: row.original.projectColor, fontWeight: 700}}>{row.original.projectName}</span>
+                )
+            },
+            ...dateKeys.map(date => ({
+                id: date,
+                accessorFn: (row: ICalendarTableRow) => (row.dailyProjectedHours[date] || 0) - (row.dailyHours[date] || 0),
+                header: ({column}: any) => (
+                    <button className={"calendarSortButton"} onClick={column.getToggleSortingHandler()} type={"button"}>
+                        {dayjs(date).format("ddd D")} <span>{sortSymbol(column.getIsSorted())}</span>
+                    </button>
+                ),
+                cell: ({row}: any) => {
+                    const projected = row.original.dailyProjectedHours[date] || 0;
+                    const actual = row.original.dailyHours[date] || 0;
+                    if (projected === 0 && actual === 0) {
+                        return <span className={"varianceNeutral"}>—</span>;
+                    }
+                    const variance = projected - actual;
+                    const hasVariance = Math.abs(variance) >= 0.005;
+                    const cls = variance > 0.005 ? "varianceOver" : variance < -0.005 ? "varianceShort" : "varianceNeutral";
+                    const descriptions = row.original.dailyTaskDescriptions[date] || [];
+                    const showDescriptions = rowDisplayMode === "description" || rowDisplayMode === "timeAndDescription";
+
+                    if (rowDisplayMode === "time") {
+                        const copyText = formatVarianceSimple(variance);
+                        return (
+                            <div className={"calendarDayCellCopyable"} onClick={() => copyToClipboard(copyText)}>
+                                <span className={cls}>{copyText}</span>
+                            </div>
+                        );
+                    }
+
+                    const showHours = rowDisplayMode === "projections" || rowDisplayMode === "timeAndDescription";
+                    const hoursPart = showHours
+                        ? [
+                            `P: ${projected > 0 ? formatHoursForDisplay(projected) : "—"}`,
+                            `A: ${actual > 0 ? formatHoursForDisplay(actual) : "—"}`,
+                            ...(hasVariance ? [formatVariance(variance)] : [])
+                          ].join(", ")
+                        : "";
+                    const descPart = showDescriptions ? descriptions.join(", ") : "";
+                    const copyText = [hoursPart, descPart].filter(Boolean).join(" — ");
+
+                    return (
+                        <div className={"calendarDayCellCopyable"} onClick={() => copyToClipboard(copyText)}>
+                            <div className={"varianceCell"}>
+                                {showHours && (
+                                    <>
+                                        <span className={"varianceProjected"}>{projected > 0 ? formatHoursForDisplay(projected) : "—"}</span>
+                                        <span className={"varianceActual"}>{actual > 0 ? formatHoursForDisplay(actual) : "—"}</span>
+                                        {(projected > 0 || actual > 0) && hasVariance && (
+                                            <span className={"varianceDiff " + cls}>{formatVariance(variance)}</span>
+                                        )}
+                                    </>
+                                )}
+                                {showDescriptions && (projected > 0 || actual > 0 || descriptions.length > 0) && (
+                                    <div className={"varianceDescriptions"}>
+                                        {hasVariance && (
+                                            <span className={"varianceAnnotation"}>Adjusted from Projection</span>
+                                        )}
+                                        {descriptions.map((desc, i) => (
+                                            <span key={i} className={"calendarDayDescription"}>{desc}</span>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    );
+                }
+            })),
+            {
+                id: "totalHours",
+                accessorFn: (row: ICalendarTableRow) => dateKeys.reduce((sum, date) => {
+                    return sum + ((row.dailyProjectedHours[date] || 0) - (row.dailyHours[date] || 0));
+                }, 0),
+                header: ({column}) => (
+                    <button className={"calendarSortButton"} onClick={column.getToggleSortingHandler()} type={"button"}>
+                        Variance <span>{sortSymbol(column.getIsSorted())}</span>
+                    </button>
+                ),
+                cell: ({row}) => {
+                    const rowVariance = dateKeys.reduce((sum, date) => {
+                        return sum + ((row.original.dailyProjectedHours[date] || 0) - (row.original.dailyHours[date] || 0));
+                    }, 0);
+                    const cls = rowVariance > 0.005 ? "varianceOver" : rowVariance < -0.005 ? "varianceShort" : "varianceNeutral";
+                    return (
+                        <span className={cls}>
+                            {rowDisplayMode === "time" ? formatVarianceSimple(rowVariance) : formatVariance(rowVariance)}
+                        </span>
+                    );
+                }
+            }
+        ];
+    }, [dateKeys, formatHoursForDisplay, formatVariance, formatVarianceSimple, rowDisplayMode, copyToClipboard]);
+
     const table = useReactTable({
         data: tableRows,
         columns,
         state: {sorting},
         onSortingChange: setSorting,
+        getCoreRowModel: getCoreRowModel(),
+        getSortedRowModel: getSortedRowModel(),
+        getRowId: row => row.id
+    });
+
+    const varianceTable = useReactTable({
+        data: varianceRows,
+        columns: varianceColumns,
+        state: {sorting: varianceSorting},
+        onSortingChange: setVarianceSorting,
         getCoreRowModel: getCoreRowModel(),
         getSortedRowModel: getSortedRowModel(),
         getRowId: row => row.id
@@ -857,6 +1133,13 @@ export const CalendarPage = () => {
                             >
                                 Time + Descriptions
                             </button>
+                            <button
+                                className={`calendarHeaderButton ${rowDisplayMode === "projections" ? "selected" : ""}`}
+                                type={"button"}
+                                onClick={() => setRowDisplayMode("projections")}
+                            >
+                                Projections
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -964,6 +1247,58 @@ export const CalendarPage = () => {
                     </tfoot>
                 </table>
             </div>
+            {hasAnyDailyProjections && varianceRows.length > 0 && (
+                <div className={"varianceTableContainer"}>
+                    <div className={"varianceTableTitle"}>Projection vs Actual</div>
+                    <div className={"calendarTableContainer"}>
+                        <table className={"calendarTable"}>
+                            <thead>
+                            {varianceTable.getHeaderGroups().map(headerGroup => (
+                                <tr key={headerGroup.id}>
+                                    {headerGroup.headers.map(header => (
+                                        <th key={header.id}>
+                                            {header.isPlaceholder ? null : flexRender(
+                                                header.column.columnDef.header,
+                                                header.getContext()
+                                            )}
+                                        </th>
+                                    ))}
+                                </tr>
+                            ))}
+                            </thead>
+                            <tbody>
+                            {varianceTable.getRowModel().rows.map(row => (
+                                <tr key={row.id}>
+                                    {row.getVisibleCells().map(cell => (
+                                        <td key={cell.id}>
+                                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                        </td>
+                                    ))}
+                                </tr>
+                            ))}
+                            </tbody>
+                            <tfoot>
+                            <tr className={"summaryTotal"}>
+                                <th>Total</th>
+                                <th/>
+                                {dateKeys.map(date => {
+                                    const v = dailyVarianceTotals[date] || 0;
+                                    const cls = v > 0.005 ? "varianceOver" : v < -0.005 ? "varianceShort" : "varianceNeutral";
+                                    const label = Math.abs(v) >= 0.005
+                                        ? (rowDisplayMode === "time" ? formatVarianceSimple(v) : formatVariance(v))
+                                        : "—";
+                                    return <th key={date} className={cls}>{label}</th>;
+                                })}
+                                <th className={totalVariance > 0.005 ? "varianceOver" : totalVariance < -0.005 ? "varianceShort" : "varianceNeutral"}>
+                                    {rowDisplayMode === "time" ? formatVarianceSimple(totalVariance) : formatVariance(totalVariance)}
+                                </th>
+                            </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            )}
+
             <InputDialog
                 open={showTargetDialog}
                 onClose={() => setShowTargetDialog(false)}
@@ -973,6 +1308,7 @@ export const CalendarPage = () => {
                 label={"Hours per week"}
                 defaultValue={safeBillableTarget}
             />
+            {copiedToast && <div className={"copyToast"}>{copiedToast}</div>}
         </Layout>
     );
 };
