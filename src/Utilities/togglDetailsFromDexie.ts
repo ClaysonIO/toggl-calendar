@@ -26,12 +26,14 @@ export type BillableFilter = "billable" | "nonBillable" | "all";
 /**
  * Aggregate hours per day for a workspace and date range, filtered by billable preference.
  * Returns a map of date string (YYYY-MM-DD) to total hours, and total sum.
+ * When projectId is set, only that project's hours are included (filter still applies).
  */
 export async function getBillableHoursByDay(
     workspaceId: number,
     startDate: string,
     endDate: string,
-    filter: BillableFilter
+    filter: BillableFilter,
+    projectId?: number | null
 ): Promise<{ byDay: { [date: string]: number }; total: number }> {
     const simpleData = await getSimpleDataFromDexie(workspaceId, startDate, endDate);
     const prefs = await calendarDb.projectPreferences.where("workspaceId").equals(workspaceId).toArray();
@@ -45,15 +47,16 @@ export async function getBillableHoursByDay(
 
     if (!simpleData) return { byDay, total };
 
-    for (const projectId of Object.keys(simpleData)) {
-        const pid = Number(projectId);
+    const projectIds = projectId != null ? [projectId] : Object.keys(simpleData).map(Number);
+    for (const pid of projectIds) {
+        const project = simpleData[pid];
+        if (!project) continue;
         const isBillable = prefsByProject[pid] ?? true;
         const include =
             filter === "all" ||
             (filter === "billable" && isBillable) ||
             (filter === "nonBillable" && !isBillable);
         if (!include) continue;
-        const project = simpleData[pid];
         if (!project?.dates) continue;
         for (const [date, dayData] of Object.entries(project.dates)) {
             const hours = dayData.hours ?? 0;

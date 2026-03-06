@@ -31,6 +31,13 @@ const formatHours = (hours: number, mode: TimeDisplayMode) =>
         ? `${Math.floor(hours)}:${String(Math.round((hours % 1) * 60)).padStart(2, "0")}`
         : DecimalToRoundedTime(hours);
 
+/** Like formatHours but drops trailing .00 for rounded mode (e.g. "8" not "8.00"). */
+const formatHoursDisplay = (hours: number, mode: TimeDisplayMode): string => {
+    const s = formatHours(hours, mode);
+    if (mode === "rounded" && s.endsWith(".00")) return s.slice(0, -3);
+    return s;
+};
+
 export const YearPage = () => {
     const {selectedWorkspace} = useAppContext();
     const {togglApiKey} = useTogglApiKey();
@@ -44,6 +51,17 @@ export const YearPage = () => {
     const [editDay, setEditDay] = useState<{ date: string; hours: number } | null>(null);
     const [editTargetOpen, setEditTargetOpen] = useState(false);
     const [isSyncing, setIsSyncing] = useState(false);
+    const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
+
+    const projects = useLiveQuery(
+        async () => {
+            if (!workspaceId) return [];
+            return calendarDb.togglProjects.where("workspace_id").equals(workspaceId).toArray();
+        },
+        [workspaceId],
+        []
+    );
+    const projectsList = projects ?? [];
 
     const startOfYearSetting = useLiveQuery(
         () => calendarDb.settings.get(START_OF_YEAR_MONTH_KEY),
@@ -109,9 +127,9 @@ export const YearPage = () => {
     const actualByDayAll = useLiveQuery(
         async () => {
             if (!workspaceId || !fyStartKey || !fyEndKey) return { byDay: {} as Record<string, number>, total: 0 };
-            return getBillableHoursByDay(workspaceId, fyStartKey, fyEndKey, billableFilter);
+            return getBillableHoursByDay(workspaceId, fyStartKey, fyEndKey, billableFilter, selectedProjectId);
         },
-        [workspaceId, fyStartKey, fyEndKey, billableFilter],
+        [workspaceId, fyStartKey, fyEndKey, billableFilter, selectedProjectId],
         { byDay: {}, total: 0 }
     );
     const billableHoursToDate = billableToDateData?.total ?? 0;
@@ -146,6 +164,10 @@ export const YearPage = () => {
         async (date: string, hours: number) => {
             if (!workspaceId) return;
             const key = getDailyBillableProjectionKey(workspaceId, date);
+            if (hours === 8) {
+                await calendarDb.dailyBillableProjections.delete(key);
+                return;
+            }
             await calendarDb.dailyBillableProjections.put({
                 key,
                 workspaceId,
@@ -259,6 +281,17 @@ export const YearPage = () => {
                                 Actual
                             </button>
                         </div>
+                        <select
+                            className={"yearProjectSelect"}
+                            value={selectedProjectId ?? ""}
+                            onChange={(e) => setSelectedProjectId(e.target.value === "" ? null : Number(e.target.value))}
+                            title={"Filter by project"}
+                        >
+                            <option value="">All projects</option>
+                            {projectsList.map((p) => (
+                                <option key={p.id} value={p.id}>{p.name}</option>
+                            ))}
+                        </select>
                         <button
                             type={"button"}
                             className={"calendarHeaderButton"}
@@ -304,6 +337,7 @@ export const YearPage = () => {
                             monthStart={monthStart}
                             fiscalYear={fiscalYear}
                             viewMode={viewMode}
+                            billableFilter={billableFilter}
                             projectionsByDate={projectionsByDate}
                             actualByDay={actualByDay}
                             timeDisplayMode={timeDisplayMode}
@@ -335,6 +369,7 @@ function YearMonthCard({
     monthStart,
     fiscalYear,
     viewMode,
+    billableFilter,
     projectionsByDate,
     actualByDay,
     timeDisplayMode,
@@ -343,6 +378,7 @@ function YearMonthCard({
     monthStart: dayjs.Dayjs;
     fiscalYear: { start: dayjs.Dayjs; end: dayjs.Dayjs };
     viewMode: ViewMode;
+    billableFilter: BillableFilter;
     projectionsByDate: Record<string, number>;
     actualByDay: Record<string, number>;
     timeDisplayMode: TimeDisplayMode;
@@ -361,6 +397,7 @@ function YearMonthCard({
         d = d.add(1, "day");
     }
     const todayKey = dayjs().format("YYYY-MM-DD");
+    const rowCount = Math.ceil(days.length / 7);
 
     return (
         <div className={"yearMonthCard"}>
@@ -369,45 +406,62 @@ function YearMonthCard({
                 {WEEKDAY_LABELS.map((label) => (
                     <div key={label} className={"yearMonthWeekday"}>{label}</div>
                 ))}
-                {days.map(({ date, isThisMonth }) => {
-                    const key = date.format("YYYY-MM-DD");
-                    const inRange = (date.isAfter(fiscalYear.start) || date.isSame(fiscalYear.start, "day")) &&
-                        (date.isBefore(fiscalYear.end) || date.isSame(fiscalYear.end, "day"));
-                    const projectionSet = key in projectionsByDate;
-                    const projectedVal = projectionsByDate[key] ?? 0;
-                    const projectionExplicitZero = projectionSet && projectedVal === 0;
-                    const actualHours = actualByDay[key] ?? 0;
-                    const hours = viewMode === "projected" ? projectedVal : actualHours;
-                    const isToday = key === todayKey;
-                    const isPast = key < todayKey;
-                    const editable = viewMode === "projected" && inRange && onEditProjection != null;
-                    const isWeekday = date.day() !== 0 && date.day() !== 6;
-                    const editDefaultHours = projectedVal > 0 ? projectedVal : (isWeekday ? 8 : 0);
-
-                    const showGrey = viewMode === "projected" && projectionExplicitZero;
-                    const showGreen = viewMode === "actual" && isPast && actualHours > 0;
-                    const greenIntensity = showGreen ? Math.min(1, actualHours / 8) : 0;
-
+                <div className={"yearMonthWeekday yearWeekTotalHeader"}>Total</div>
+                {Array.from({ length: rowCount }, (_, rowIndex) => {
+                    const rowDays = days.slice(rowIndex * 7, rowIndex * 7 + 7);
+                    const weekTotal = rowDays.reduce(
+                        (sum, { date }) => sum + (actualByDay[date.format("YYYY-MM-DD")] ?? 0),
+                        0
+                    );
                     return (
-                        <div
-                            key={key}
-                            className={[
-                                "yearDayCell",
-                                !isThisMonth ? "otherMonth" : "",
-                                showGrey ? "zeroHours" : "",
-                                showGreen ? "hasActual" : "",
-                                editable ? "editable" : "",
-                                isToday ? "today" : ""
-                            ].filter(Boolean).join(" ")}
-                            style={showGreen ? { ["--actual-intensity" as string]: greenIntensity } as React.CSSProperties : undefined}
-                            onClick={editable ? () => onEditProjection(key, editDefaultHours) : undefined}
-                            title={editable ? "Click to set hours" : `${key}: ${hours > 0 ? formatHours(hours, timeDisplayMode) : "0"}`}
-                        >
-                            <span className={"yearDayNum"}>{date.date()}</span>
-                            {isThisMonth && inRange && hours > 0 && (
-                                <span className={"yearDayHours"}>{formatHours(hours, timeDisplayMode)}</span>
-                            )}
-                        </div>
+                        <React.Fragment key={rowIndex}>
+                            {rowDays.map(({ date, isThisMonth }) => {
+                                const key = date.format("YYYY-MM-DD");
+                                const inRange = (date.isAfter(fiscalYear.start) || date.isSame(fiscalYear.start, "day")) &&
+                                    (date.isBefore(fiscalYear.end) || date.isSame(fiscalYear.end, "day"));
+                                const isWeekday = date.day() !== 0 && date.day() !== 6;
+                                const projectedVal = isWeekday
+                                    ? (projectionsByDate[key] ?? 8)
+                                    : 0;
+                                const projectionExplicitZero = projectedVal === 0;
+                                const actualHours = actualByDay[key] ?? 0;
+                                const hours = viewMode === "projected" ? projectedVal : actualHours;
+                                const isToday = key === todayKey;
+                                const isPast = key < todayKey;
+                                const editable = viewMode === "projected" && inRange && onEditProjection != null;
+                                const editDefaultHours = projectedVal > 0 ? projectedVal : (isWeekday ? 8 : 0);
+
+                                const showGrey = viewMode === "projected" && projectionExplicitZero;
+                                const showGreen = isPast && actualHours > 0;
+                                const greenIntensity = showGreen ? Math.min(1, actualHours / 8) : 0;
+
+                                return (
+                                    <div
+                                        key={key}
+                                        className={[
+                                            "yearDayCell",
+                                            !isThisMonth ? "otherMonth" : "",
+                                            showGrey ? "zeroHours" : "",
+                                            showGreen ? "hasActual" : "",
+                                            editable ? "editable" : "",
+                                            isToday ? "today" : ""
+                                        ].filter(Boolean).join(" ")}
+                                        data-billable-mode={showGreen ? billableFilter : undefined}
+                                        style={showGreen ? { ["--actual-intensity" as string]: greenIntensity } as React.CSSProperties : undefined}
+                                        onClick={editable ? () => onEditProjection(key, editDefaultHours) : undefined}
+                                        title={editable ? "Click to set hours" : `${key}: ${hours > 0 ? formatHours(hours, timeDisplayMode) : "0"}`}
+                                    >
+                                        <span className={"yearDayNum"}>{date.date()}</span>
+                                        {isThisMonth && inRange && hours > 0 && hours !== 8 && (
+                                            <span className={"yearDayHours yearHoursBadge"}>{formatHoursDisplay(hours, timeDisplayMode)}</span>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                            <div key={`total-${rowIndex}`} className={"yearDayCell yearWeekTotalCell"} title={"Weekly worked hours"}>
+                                {weekTotal > 0 ? formatHoursDisplay(weekTotal, timeDisplayMode) : ""}
+                            </div>
+                        </React.Fragment>
                     );
                 })}
             </div>
