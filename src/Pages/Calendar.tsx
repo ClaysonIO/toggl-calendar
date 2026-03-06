@@ -1,6 +1,6 @@
 import React, {useCallback, useEffect, useMemo, useRef, useState} from "react";
 import {Layout} from "../Components/Layout";
-import {appState} from "../App";
+import {useAppContext} from "../Utilities/AppContext";
 import {CalendarDateNav} from "../Components/CalendarDateNav";
 import {useLocation} from "react-router-dom";
 import {ConfigDialog} from "../Components/ConfigDialog";
@@ -452,8 +452,8 @@ export const CalendarPage = () => {
         return result;
     }, [weekStartKey, weekEndKey]);
 
-    const workspace = appState.selectedWorkSpace;
-    const workspaceId = workspace?.id || 0;
+    const {selectedWorkspace} = useAppContext();
+    const workspaceId = selectedWorkspace?.id || 0;
     const workspaceIdAsString = workspaceId ? workspaceId.toString() : "";
 
     const {data: projects = [], isLoading: projectsLoading} = useTogglProjects({workspace_id: workspaceIdAsString});
@@ -1020,7 +1020,7 @@ export const CalendarPage = () => {
 
     const [showConfigPrompt, setShowConfigPrompt] = useState(false);
 
-    if (!workspace) {
+    if (!selectedWorkspace) {
         return (
             <Layout>
                 <div className={"welcomeContainer"}>

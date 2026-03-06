@@ -1,9 +1,8 @@
 import React, {useCallback, useEffect, useState} from "react";
 import {Link} from "react-router-dom";
-import {appState} from "../App";
+import {useAppContext} from "../Utilities/AppContext";
 import {GithubLogo} from "./GithubLogo";
 import {ConfigDialog} from "./ConfigDialog";
-import {observer} from "mobx-react";
 
 const DARK_MODE_STORAGE_KEY = "calendarDarkMode";
 
@@ -21,7 +20,8 @@ const applyTheme = (dark: boolean) => {
 
 applyTheme(loadDarkMode());
 
-export const Header = observer(() => {
+export const Header = () => {
+    const {selectedWorkspace} = useAppContext();
     const [configOpen, setConfigOpen] = useState(false);
     const [darkMode, setDarkMode] = useState(loadDarkMode);
 
@@ -37,9 +37,9 @@ export const Header = observer(() => {
             <header>
                 <Link to={'/calendar'}><h1>Toggl Calendar View</h1></Link>
                 <div style={{flex: 1}}/>
-                {appState.selectedWorkSpace ? (
+                {selectedWorkspace ? (
                     <span style={{color: "rgba(255,255,255,0.75)", fontSize: "0.85rem", marginRight: 8}}>
-                        {appState.selectedWorkSpace.name}
+                        {selectedWorkspace.name}
                     </span>
                 ) : null}
                 <button
@@ -63,4 +63,4 @@ export const Header = observer(() => {
             <ConfigDialog open={configOpen} onClose={() => setConfigOpen(false)}/>
         </>
     );
-});
+};

@@ -1,8 +1,5 @@
 import React, {useState, useEffect, useCallback} from "react";
-import {observer} from "mobx-react";
-import {appState} from "../App";
-import {WorkSpace} from "../Utilities/WorkSpace";
-import {useTogglApiKey} from "../Utilities/useTogglApiKey";
+import {useAppContext} from "../Utilities/AppContext";
 import "./ConfigDialog.css";
 
 interface ConfigDialogProps {
@@ -10,33 +7,31 @@ interface ConfigDialogProps {
     onClose: () => void;
 }
 
-export const ConfigDialog = observer(({open, onClose}: ConfigDialogProps) => {
-    const [apiToken, setApiToken] = useState(appState.settings.apiToken);
-    const {setTogglApiKey} = useTogglApiKey();
+export const ConfigDialog = ({open, onClose}: ConfigDialogProps) => {
+    const {apiToken, setApiToken, workspaces, selectedWorkspaceId, selectWorkspace, refetchUser} = useAppContext();
+    const [localToken, setLocalToken] = useState(apiToken);
     const [fetching, setFetching] = useState(false);
 
     useEffect(() => {
-        if (open) setApiToken(appState.settings.apiToken);
-    }, [open]);
+        if (open) setLocalToken(apiToken);
+    }, [open, apiToken]);
 
     const applyToken = useCallback((token: string) => {
-        appState.settings.setApiToken(token);
+        setLocalToken(token);
         setApiToken(token);
-        localStorage.setItem("togglApiKey", token);
-        setTogglApiKey(token);
-    }, [setTogglApiKey]);
+    }, [setApiToken]);
 
     const fetchWorkspaces = useCallback(() => {
-        if (!appState.settings.apiToken) return;
+        if (!apiToken) return;
         setFetching(true);
-        appState.getWorkSpaces();
+        refetchUser();
         setTimeout(() => setFetching(false), 1500);
-    }, []);
+    }, [apiToken, refetchUser]);
 
-    const selectWorkSpace = useCallback((ws: WorkSpace) => {
-        appState.selectWorkSpace(ws);
+    const handleSelectWorkspace = useCallback((id: number) => {
+        selectWorkspace(id);
         onClose();
-    }, [onClose]);
+    }, [selectWorkspace, onClose]);
 
     if (!open) return null;
 
@@ -55,13 +50,13 @@ export const ConfigDialog = observer(({open, onClose}: ConfigDialogProps) => {
                         className={"configInput"}
                         type={"password"}
                         placeholder={"Paste your API token here..."}
-                        value={apiToken}
+                        value={localToken}
                         onChange={e => applyToken(e.currentTarget.value)}
                     />
                     <button
                         className={"configButton"}
                         onClick={fetchWorkspaces}
-                        disabled={!appState.settings.apiToken || fetching}
+                        disabled={!apiToken || fetching}
                     >
                         {fetching ? "Fetching..." : "Fetch"}
                     </button>
@@ -71,13 +66,13 @@ export const ConfigDialog = observer(({open, onClose}: ConfigDialogProps) => {
                 </small>
 
                 <label className={"configLabel"} style={{marginTop: 18}}>Workspace</label>
-                {appState.workSpaces.length ? (
+                {workspaces.length ? (
                     <div className={"configWorkspaceList"}>
-                        {appState.workSpaces.map(ws => (
+                        {workspaces.map(ws => (
                             <button
                                 key={ws.id}
-                                className={`configWorkspaceItem ${appState.selectedWorkSpace?.id === ws.id ? "selected" : ""}`}
-                                onClick={() => selectWorkSpace(ws)}
+                                className={`configWorkspaceItem ${selectedWorkspaceId === ws.id ? "selected" : ""}`}
+                                onClick={() => handleSelectWorkspace(ws.id)}
                             >
                                 {ws.name}
                             </button>
@@ -89,4 +84,4 @@ export const ConfigDialog = observer(({open, onClose}: ConfigDialogProps) => {
             </div>
         </div>
     );
-});
+};

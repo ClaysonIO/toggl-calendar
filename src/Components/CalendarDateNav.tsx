@@ -2,12 +2,13 @@ import React, {useEffect} from "react";
 import {Link, useLocation, useNavigate} from "react-router-dom";
 import dayjs from "dayjs";
 import {splitQuery} from "../Utilities/Functions/SplitQuery";
-import {appState} from "../App";
+import {useQueryClient} from "@tanstack/react-query";
 
-export const CalendarDateNav = ()=>{
+export const CalendarDateNav = () => {
     const location = useLocation();
     const {startDate, endDate} = splitQuery(location.search);
     const navigate = useNavigate();
+    const queryClient = useQueryClient();
 
     const navLinks = {
         back: `/calendar?startDate=${
@@ -22,14 +23,10 @@ export const CalendarDateNav = ()=>{
     }
 
     function clickToday(event: any){
-        //Force refresh of tasks if clicked when on this week
+        // Force refresh of tasks if clicked when already on this week
         if(navLinks.today.split('?').pop() === window.location.search.split('?').pop()){
             event.stopPropagation();
-            appState.selectedWorkSpace?.getTasks(dayjs(startDate), dayjs(endDate))
-                .catch(err=>{
-                    alert(err);
-                    console.error(err)
-                });
+            void queryClient.invalidateQueries({queryKey: ['togglDetails']});
         }
     }
 

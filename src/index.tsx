@@ -4,7 +4,6 @@ import './index.css';
 import App from './App';
 import * as serviceWorker from './serviceWorker';
 import {BrowserRouter} from "react-router-dom";
-import 'mobx-react/batchingForReactDom'
 import {QueryClient, QueryClientProvider} from "@tanstack/react-query";
 
 const queryClient = new QueryClient({});

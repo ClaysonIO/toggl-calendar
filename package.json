@@ -25,8 +25,6 @@
     "dexie": "^4.0.10",
     "dexie-react-hooks": "^1.1.7",
     "electron-is-dev": "^1.2.0",
-    "mobx": "^6.12.4",
-    "mobx-react": "^9.1.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router": "^6.24.0",

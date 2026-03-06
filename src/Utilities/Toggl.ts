@@ -1,7 +1,6 @@
 import axios from 'axios';
 import {Dayjs} from 'dayjs';
 import {IUser} from "./Interfaces/IUser";
-import {appState} from "../App";
 import {ITaskResponse} from "./Interfaces/ITaskResponse";
 
 const TOGGL_API = import.meta.env.DEV ? '/toggl-api' : 'https://api.track.toggl.com';

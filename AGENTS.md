@@ -2,7 +2,7 @@
 
 ### Overview
 
-Toggl Calendar is a client-side-only React SPA (Vite 4 + TypeScript + MobX). There is no backend — all API calls go directly from the browser to Toggl's external API (`api.track.toggl.com`).
+Toggl Calendar is a client-side-only React SPA (Vite 4 + TypeScript + Dexie). There is no backend — all API calls go directly from the browser to Toggl's external API (`api.track.toggl.com`). All data that is entered is persisted using Dexie. 
 
 ### Dev commands
 
@@ -14,6 +14,8 @@ See `package.json` scripts:
 No lint or test scripts are configured in this repository.
 
 ### Environment variables
+
+These variables are only used during development, to help the AI use this tool
 
 Copy `.env.example` to `.env` and fill in values. The `VITE_TOGGL_API_KEY` secret is injected automatically when available:
 
