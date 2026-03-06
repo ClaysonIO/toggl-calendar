@@ -8,6 +8,7 @@ export function useTogglUser() {
 
   const response = useQuery({
     queryKey: ['togglUser', togglApiKey],
+    enabled: !!togglApiKey,
     queryFn: ({ queryKey: [key, params] }: {queryKey: [string, string]})=>Toggl
         .GetUser(params as string),
   })

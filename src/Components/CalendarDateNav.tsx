@@ -2,37 +2,36 @@ import React, {useEffect} from "react";
 import {Link, useLocation, useNavigate} from "react-router-dom";
 import dayjs from "dayjs";
 import {splitQuery} from "../Utilities/Functions/SplitQuery";
-import {useQueryClient} from "@tanstack/react-query";
 
-export const CalendarDateNav = () => {
+const todayWeekStart = () => dayjs().startOf("week").format("YYYY-MM-DD");
+const todayWeekEnd = () => dayjs().endOf("week").format("YYYY-MM-DD");
+
+export interface CalendarDateNavProps {
+    onTodayClick?: (weekStart: string, weekEnd: string) => void;
+}
+
+export const CalendarDateNav = ({onTodayClick}: CalendarDateNavProps) => {
     const location = useLocation();
     const {startDate, endDate} = splitQuery(location.search);
     const navigate = useNavigate();
-    const queryClient = useQueryClient();
 
     const navLinks = {
-        back: `/calendar?startDate=${
+        back: `/week?startDate=${
             dayjs(startDate).subtract(1, 'week').format('YYYY-MM-DD')
         }&endDate=${dayjs(endDate).subtract(1, 'week').format('YYYY-MM-DD')}`,
-        today:`/calendar?startDate=${
-            dayjs().startOf('week').format('YYYY-MM-DD')
-        }&endDate=${dayjs().endOf('week').format('YYYY-MM-DD')}`,
-        forward:`/calendar?startDate=${
+        today: `/week?startDate=${todayWeekStart()}&endDate=${todayWeekEnd()}`,
+        forward:`/week?startDate=${
             dayjs(startDate).add(1, 'week').format('YYYY-MM-DD')
         }&endDate=${dayjs(endDate).add(1, 'week').format('YYYY-MM-DD')}`
-    }
+    };
 
-    function clickToday(event: any){
-        // Force refresh of tasks if clicked when already on this week
-        if(navLinks.today.split('?').pop() === window.location.search.split('?').pop()){
-            event.stopPropagation();
-            void queryClient.invalidateQueries({queryKey: ['togglDetails']});
-        }
+    function clickToday() {
+        onTodayClick?.(todayWeekStart(), todayWeekEnd());
     }
 
     useEffect(()=>{
             if(!startDate || !endDate){
-                navigate(`/calendar?startDate=${
+                navigate(`/week?startDate=${
                     dayjs().startOf('week').format('YYYY-MM-DD')
                 }&endDate=${dayjs().endOf('week').format('YYYY-MM-DD')}`)
             }
@@ -44,8 +43,8 @@ export const CalendarDateNav = () => {
     return (
         <div>
             <Link to={navLinks.back}><button className={'calendarHeaderButton'}>&lt;</button></Link>
-            <Link to={navLinks.today} onClick={clickToday}><button className={'calendarHeaderButton'}>Today</button></Link>
+            <Link to={navLinks.today} onClick={clickToday}><button type="button" className={'calendarHeaderButton'}>Today</button></Link>
             <Link to={navLinks.forward}><button className={'calendarHeaderButton'}>&gt;</button></Link>
         </div>
-    )
-}
+    );
+};

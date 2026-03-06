@@ -1,4 +1,6 @@
 import Dexie, {Table} from "dexie";
+import {ISingleProject} from "./Interfaces/ISingleProject";
+import {ITaskResponse} from "./Interfaces/ITaskResponse";
 
 export interface IProjectPreference {
     key: string;
@@ -24,10 +26,32 @@ export interface ICalendarSetting {
     updatedAt: number;
 }
 
+export interface IDailyBillableProjection {
+    key: string;
+    workspaceId: number;
+    date: string;
+    projectedHours: number;
+    updatedAt: number;
+}
+
+/** Stored project: key = workspaceId:projectId for upsert and workspace scoping */
+export interface ITogglProjectStored extends ISingleProject {
+    key: string;
+}
+
+/** Stored time entry: ITaskResponse plus workspaceId and startDate for indexing */
+export interface ITogglTimeEntryStored extends ITaskResponse {
+    workspaceId: number;
+    startDate: string;
+}
+
 class CalendarDatabase extends Dexie {
     projectPreferences!: Table<IProjectPreference, string>;
     weeklyProjectPlans!: Table<IWeeklyProjectPlan, string>;
     settings!: Table<ICalendarSetting, string>;
+    dailyBillableProjections!: Table<IDailyBillableProjection, string>;
+    togglProjects!: Table<ITogglProjectStored, string>;
+    togglTimeEntries!: Table<ITogglTimeEntryStored, number>;
 
     constructor() {
         super("togglCalendarDatabase");
@@ -35,6 +59,21 @@ class CalendarDatabase extends Dexie {
             projectPreferences: "key, workspaceId, projectId, [workspaceId+projectId]",
             weeklyProjectPlans: "key, workspaceId, weekStart, projectId, [workspaceId+weekStart], [workspaceId+weekStart+projectId]",
             settings: "key"
+        });
+        this.version(2).stores({
+            projectPreferences: "key, workspaceId, projectId, [workspaceId+projectId]",
+            weeklyProjectPlans: "key, workspaceId, weekStart, projectId, [workspaceId+weekStart], [workspaceId+weekStart+projectId]",
+            settings: "key",
+            togglProjects: "key, workspace_id",
+            togglTimeEntries: "id, [workspaceId+startDate]"
+        });
+        this.version(3).stores({
+            projectPreferences: "key, workspaceId, projectId, [workspaceId+projectId]",
+            weeklyProjectPlans: "key, workspaceId, weekStart, projectId, [workspaceId+weekStart], [workspaceId+weekStart+projectId]",
+            settings: "key",
+            dailyBillableProjections: "key, workspaceId, date, [workspaceId+date]",
+            togglProjects: "key, workspace_id",
+            togglTimeEntries: "id, [workspaceId+startDate]"
         });
     }
 }
@@ -50,5 +89,13 @@ export const getWeeklyPlanKey = (workspaceId: number, weekStart: string, project
 
 export const getWeeklyTargetKey = (weekStart: string) =>
     `weeklyBillableTarget:${weekStart}`;
+
+export const START_OF_YEAR_MONTH_KEY = "startOfYearMonth";
+export const ANNUAL_TARGET_HOURS_KEY = "annualTargetHours";
+export const ANNUAL_TARGET_PERCENTAGE_KEY = "annualTargetPercentage";
+export const DEFAULT_ANNUAL_TARGET_HOURS = 2080;
+
+export const getDailyBillableProjectionKey = (workspaceId: number, date: string) =>
+    `${workspaceId}:${date}`;
 
 export const calendarDb = new CalendarDatabase();

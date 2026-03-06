@@ -39,6 +39,10 @@ The Toggl CORS whitelisting API is disabled (returns 404/410). A Vite dev proxy 
 
 Source files (`Toggl.ts`, `useTogglProjects.ts`) use `import.meta.env.DEV` to switch between proxy paths (dev) and direct URLs (production). This means the app works fully end-to-end in dev mode without CORS issues.
 
+### Agent Testing
+
+Whenever you have updated the application, use the Browser MCP to visually test the changes.
+
 ### Known caveats
 
 - **No ESLint / test runner**: The project has `eslintConfig` in `package.json` but no `lint` script and no test files. `@testing-library` packages are installed as devDependencies but unused.

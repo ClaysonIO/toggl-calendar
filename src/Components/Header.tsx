@@ -1,5 +1,5 @@
 import React, {useCallback, useEffect, useState} from "react";
-import {Link} from "react-router-dom";
+import {Link, useLocation} from "react-router-dom";
 import {useAppContext} from "../Utilities/AppContext";
 import {GithubLogo} from "./GithubLogo";
 import {ConfigDialog} from "./ConfigDialog";
@@ -24,6 +24,7 @@ export const Header = () => {
     const {selectedWorkspace} = useAppContext();
     const [configOpen, setConfigOpen] = useState(false);
     const [darkMode, setDarkMode] = useState(loadDarkMode);
+    const location = useLocation();
 
     useEffect(() => {
         applyTheme(darkMode);
@@ -35,7 +36,11 @@ export const Header = () => {
     return (
         <>
             <header>
-                <Link to={'/calendar'}><h1>Toggl Calendar View</h1></Link>
+                <Link to={'/week'}><h1>Toggl Calendar View</h1></Link>
+                <nav className={"headerNav"}>
+                    <Link to={'/week'} className={location.pathname === '/week' ? 'headerNavActive' : ''}>Week</Link>
+                    <Link to={'/year'} className={location.pathname === '/year' ? 'headerNavActive' : ''}>Year</Link>
+                </nav>
                 <div style={{flex: 1}}/>
                 {selectedWorkspace ? (
                     <span style={{color: "rgba(255,255,255,0.75)", fontSize: "0.85rem", marginRight: 8}}>

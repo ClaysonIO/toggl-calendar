@@ -110,6 +110,22 @@ header a:hover{
   color: #bdb9b9;
 }
 
+.headerNav{
+  display: flex;
+  gap: 8px;
+  margin-left: 16px;
+}
+
+.headerNav a{
+  margin-left: 0;
+  padding: 4px 10px;
+  border-radius: 4px;
+}
+
+.headerNav a.headerNavActive{
+  background: rgba(255,255,255,0.2);
+}
+
 main{
   padding: 12px 20px;
   margin: auto;
@@ -137,6 +153,15 @@ main{
 
 .calendarHeaderButton.selected{
   background-color: var(--bg-button-selected);
+}
+
+.calendarHeaderButton.syncError{
+  background-color: var(--error-bg, #4a2020);
+  color: var(--error-text, #f0a0a0);
+}
+
+.calendarHeaderButton.syncError:hover{
+  background-color: var(--error-bg-hover, #5a2830);
 }
 
 .menuButton{

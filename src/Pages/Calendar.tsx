@@ -6,8 +6,8 @@ import {useLocation} from "react-router-dom";
 import {ConfigDialog} from "../Components/ConfigDialog";
 import dayjs from "dayjs";
 import {splitQuery} from "../Utilities/Functions/SplitQuery";
-import {useTogglProjects} from "../Utilities/useTogglProjects";
-import {useTogglDetails} from "../Utilities/useTogglDetails";
+import {getSimpleDataFromDexie} from "../Utilities/togglDetailsFromDexie";
+import {useTogglSync} from "../Utilities/useTogglSync";
 import {Loading} from "../Components/Loading";
 import {useLiveQuery} from "dexie-react-hooks";
 import {
@@ -327,6 +327,30 @@ const ProjectionCell = React.memo(({projectId, date, projectedHours, onProjectio
     );
 });
 
+const SYNC_ERROR_TOOLTIP = "Unable to fetch this week's data. Try again in an hour.";
+
+const SyncWeekButton = React.memo(({
+    isSyncing,
+    syncError,
+    onSync,
+    onClearError
+}: {
+    isSyncing: boolean;
+    syncError: boolean;
+    onSync: () => void;
+    onClearError: () => void;
+}) => (
+    <button
+        type="button"
+        className={`calendarHeaderButton ${syncError ? "syncError" : ""}`}
+        onClick={() => { onClearError(); onSync(); }}
+        disabled={isSyncing}
+        title={syncError ? SYNC_ERROR_TOOLTIP : "Fetch this week's data from Toggl"}
+    >
+        {isSyncing ? "Syncing…" : syncError ? "Sync failed" : "Sync week"}
+    </button>
+));
+
 const ProjectSearchBar = React.memo(({projects, weeklyPlanProjectIds, onAddProject}: {
     projects: ISingleProject[],
     weeklyPlanProjectIds: Set<number>,
@@ -456,8 +480,32 @@ export const CalendarPage = () => {
     const workspaceId = selectedWorkspace?.id || 0;
     const workspaceIdAsString = workspaceId ? workspaceId.toString() : "";
 
-    const {data: projects = [], isLoading: projectsLoading} = useTogglProjects({workspace_id: workspaceIdAsString});
-    const {simpleData, isLoading: detailsLoading} = useTogglDetails(workspaceIdAsString, weekStartKey, weekEndKey);
+    const projectsFromDexie = useLiveQuery(
+        async () => {
+            if (!workspaceId) return [];
+            return calendarDb.togglProjects.where("workspace_id").equals(workspaceId).toArray();
+        },
+        [workspaceId],
+        []
+    );
+    const projects = projectsFromDexie ?? [];
+    const projectsLoading = workspaceId !== 0 && projectsFromDexie === undefined;
+
+    const simpleDataFromDexie = useLiveQuery(
+        () => getSimpleDataFromDexie(workspaceId, weekStartKey, weekEndKey),
+        [workspaceId, weekStartKey, weekEndKey]
+    );
+    const simpleData = simpleDataFromDexie;
+    const detailsLoading = workspaceId !== 0 && simpleDataFromDexie === undefined;
+
+    const {syncWeekRange, isSyncing, syncError, setSyncError} = useTogglSync(
+        workspaceId,
+        weekStartKey,
+        weekEndKey
+    );
+    useEffect(() => {
+        setSyncError(false);
+    }, [weekStartKey, weekEndKey, setSyncError]);
 
     const projectPreferences = useLiveQuery(
         async () => {
@@ -1093,7 +1141,15 @@ export const CalendarPage = () => {
                     <strong>{weekStart.format("MMM D, YYYY")} - {weekEnd.format("MMM D, YYYY")}</strong>
                 </div>
                 <div className={"calendarHeaderControls"}>
-                    <CalendarDateNav/>
+                    <SyncWeekButton
+                        isSyncing={isSyncing}
+                        syncError={syncError}
+                        onSync={() => syncWeekRange(weekStartKey, weekEndKey)}
+                        onClearError={() => setSyncError(false)}
+                    />
+                    <CalendarDateNav
+                        onTodayClick={(start, end) => void syncWeekRange(start, end)}
+                    />
                     <div className={"calendarDisplayControls"}>
                         <div className={"calendarDisplayButtonGroup"}>
                             <button

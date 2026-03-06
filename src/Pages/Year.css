@@ -1,0 +1,246 @@
+.yearPage {
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.yearHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.yearHeader h2 {
+    margin: 0;
+    font-size: 1.25rem;
+}
+
+.yearControls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.yearMetrics {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.yearMetricsBar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.yearProgressTrack {
+    flex: 1;
+    height: 20px;
+    border-radius: 999px;
+    overflow: hidden;
+    border: 1px solid var(--border-search);
+    background: var(--progress-track);
+}
+
+.yearProgressFill {
+    height: 100%;
+    background: #2f81f7;
+    transition: width 0.2s ease;
+}
+
+.yearTargets {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+}
+
+.yearTargets span {
+    font-size: 0.9rem;
+}
+
+.yearTargets strong {
+    margin-right: 4px;
+}
+
+.yearGrid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+}
+
+@media (max-width: 900px) {
+    .yearGrid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 500px) {
+    .yearGrid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.yearMonthCard {
+    background: var(--bg-input);
+    border: 1px solid var(--border-search);
+    border-radius: 8px;
+    padding: 10px;
+}
+
+.yearMonthTitle {
+    font-weight: 600;
+    font-size: 0.9rem;
+    margin-bottom: 8px;
+    text-align: center;
+}
+
+.yearMonthGrid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+}
+
+.yearMonthWeekday {
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-align: center;
+    padding: 2px 0;
+}
+
+.yearDayCell {
+    aspect-ratio: 1;
+    min-height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    border-radius: 4px;
+    cursor: default;
+}
+
+.yearDayCell.otherMonth {
+    color: var(--text-muted);
+    opacity: 0.6;
+}
+
+.yearDayCell.zeroHours {
+    background: var(--progress-track);
+    color: var(--text-muted);
+}
+
+.yearDayCell.hasActual {
+    background: rgba(34, 197, 94, calc(0.15 + var(--actual-intensity, 0) * 0.5));
+}
+
+.yearDayCell.editable {
+    cursor: pointer;
+}
+
+.yearDayCell.editable:hover {
+    background: var(--bg-button-hover);
+}
+
+.yearDayCell.today {
+    outline: 2px solid var(--link-color);
+    outline-offset: -1px;
+}
+
+.yearDayCell .yearDayNum {
+    display: block;
+    line-height: 1.1;
+}
+
+.yearDayCell .yearDayHours {
+    display: block;
+    font-size: 0.6rem;
+    opacity: 0.9;
+}
+
+.yearPlaceholder {
+    padding: 24px;
+    text-align: center;
+    color: var(--text-muted);
+}
+
+.yearWelcome {
+    padding: 24px;
+    text-align: center;
+}
+
+.yearWelcome p {
+    margin: 8px 0;
+    color: var(--text-secondary);
+}
+
+.yearWelcome button {
+    margin-top: 12px;
+    padding: 8px 16px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    background: var(--header-bg);
+    color: var(--header-text);
+    border: none;
+    border-radius: 6px;
+}
+
+.yearWelcome button:hover {
+    opacity: 0.9;
+}
+
+.yearEditDayPopup {
+    position: fixed;
+    inset: 0;
+    background: var(--overlay-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.yearEditDayContent {
+    background: var(--dialog-bg);
+    color: var(--text-primary);
+    padding: 20px;
+    border-radius: 8px;
+    min-width: 220px;
+}
+
+.yearEditDayContent label {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 0.85rem;
+}
+
+.yearEditDayContent input {
+    width: 100%;
+    padding: 6px 8px;
+    margin-bottom: 12px;
+    font-size: 0.9rem;
+    box-sizing: border-box;
+}
+
+.yearEditDayActions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+.yearEditDayActions button {
+    padding: 6px 12px;
+    cursor: pointer;
+    border-radius: 4px;
+    border: 1px solid var(--border-input);
+    background: var(--bg-button);
+    color: var(--text-primary);
+}
+
+.yearEditDayActions button.primary {
+    background: var(--header-bg);
+    color: var(--header-text);
+    border: none;
+}
