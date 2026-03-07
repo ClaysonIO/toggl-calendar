@@ -1,6 +1,7 @@
 import React, {useCallback, useEffect, useState} from "react";
 import {Link, useLocation} from "react-router-dom";
 import {useAppContext} from "../Utilities/AppContext";
+import type {DataMode} from "../Utilities/AppContext";
 import {GithubLogo} from "./GithubLogo";
 import {ConfigDialog} from "./ConfigDialog";
 
@@ -21,7 +22,7 @@ const applyTheme = (dark: boolean) => {
 applyTheme(loadDarkMode());
 
 export const Header = () => {
-    const {selectedWorkspace} = useAppContext();
+    const {selectedWorkspace, dataMode, setDataMode} = useAppContext();
     const [configOpen, setConfigOpen] = useState(false);
     const [darkMode, setDarkMode] = useState(loadDarkMode);
     const location = useLocation();
@@ -32,6 +33,7 @@ export const Header = () => {
     }, [darkMode]);
 
     const toggleDark = useCallback(() => setDarkMode(prev => !prev), []);
+    const handleModeChange = useCallback((mode: DataMode) => setDataMode(mode), [setDataMode]);
 
     return (
         <>
@@ -41,10 +43,30 @@ export const Header = () => {
                     <Link to={'/week'} className={location.pathname === '/week' ? 'headerNavActive' : ''}>Week</Link>
                     <Link to={'/year'} className={location.pathname === '/year' ? 'headerNavActive' : ''}>Year</Link>
                 </nav>
+                <div className={"headerModeToggle"}>
+                    <button
+                        className={`headerModeButton ${dataMode === "toggl" ? "active" : ""}`}
+                        onClick={() => handleModeChange("toggl")}
+                        type={"button"}
+                    >
+                        Toggl
+                    </button>
+                    <button
+                        className={`headerModeButton ${dataMode === "manual" ? "active" : ""}`}
+                        onClick={() => handleModeChange("manual")}
+                        type={"button"}
+                    >
+                        Manual
+                    </button>
+                </div>
                 <div style={{flex: 1}}/>
-                {selectedWorkspace ? (
+                {dataMode === "toggl" && selectedWorkspace ? (
                     <span style={{color: "rgba(255,255,255,0.75)", fontSize: "0.85rem", marginRight: 8}}>
                         {selectedWorkspace.name}
+                    </span>
+                ) : dataMode === "manual" ? (
+                    <span style={{color: "rgba(255,255,255,0.6)", fontSize: "0.8rem", marginRight: 8, fontStyle: "italic"}}>
+                        Manual Entry
                     </span>
                 ) : null}
                 <button
@@ -55,14 +77,16 @@ export const Header = () => {
                 >
                     {darkMode ? "\u2600\uFE0F Light" : "\uD83C\uDF19 Dark"}
                 </button>
-                <button
-                    className={"menuButton"}
-                    onClick={() => setConfigOpen(true)}
-                    title={"Configuration"}
-                    style={{fontSize: "1rem"}}
-                >
-                    &#9881; Config
-                </button>
+                {dataMode === "toggl" && (
+                    <button
+                        className={"menuButton"}
+                        onClick={() => setConfigOpen(true)}
+                        title={"Configuration"}
+                        style={{fontSize: "1rem"}}
+                    >
+                        &#9881; Config
+                    </button>
+                )}
                 <GithubLogo/>
             </header>
             <ConfigDialog open={configOpen} onClose={() => setConfigOpen(false)}/>

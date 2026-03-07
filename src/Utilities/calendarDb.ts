@@ -45,6 +45,34 @@ export interface ITogglTimeEntryStored extends ITaskResponse {
     startDate: string;
 }
 
+export interface IManualCompany {
+    id?: number;
+    name: string;
+    updatedAt: number;
+}
+
+export interface IManualProject {
+    id?: number;
+    companyId: number;
+    name: string;
+    color: string;
+    updatedAt: number;
+}
+
+export interface IManualTimeEntry {
+    key: string;
+    projectId: number;
+    date: string;
+    hours: number;
+    description: string;
+    updatedAt: number;
+}
+
+export const MANUAL_WORKSPACE_ID = -1;
+
+export const getManualTimeEntryKey = (projectId: number, date: string) =>
+    `${projectId}:${date}`;
+
 class CalendarDatabase extends Dexie {
     projectPreferences!: Table<IProjectPreference, string>;
     weeklyProjectPlans!: Table<IWeeklyProjectPlan, string>;
@@ -52,6 +80,9 @@ class CalendarDatabase extends Dexie {
     dailyBillableProjections!: Table<IDailyBillableProjection, string>;
     togglProjects!: Table<ITogglProjectStored, string>;
     togglTimeEntries!: Table<ITogglTimeEntryStored, number>;
+    manualCompanies!: Table<IManualCompany, number>;
+    manualProjects!: Table<IManualProject, number>;
+    manualTimeEntries!: Table<IManualTimeEntry, string>;
 
     constructor() {
         super("togglCalendarDatabase");
@@ -74,6 +105,17 @@ class CalendarDatabase extends Dexie {
             dailyBillableProjections: "key, workspaceId, date, [workspaceId+date]",
             togglProjects: "key, workspace_id",
             togglTimeEntries: "id, [workspaceId+startDate]"
+        });
+        this.version(4).stores({
+            projectPreferences: "key, workspaceId, projectId, [workspaceId+projectId]",
+            weeklyProjectPlans: "key, workspaceId, weekStart, projectId, [workspaceId+weekStart], [workspaceId+weekStart+projectId]",
+            settings: "key",
+            dailyBillableProjections: "key, workspaceId, date, [workspaceId+date]",
+            togglProjects: "key, workspace_id",
+            togglTimeEntries: "id, [workspaceId+startDate]",
+            manualCompanies: "++id",
+            manualProjects: "++id, companyId",
+            manualTimeEntries: "key, projectId, date"
         });
     }
 }

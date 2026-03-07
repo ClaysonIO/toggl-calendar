@@ -404,6 +404,32 @@
     transform: translateY(-1px);
 }
 
+.welcomeDivider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 16px 0;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+}
+
+.welcomeDivider::before,
+.welcomeDivider::after {
+    content: "";
+    flex: 1;
+    border-bottom: 1px solid var(--border-primary);
+}
+
+.welcomeButtonManual {
+    background: var(--bg-button);
+    color: var(--text-primary);
+}
+
+.welcomeButtonManual:hover {
+    background: var(--bg-button-hover);
+    transform: translateY(-1px);
+}
+
 @media (max-width: 640px) {
     .welcomeFeatures {
         grid-template-columns: 1fr;

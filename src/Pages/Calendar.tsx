@@ -17,6 +17,8 @@ import {
     getProjectPreferenceKey,
     getWeeklyPlanKey,
     getWeeklyTargetKey,
+    getManualTimeEntryKey,
+    MANUAL_WORKSPACE_ID,
     IProjectPreference,
     IWeeklyProjectPlan
 } from "../Utilities/calendarDb";
@@ -31,6 +33,8 @@ import {
 } from "@tanstack/react-table";
 import {ISingleProject} from "../Utilities/Interfaces/ISingleProject";
 import {DecimalToRoundedTime} from "../Utilities/Functions/DecimalToRoundedTime";
+import {getAllManualProjectsAsSingleProject, getManualSimpleData} from "../Utilities/manualData";
+import {ManualCompanyProjectDialog} from "../Components/ManualCompanyProjectDialog";
 import "./Calendar.css";
 
 interface ICalendarTableRow {
@@ -327,6 +331,57 @@ const ProjectionCell = React.memo(({projectId, date, projectedHours, onProjectio
     );
 });
 
+const ManualTimeCell = React.memo(({projectId, date, hours, formatHoursFn, onTimeChange}: {
+    projectId: number,
+    date: string,
+    hours: number,
+    formatHoursFn: (h: number) => string,
+    onTimeChange: (projectId: number, date: string, hours: number) => void
+}) => {
+    const [editing, setEditing] = useState(false);
+    const inputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        if (editing && inputRef.current) {
+            inputRef.current.focus();
+            inputRef.current.select();
+        }
+    }, [editing]);
+
+    const commitEdit = (value: string) => {
+        setEditing(false);
+        const parsed = Number(value);
+        const safe = Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+        onTimeChange(projectId, date, safe);
+    };
+
+    if (editing) {
+        return (
+            <input
+                ref={inputRef}
+                className={"projectedInlineInput"}
+                type={"number"}
+                min={0}
+                step={0.25}
+                defaultValue={hours}
+                onBlur={e => commitEdit(e.currentTarget.value)}
+                onKeyDown={e => { if (e.key === "Enter") e.currentTarget.blur(); if (e.key === "Escape") { setEditing(false); } }}
+            />
+        );
+    }
+
+    return (
+        <button
+            className={"projectedInlineButton projectionDayButton"}
+            type={"button"}
+            onClick={() => setEditing(true)}
+            title={"Click to enter hours"}
+        >
+            {hours > 0 ? formatHoursFn(hours) : "--"}
+        </button>
+    );
+});
+
 const SYNC_ERROR_TOOLTIP = "Unable to fetch this week's data. Try again in an hour.";
 
 const SyncWeekButton = React.memo(({
@@ -447,6 +502,7 @@ export const CalendarPage = () => {
     const [varianceSorting, setVarianceSorting] = useState<SortingState>([{id: "clientName", desc: false}]);
     const [timeDisplayMode, setTimeDisplayMode] = useState<TimeDisplayMode>(() => loadTimeDisplayMode());
     const [rowDisplayMode, setRowDisplayMode] = useState<RowDisplayMode>(() => loadRowDisplayMode());
+    const [manageOpen, setManageOpen] = useState(false);
 
     const fallbackStart = dayjs().startOf("week");
     const normalizedStartDate = startDate && dayjs(startDate).isValid()
@@ -476,30 +532,34 @@ export const CalendarPage = () => {
         return result;
     }, [weekStartKey, weekEndKey]);
 
-    const {selectedWorkspace} = useAppContext();
-    const workspaceId = selectedWorkspace?.id || 0;
-    const workspaceIdAsString = workspaceId ? workspaceId.toString() : "";
+    const {selectedWorkspace, dataMode} = useAppContext();
+    const isManual = dataMode === "manual";
+    const workspaceId = isManual ? MANUAL_WORKSPACE_ID : (selectedWorkspace?.id || 0);
 
     const projectsFromDexie = useLiveQuery(
         async () => {
+            if (isManual) return getAllManualProjectsAsSingleProject();
             if (!workspaceId) return [];
             return calendarDb.togglProjects.where("workspace_id").equals(workspaceId).toArray();
         },
-        [workspaceId],
+        [workspaceId, isManual],
         []
     );
     const projects = projectsFromDexie ?? [];
-    const projectsLoading = workspaceId !== 0 && projectsFromDexie === undefined;
+    const projectsLoading = !isManual && workspaceId !== 0 && projectsFromDexie === undefined;
 
     const simpleDataFromDexie = useLiveQuery(
-        () => getSimpleDataFromDexie(workspaceId, weekStartKey, weekEndKey),
-        [workspaceId, weekStartKey, weekEndKey]
+        () => {
+            if (isManual) return getManualSimpleData(weekStartKey, weekEndKey);
+            return getSimpleDataFromDexie(workspaceId, weekStartKey, weekEndKey);
+        },
+        [workspaceId, weekStartKey, weekEndKey, isManual]
     );
     const simpleData = simpleDataFromDexie;
-    const detailsLoading = workspaceId !== 0 && simpleDataFromDexie === undefined;
+    const detailsLoading = !isManual && workspaceId !== 0 && simpleDataFromDexie === undefined;
 
     const {syncWeekRange, isSyncing, syncError, setSyncError} = useTogglSync(
-        workspaceId,
+        isManual ? 0 : workspaceId,
         weekStartKey,
         weekEndKey
     );
@@ -683,6 +743,22 @@ export const CalendarPage = () => {
         });
     }, [workspaceId]);
 
+    const upsertManualTime = useCallback(async (projectId: number, date: string, hours: number) => {
+        const key = getManualTimeEntryKey(projectId, date);
+        if (hours <= 0) {
+            await calendarDb.manualTimeEntries.delete(key);
+        } else {
+            await calendarDb.manualTimeEntries.put({
+                key,
+                projectId,
+                date,
+                hours: Math.round(hours * 100) / 100,
+                description: "",
+                updatedAt: Date.now()
+            });
+        }
+    }, []);
+
     const tableRows = useMemo<ICalendarTableRow[]>(() => {
         const visibleProjectIds = new Set<number>();
 
@@ -829,6 +905,18 @@ export const CalendarPage = () => {
         const hasDescription = !!descriptionText;
         const timeText = dayHours > 0 ? formatHoursForDisplay(dayHours) : "";
 
+        if (isManual && rowDisplayMode !== "projections") {
+            return (
+                <ManualTimeCell
+                    projectId={row.projectId}
+                    date={date}
+                    hours={dayHours}
+                    formatHoursFn={formatHoursForDisplay}
+                    onTimeChange={(pid, d, h) => void upsertManualTime(pid, d, h)}
+                />
+            );
+        }
+
         switch (rowDisplayMode) {
             case "description": {
                 if (!hasDescription) return "";
@@ -866,7 +954,7 @@ export const CalendarPage = () => {
                 );
             }
         }
-    }, [copyToClipboard, formatHoursForDisplay, rowDisplayMode, upsertDailyProjection]);
+    }, [copyToClipboard, formatHoursForDisplay, rowDisplayMode, upsertDailyProjection, isManual, upsertManualTime]);
 
     const columns = useMemo<ColumnDef<ICalendarTableRow>[]>(() => {
         return [
@@ -1067,8 +1155,9 @@ export const CalendarPage = () => {
     });
 
     const [showConfigPrompt, setShowConfigPrompt] = useState(false);
+    const {setDataMode} = useAppContext();
 
-    if (!selectedWorkspace) {
+    if (!isManual && !selectedWorkspace) {
         return (
             <Layout>
                 <div className={"welcomeContainer"}>
@@ -1122,7 +1211,17 @@ export const CalendarPage = () => {
                             onClick={() => setShowConfigPrompt(true)}
                             type={"button"}
                         >
-                            Get Started
+                            Get Started with Toggl
+                        </button>
+                        <div className={"welcomeDivider"}>
+                            <span>or</span>
+                        </div>
+                        <button
+                            className={"welcomeButton welcomeButtonManual"}
+                            onClick={() => setDataMode("manual")}
+                            type={"button"}
+                        >
+                            Use Manual Time Entry
                         </button>
                     </div>
                 </div>
@@ -1141,14 +1240,25 @@ export const CalendarPage = () => {
                     <strong>{weekStart.format("MMM D, YYYY")} - {weekEnd.format("MMM D, YYYY")}</strong>
                 </div>
                 <div className={"calendarHeaderControls"}>
-                    <SyncWeekButton
-                        isSyncing={isSyncing}
-                        syncError={syncError}
-                        onSync={() => syncWeekRange(weekStartKey, weekEndKey)}
-                        onClearError={() => setSyncError(false)}
-                    />
+                    {!isManual && (
+                        <SyncWeekButton
+                            isSyncing={isSyncing}
+                            syncError={syncError}
+                            onSync={() => syncWeekRange(weekStartKey, weekEndKey)}
+                            onClearError={() => setSyncError(false)}
+                        />
+                    )}
+                    {isManual && (
+                        <button
+                            type={"button"}
+                            className={"calendarHeaderButton"}
+                            onClick={() => setManageOpen(true)}
+                        >
+                            Manage Projects
+                        </button>
+                    )}
                     <CalendarDateNav
-                        onTodayClick={(start, end) => void syncWeekRange(start, end)}
+                        onTodayClick={isManual ? undefined : (start, end) => void syncWeekRange(start, end)}
                     />
                     <div className={"calendarDisplayControls"}>
                         <div className={"calendarDisplayButtonGroup"}>
@@ -1261,7 +1371,10 @@ export const CalendarPage = () => {
                             <tr>
                                 <td colSpan={leafColumnCount}>
                                     <div className={"calendarNoRows"}>
-                                        No projects yet. Track time or add a project to this week.
+                                        {isManual
+                                            ? "No projects yet. Use \"Manage Projects\" to create companies and projects, then search to add them."
+                                            : "No projects yet. Track time or add a project to this week."
+                                        }
                                     </div>
                                 </td>
                             </tr>
@@ -1365,6 +1478,7 @@ export const CalendarPage = () => {
                 defaultValue={safeBillableTarget}
             />
             {copiedToast && <div className={"copyToast"}>{copiedToast}</div>}
+            <ManualCompanyProjectDialog open={manageOpen} onClose={() => setManageOpen(false)}/>
         </Layout>
     );
 };

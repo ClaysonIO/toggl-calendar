@@ -74,7 +74,7 @@ export function YearMonthCard({
                                 const hours = viewMode === "projected" ? projectedVal : actualHours;
                                 const isToday = key === todayKey;
                                 const isPast = key < todayKey;
-                                const editable = viewMode === "projected" && inRange && onEditProjection != null;
+                                const editable = inRange && onEditProjection != null;
                                 const editDefaultHours = projectedVal > 0 ? projectedVal : 0;
 
                                 const showGrey = viewMode === "projected" && projectionExplicitZero;
