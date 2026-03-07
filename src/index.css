@@ -164,6 +164,35 @@ main{
   background-color: var(--error-bg-hover, #5a2830);
 }
 
+.headerModeToggle {
+  display: flex;
+  margin-left: 16px;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.25);
+}
+
+.headerModeButton {
+  border: none;
+  background: transparent;
+  color: rgba(255,255,255,0.65);
+  padding: 4px 12px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.headerModeButton:hover {
+  background: rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.9);
+}
+
+.headerModeButton.active {
+  background: rgba(255,255,255,0.2);
+  color: #fff;
+  font-weight: 600;
+}
+
 .menuButton{
   border: none;
   background: none;

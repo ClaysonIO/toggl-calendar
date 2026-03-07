@@ -8,6 +8,9 @@ interface WorkspaceSummary {
     name: string;
 }
 
+export type DataMode = "toggl" | "manual";
+const DATA_MODE_STORAGE_KEY = "calendarDataMode";
+
 interface AppContextValue {
     apiToken: string;
     setApiToken: (token: string) => void;
@@ -17,6 +20,8 @@ interface AppContextValue {
     selectWorkspace: (id: number | null) => void;
     refetchUser: () => void;
     isLoadingUser: boolean;
+    dataMode: DataMode;
+    setDataMode: (mode: DataMode) => void;
 }
 
 const AppContext = createContext<AppContextValue | undefined>(undefined);
@@ -24,6 +29,15 @@ const AppContext = createContext<AppContextValue | undefined>(undefined);
 export function AppProvider({children}: {children: React.ReactNode}) {
     const {togglApiKey, setTogglApiKey} = useTogglApiKey();
     const {data: user, isLoading: isLoadingUser, refetch: refetchUser} = useTogglUser();
+
+    const [dataMode, setDataModeState] = useState<DataMode>(() => {
+        const stored = localStorage.getItem(DATA_MODE_STORAGE_KEY);
+        return stored === "manual" ? "manual" : "toggl";
+    });
+    const setDataMode = useCallback((mode: DataMode) => {
+        setDataModeState(mode);
+        localStorage.setItem(DATA_MODE_STORAGE_KEY, mode);
+    }, []);
 
     const workspaces: WorkspaceSummary[] = useMemo(
         () => (user?.workspaces ?? [])
@@ -89,6 +103,8 @@ export function AppProvider({children}: {children: React.ReactNode}) {
         selectWorkspace,
         refetchUser: () => void refetchUser(),
         isLoadingUser,
+        dataMode,
+        setDataMode,
     };
 
     return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

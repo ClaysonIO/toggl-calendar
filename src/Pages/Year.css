@@ -386,3 +386,55 @@
     color: var(--header-text);
     border: none;
 }
+
+.manualDayContent {
+    min-width: 340px;
+    max-width: 480px;
+}
+
+.manualDayProjectList {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 14px;
+    max-height: 350px;
+    overflow-y: auto;
+}
+
+.manualDayProjectRow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+}
+
+.manualDayProjectColor {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.manualDayProjectLabel {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.manualDayHoursInput {
+    width: 60px;
+    padding: 4px 6px;
+    font-size: 0.85rem;
+    border: 1px solid var(--border-input);
+    border-radius: 4px;
+    background: var(--bg-input);
+    color: var(--text-primary);
+    text-align: right;
+}
+
+.manualDayHoursLabel {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    width: 20px;
+}

@@ -9,9 +9,11 @@ import {
     ANNUAL_TARGET_HOURS_KEY,
     ANNUAL_TARGET_PERCENTAGE_KEY,
     DEFAULT_ANNUAL_TARGET_HOURS,
+    MANUAL_WORKSPACE_ID,
     START_OF_YEAR_MONTH_KEY
 } from "../Utilities/calendarDb";
 import {getBillableHoursByDay, getSimpleDataFromDexie, BillableFilter} from "../Utilities/togglDetailsFromDexie";
+import {getManualBillableHoursByDay, getManualSimpleData, getAllManualProjectsAsSingleProject} from "../Utilities/manualData";
 import {getFiscalYearBounds, getFiscalYearMonthStarts} from "../Utilities/fiscalYear";
 import {ConfigDialog} from "../Components/ConfigDialog";
 import {syncDateRange} from "../Utilities/togglSync";
@@ -22,13 +24,16 @@ import {YearProjectSelect} from "../Components/YearProjectSelect";
 import {YearMonthCard} from "../Components/YearMonthCard";
 import {YearEditDayDialog} from "../Components/YearEditDayDialog";
 import {YearEditTargetDialog} from "../Components/YearEditTargetDialog";
+import {ManualDayTimeDialog} from "../Components/ManualDayTimeDialog";
+import {ManualCompanyProjectDialog} from "../Components/ManualCompanyProjectDialog";
 import "./Year.css";
 
 export const YearPage = () => {
-    const {selectedWorkspace} = useAppContext();
+    const {selectedWorkspace, dataMode, setDataMode} = useAppContext();
     const {togglApiKey} = useTogglApiKey();
     const {data: user} = useTogglUser();
-    const workspaceId = selectedWorkspace?.id ?? 0;
+    const isManual = dataMode === "manual";
+    const workspaceId = isManual ? MANUAL_WORKSPACE_ID : (selectedWorkspace?.id ?? 0);
 
     const [viewMode, setViewMode] = useState<ViewMode>("projected");
     const [billableFilter, setBillableFilter] = useState<BillableFilter>("billable");
@@ -38,13 +43,16 @@ export const YearPage = () => {
     const [editTargetOpen, setEditTargetOpen] = useState(false);
     const [isSyncing, setIsSyncing] = useState(false);
     const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
+    const [manualDayEdit, setManualDayEdit] = useState<string | null>(null);
+    const [manageOpen, setManageOpen] = useState(false);
 
     const projects = useLiveQuery(
         async () => {
+            if (isManual) return getAllManualProjectsAsSingleProject();
             if (!workspaceId) return [];
             return calendarDb.togglProjects.where("workspace_id").equals(workspaceId).toArray();
         },
-        [workspaceId],
+        [workspaceId, isManual],
         []
     );
     const projectsList = projects ?? [];
@@ -84,13 +92,14 @@ export const YearPage = () => {
 
     const dailyProjectionsInRange = useLiveQuery(
         async () => {
-            if (!workspaceId) return [];
+            const wsId = isManual ? MANUAL_WORKSPACE_ID : workspaceId;
+            if (!wsId && !isManual) return [];
             return calendarDb.dailyBillableProjections
                 .where("[workspaceId+date]")
-                .between([workspaceId, fyStartKey], [workspaceId, fyEndKey], true, true)
+                .between([wsId, fyStartKey], [wsId, fyEndKey], true, true)
                 .toArray();
         },
-        [workspaceId, fyStartKey, fyEndKey],
+        [workspaceId, fyStartKey, fyEndKey, isManual],
         []
     );
     const projectionsByDate = useMemo(() => {
@@ -103,19 +112,23 @@ export const YearPage = () => {
 
     const billableToDateData = useLiveQuery(
         async () => {
-            if (!workspaceId || !fyStartKey) return { byDay: {} as Record<string, number>, total: 0 };
+            if (!fyStartKey) return { byDay: {} as Record<string, number>, total: 0 };
             const today = dayjs().format("YYYY-MM-DD");
+            if (isManual) return getManualBillableHoursByDay(fyStartKey, today, "billable");
+            if (!workspaceId) return { byDay: {} as Record<string, number>, total: 0 };
             return getBillableHoursByDay(workspaceId, fyStartKey, today, "billable");
         },
-        [workspaceId, fyStartKey],
+        [workspaceId, fyStartKey, isManual],
         { byDay: {}, total: 0 }
     );
     const actualByDayAll = useLiveQuery(
         async () => {
-            if (!workspaceId || !fyStartKey || !fyEndKey) return { byDay: {} as Record<string, number>, total: 0 };
+            if (!fyStartKey || !fyEndKey) return { byDay: {} as Record<string, number>, total: 0 };
+            if (isManual) return getManualBillableHoursByDay(fyStartKey, fyEndKey, billableFilter, selectedProjectId);
+            if (!workspaceId) return { byDay: {} as Record<string, number>, total: 0 };
             return getBillableHoursByDay(workspaceId, fyStartKey, fyEndKey, billableFilter, selectedProjectId);
         },
-        [workspaceId, fyStartKey, fyEndKey, billableFilter, selectedProjectId],
+        [workspaceId, fyStartKey, fyEndKey, billableFilter, selectedProjectId, isManual],
         { byDay: {}, total: 0 }
     );
     const billableHoursToDate = billableToDateData?.total ?? 0;
@@ -123,18 +136,21 @@ export const YearPage = () => {
 
     const simpleDataForYear = useLiveQuery(
         async () => {
-            if (!workspaceId || !fyStartKey || !fyEndKey) return undefined;
+            if (!fyStartKey || !fyEndKey) return undefined;
+            if (isManual) return getManualSimpleData(fyStartKey, fyEndKey);
+            if (!workspaceId) return undefined;
             return getSimpleDataFromDexie(workspaceId, fyStartKey, fyEndKey);
         },
-        [workspaceId, fyStartKey, fyEndKey],
+        [workspaceId, fyStartKey, fyEndKey, isManual],
         undefined
     );
     const projectPrefsList = useLiveQuery(
         async () => {
-            if (!workspaceId) return [];
-            return calendarDb.projectPreferences.where("workspaceId").equals(workspaceId).toArray();
+            const wsId = isManual ? MANUAL_WORKSPACE_ID : workspaceId;
+            if (!wsId && !isManual) return [];
+            return calendarDb.projectPreferences.where("workspaceId").equals(wsId).toArray();
         },
-        [workspaceId],
+        [workspaceId, isManual],
         []
     ) as { projectId: number; billable: boolean }[] | undefined;
     const byDayByProject = useMemo((): Record<string, Array<{ label: string; hours: number }>> => {
@@ -193,23 +209,24 @@ export const YearPage = () => {
         ? Math.min(100, (billableHoursToDate / annualTargetHours) * 100)
         : 0;
 
+    const effectiveWsId = isManual ? MANUAL_WORKSPACE_ID : workspaceId;
     const upsertDailyProjection = useCallback(
         async (date: string, hours: number) => {
-            if (!workspaceId) return;
-            const key = getDailyBillableProjectionKey(workspaceId, date);
+            if (!effectiveWsId && !isManual) return;
+            const key = getDailyBillableProjectionKey(effectiveWsId, date);
             if (hours === 8) {
                 await calendarDb.dailyBillableProjections.delete(key);
                 return;
             }
             await calendarDb.dailyBillableProjections.put({
                 key,
-                workspaceId,
+                workspaceId: effectiveWsId,
                 date,
                 projectedHours: Math.max(0, hours),
                 updatedAt: Date.now()
             });
         },
-        [workspaceId]
+        [effectiveWsId, isManual]
     );
 
     const handleSyncYear = useCallback(async () => {
@@ -238,14 +255,17 @@ export const YearPage = () => {
         [editDay, upsertDailyProjection]
     );
 
-    if (!selectedWorkspace) {
+    if (!isManual && !selectedWorkspace) {
         return (
             <Layout>
                 <div className={"yearWelcome"}>
                     <h2>Annual view</h2>
-                    <p>Select a workspace in Config to see your fiscal year and targets.</p>
+                    <p>Select a workspace in Config to see your fiscal year and targets, or switch to Manual mode.</p>
                     <button type={"button"} onClick={() => setConfigOpen(true)}>
                         Open Config
+                    </button>
+                    <button type={"button"} onClick={() => setDataMode("manual")} style={{marginLeft: 8}}>
+                        Use Manual Entry
                     </button>
                 </div>
                 <ConfigDialog open={configOpen} onClose={() => setConfigOpen(false)}/>
@@ -320,14 +340,25 @@ export const YearPage = () => {
                             onChange={setSelectedProjectId}
                             title={"Filter by project"}
                         />
-                        <button
-                            type={"button"}
-                            className={"calendarHeaderButton"}
-                            onClick={handleSyncYear}
-                            disabled={isSyncing}
-                        >
-                            {isSyncing ? "Syncing…" : "Sync year"}
-                        </button>
+                        {isManual && (
+                            <button
+                                type={"button"}
+                                className={"calendarHeaderButton"}
+                                onClick={() => setManageOpen(true)}
+                            >
+                                Manage Projects
+                            </button>
+                        )}
+                        {!isManual && (
+                            <button
+                                type={"button"}
+                                className={"calendarHeaderButton"}
+                                onClick={handleSyncYear}
+                                disabled={isSyncing}
+                            >
+                                {isSyncing ? "Syncing…" : "Sync year"}
+                            </button>
+                        )}
                     </div>
                 </div>
 
@@ -370,7 +401,13 @@ export const YearPage = () => {
                             actualByDay={actualByDay}
                             byDayByProject={byDayByProject}
                             timeDisplayMode={timeDisplayMode}
-                            onEditProjection={viewMode === "projected" ? (date, hours) => setEditDay({ date, hours }) : undefined}
+                            onEditProjection={
+                                viewMode === "projected"
+                                    ? (date, hours) => setEditDay({ date, hours })
+                                    : (isManual && viewMode === "actual")
+                                        ? (date) => setManualDayEdit(date)
+                                        : undefined
+                            }
                         />
                     ))}
                 </div>
@@ -391,6 +428,14 @@ export const YearPage = () => {
                     onClose={() => setEditTargetOpen(false)}
                 />
             )}
+            {manualDayEdit && (
+                <ManualDayTimeDialog
+                    key={manualDayEdit}
+                    date={manualDayEdit}
+                    onClose={() => setManualDayEdit(null)}
+                />
+            )}
+            <ManualCompanyProjectDialog open={manageOpen} onClose={() => setManageOpen(false)}/>
         </Layout>
     );
 };
