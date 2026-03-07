@@ -11,32 +11,18 @@ import {
     DEFAULT_ANNUAL_TARGET_HOURS,
     START_OF_YEAR_MONTH_KEY
 } from "../Utilities/calendarDb";
-import {getBillableHoursByDay, BillableFilter} from "../Utilities/togglDetailsFromDexie";
+import {getBillableHoursByDay, getSimpleDataFromDexie, BillableFilter} from "../Utilities/togglDetailsFromDexie";
 import {getFiscalYearBounds, getFiscalYearMonthStarts} from "../Utilities/fiscalYear";
 import {ConfigDialog} from "../Components/ConfigDialog";
 import {syncDateRange} from "../Utilities/togglSync";
 import {useTogglApiKey} from "../Utilities/useTogglApiKey";
 import {useTogglUser} from "../Utilities/useTogglUser";
-import {DecimalToRoundedTime} from "../Utilities/Functions/DecimalToRoundedTime";
+import {formatHours, formatHoursDisplay, projectLabel, FULL_TIME_HOURS, type ViewMode, type TimeDisplayMode} from "../Utilities/yearViewUtils";
+import {YearProjectSelect} from "../Components/YearProjectSelect";
+import {YearMonthCard} from "../Components/YearMonthCard";
+import {YearEditDayDialog} from "../Components/YearEditDayDialog";
+import {YearEditTargetDialog} from "../Components/YearEditTargetDialog";
 import "./Year.css";
-
-const WEEKDAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-const FULL_TIME_HOURS = 2080;
-
-type ViewMode = "projected" | "actual";
-type TimeDisplayMode = "rounded" | "actual";
-
-const formatHours = (hours: number, mode: TimeDisplayMode) =>
-    mode === "actual"
-        ? `${Math.floor(hours)}:${String(Math.round((hours % 1) * 60)).padStart(2, "0")}`
-        : DecimalToRoundedTime(hours);
-
-/** Like formatHours but drops trailing .00 for rounded mode (e.g. "8" not "8.00"). */
-const formatHoursDisplay = (hours: number, mode: TimeDisplayMode): string => {
-    const s = formatHours(hours, mode);
-    if (mode === "rounded" && s.endsWith(".00")) return s.slice(0, -3);
-    return s;
-};
 
 export const YearPage = () => {
     const {selectedWorkspace} = useAppContext();
@@ -134,6 +120,53 @@ export const YearPage = () => {
     );
     const billableHoursToDate = billableToDateData?.total ?? 0;
     const actualByDay = actualByDayAll?.byDay ?? {};
+
+    const simpleDataForYear = useLiveQuery(
+        async () => {
+            if (!workspaceId || !fyStartKey || !fyEndKey) return undefined;
+            return getSimpleDataFromDexie(workspaceId, fyStartKey, fyEndKey);
+        },
+        [workspaceId, fyStartKey, fyEndKey],
+        undefined
+    );
+    const projectPrefsList = useLiveQuery(
+        async () => {
+            if (!workspaceId) return [];
+            return calendarDb.projectPreferences.where("workspaceId").equals(workspaceId).toArray();
+        },
+        [workspaceId],
+        []
+    ) as { projectId: number; billable: boolean }[] | undefined;
+    const byDayByProject = useMemo((): Record<string, Array<{ label: string; hours: number }>> => {
+        const simpleData = simpleDataForYear ?? {};
+        const prefs = projectPrefsList ?? [];
+        const prefsByProject = prefs.reduce<Record<number, boolean>>((acc, p) => {
+            acc[p.projectId] = p.billable;
+            return acc;
+        }, {});
+        const result: Record<string, Array<{ label: string; hours: number }>> = {};
+        const projectIds = selectedProjectId != null ? [selectedProjectId] : Object.keys(simpleData).map(Number);
+        const projectLabelFromSimple = (p: { project_name?: string; client_name?: string }) =>
+            (p.client_name ? `${p.client_name} - ${p.project_name ?? ""}` : (p.project_name ?? ""));
+        for (const pid of projectIds) {
+            const project = simpleData[pid];
+            if (!project?.dates) continue;
+            const isBillable = prefsByProject[pid] ?? true;
+            const include =
+                billableFilter === "all" ||
+                (billableFilter === "billable" && isBillable) ||
+                (billableFilter === "nonBillable" && !isBillable);
+            if (!include) continue;
+            const label = projectLabelFromSimple(project);
+            for (const [date, dayData] of Object.entries(project.dates)) {
+                const hours = dayData.hours ?? 0;
+                if (hours <= 0) continue;
+                if (!result[date]) result[date] = [];
+                result[date].push({ label, hours });
+            }
+        }
+        return result;
+    }, [simpleDataForYear, projectPrefsList, billableFilter, selectedProjectId]);
 
     const todayKey = dayjs().format("YYYY-MM-DD");
     const daysAvailable = useMemo(() => {
@@ -281,17 +314,12 @@ export const YearPage = () => {
                                 Actual
                             </button>
                         </div>
-                        <select
-                            className={"yearProjectSelect"}
-                            value={selectedProjectId ?? ""}
-                            onChange={(e) => setSelectedProjectId(e.target.value === "" ? null : Number(e.target.value))}
+                        <YearProjectSelect
+                            projects={[...projectsList].sort((a, b) => projectLabel(a).localeCompare(projectLabel(b)))}
+                            value={selectedProjectId}
+                            onChange={setSelectedProjectId}
                             title={"Filter by project"}
-                        >
-                            <option value="">All projects</option>
-                            {projectsList.map((p) => (
-                                <option key={p.id} value={p.id}>{p.name}</option>
-                            ))}
-                        </select>
+                        />
                         <button
                             type={"button"}
                             className={"calendarHeaderButton"}
@@ -340,6 +368,7 @@ export const YearPage = () => {
                             billableFilter={billableFilter}
                             projectionsByDate={projectionsByDate}
                             actualByDay={actualByDay}
+                            byDayByProject={byDayByProject}
                             timeDisplayMode={timeDisplayMode}
                             onEditProjection={viewMode === "projected" ? (date, hours) => setEditDay({ date, hours }) : undefined}
                         />
@@ -349,6 +378,7 @@ export const YearPage = () => {
 
             {editDay && (
                 <YearEditDayDialog
+                    key={editDay.date}
                     date={editDay.date}
                     hours={editDay.hours}
                     onClose={handleEditDayClose}
@@ -364,225 +394,3 @@ export const YearPage = () => {
         </Layout>
     );
 };
-
-function YearMonthCard({
-    monthStart,
-    fiscalYear,
-    viewMode,
-    billableFilter,
-    projectionsByDate,
-    actualByDay,
-    timeDisplayMode,
-    onEditProjection
-}: {
-    monthStart: dayjs.Dayjs;
-    fiscalYear: { start: dayjs.Dayjs; end: dayjs.Dayjs };
-    viewMode: ViewMode;
-    billableFilter: BillableFilter;
-    projectionsByDate: Record<string, number>;
-    actualByDay: Record<string, number>;
-    timeDisplayMode: TimeDisplayMode;
-    onEditProjection?: (date: string, hours: number) => void;
-}) {
-    const monthEnd = monthStart.endOf("month");
-    const calendarStart = monthStart.startOf("week");
-    const calendarEnd = monthEnd.endOf("week");
-    const days: { date: dayjs.Dayjs; isThisMonth: boolean }[] = [];
-    let d = calendarStart;
-    while (d.isBefore(calendarEnd) || d.isSame(calendarEnd, "day")) {
-        days.push({
-            date: d,
-            isThisMonth: d.month() === monthStart.month()
-        });
-        d = d.add(1, "day");
-    }
-    const todayKey = dayjs().format("YYYY-MM-DD");
-    const rowCount = Math.ceil(days.length / 7);
-
-    return (
-        <div className={"yearMonthCard"}>
-            <div className={"yearMonthTitle"}>{monthStart.format("MMMM YYYY")}</div>
-            <div className={"yearMonthGrid"}>
-                {WEEKDAY_LABELS.map((label) => (
-                    <div key={label} className={"yearMonthWeekday"}>{label}</div>
-                ))}
-                <div className={"yearMonthWeekday yearWeekTotalHeader"}>Total</div>
-                {Array.from({ length: rowCount }, (_, rowIndex) => {
-                    const rowDays = days.slice(rowIndex * 7, rowIndex * 7 + 7);
-                    const weekTotal = rowDays.reduce(
-                        (sum, { date }) => sum + (actualByDay[date.format("YYYY-MM-DD")] ?? 0),
-                        0
-                    );
-                    return (
-                        <React.Fragment key={rowIndex}>
-                            {rowDays.map(({ date, isThisMonth }) => {
-                                const key = date.format("YYYY-MM-DD");
-                                const inRange = (date.isAfter(fiscalYear.start) || date.isSame(fiscalYear.start, "day")) &&
-                                    (date.isBefore(fiscalYear.end) || date.isSame(fiscalYear.end, "day"));
-                                const isWeekday = date.day() !== 0 && date.day() !== 6;
-                                const projectedVal = isWeekday
-                                    ? (projectionsByDate[key] ?? 8)
-                                    : 0;
-                                const projectionExplicitZero = projectedVal === 0;
-                                const actualHours = actualByDay[key] ?? 0;
-                                const hours = viewMode === "projected" ? projectedVal : actualHours;
-                                const isToday = key === todayKey;
-                                const isPast = key < todayKey;
-                                const editable = viewMode === "projected" && inRange && onEditProjection != null;
-                                const editDefaultHours = projectedVal > 0 ? projectedVal : (isWeekday ? 8 : 0);
-
-                                const showGrey = viewMode === "projected" && projectionExplicitZero;
-                                const showGreen = isPast && actualHours > 0;
-                                const greenIntensity = showGreen ? Math.min(1, actualHours / 8) : 0;
-
-                                return (
-                                    <div
-                                        key={key}
-                                        className={[
-                                            "yearDayCell",
-                                            !isThisMonth ? "otherMonth" : "",
-                                            showGrey ? "zeroHours" : "",
-                                            showGreen ? "hasActual" : "",
-                                            editable ? "editable" : "",
-                                            isToday ? "today" : ""
-                                        ].filter(Boolean).join(" ")}
-                                        data-billable-mode={showGreen ? billableFilter : undefined}
-                                        style={showGreen ? { ["--actual-intensity" as string]: greenIntensity } as React.CSSProperties : undefined}
-                                        onClick={editable ? () => onEditProjection(key, editDefaultHours) : undefined}
-                                        title={editable ? "Click to set hours" : `${key}: ${hours > 0 ? formatHours(hours, timeDisplayMode) : "0"}`}
-                                    >
-                                        <span className={"yearDayNum"}>{date.date()}</span>
-                                        {isThisMonth && inRange && hours > 0 && hours !== 8 && (
-                                            <span className={"yearDayHours yearHoursBadge"}>{formatHoursDisplay(hours, timeDisplayMode)}</span>
-                                        )}
-                                    </div>
-                                );
-                            })}
-                            <div key={`total-${rowIndex}`} className={"yearDayCell yearWeekTotalCell"} title={"Weekly worked hours"}>
-                                {weekTotal > 0 ? formatHoursDisplay(weekTotal, timeDisplayMode) : ""}
-                            </div>
-                        </React.Fragment>
-                    );
-                })}
-            </div>
-        </div>
-    );
-}
-
-function YearEditDayDialog({
-    date,
-    hours,
-    onClose
-}: {
-    date: string;
-    hours: number;
-    onClose: (confirmed: boolean, newHours?: number) => void;
-}) {
-    const [value, setValue] = useState(String(hours));
-    const handleSubmit = () => {
-        const parsed = Number(value);
-        const safe = Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
-        onClose(true, safe);
-    };
-    return (
-        <div className={"yearEditDayPopup"} onClick={() => onClose(false)}>
-            <div className={"yearEditDayContent"} onClick={(e) => e.stopPropagation()}>
-                <label htmlFor={"yearEditDayInput"}>Hours for {dayjs(date).format("MMM D, YYYY")}</label>
-                <input
-                    id={"yearEditDayInput"}
-                    type={"number"}
-                    min={0}
-                    step={0.25}
-                    value={value}
-                    onChange={(e) => setValue(e.target.value)}
-                    onKeyDown={(e) => {
-                        if (e.key === "Enter") handleSubmit();
-                        if (e.key === "Escape") onClose(false);
-                    }}
-                />
-                <div className={"yearEditDayActions"}>
-                    <button type={"button"} onClick={() => onClose(false)}>Cancel</button>
-                    <button type={"button"} className={"primary"} onClick={handleSubmit}>Save</button>
-                </div>
-            </div>
-        </div>
-    );
-}
-
-function YearEditTargetDialog({
-    annualTargetHours,
-    annualTargetPct,
-    onClose
-}: {
-    annualTargetHours: number;
-    annualTargetPct?: number;
-    onClose: () => void;
-}) {
-    const [hoursInput, setHoursInput] = useState(String(annualTargetHours));
-    const [pctInput, setPctInput] = useState(
-        annualTargetPct != null ? String(annualTargetPct) : String(Math.round((annualTargetHours / FULL_TIME_HOURS) * 100))
-    );
-
-    const handleSave = async () => {
-        const hours = Number(hoursInput);
-        const pct = Number(pctInput);
-        const now = Date.now();
-        if (Number.isFinite(hours) && hours >= 0) {
-            await calendarDb.settings.put({
-                key: ANNUAL_TARGET_HOURS_KEY,
-                value: hours,
-                updatedAt: now
-            });
-            const derivedPct = Math.round((hours / FULL_TIME_HOURS) * 100);
-            await calendarDb.settings.put({
-                key: ANNUAL_TARGET_PERCENTAGE_KEY,
-                value: Math.min(100, Math.max(0, derivedPct)),
-                updatedAt: now
-            });
-        } else if (Number.isFinite(pct) && pct >= 0 && pct <= 100) {
-            const derivedHours = (pct / 100) * FULL_TIME_HOURS;
-            await calendarDb.settings.put({
-                key: ANNUAL_TARGET_HOURS_KEY,
-                value: Math.round(derivedHours),
-                updatedAt: now
-            });
-            await calendarDb.settings.put({
-                key: ANNUAL_TARGET_PERCENTAGE_KEY,
-                value: pct,
-                updatedAt: now
-            });
-        }
-        onClose();
-    };
-
-    return (
-        <div className={"yearEditDayPopup"} onClick={onClose}>
-            <div className={"yearEditDayContent"} onClick={(e) => e.stopPropagation()} style={{ minWidth: 280 }}>
-                <h3 style={{ marginTop: 0 }}>Annual target</h3>
-                <label htmlFor={"yearTargetHours"}>Hours per year</label>
-                <input
-                    id={"yearTargetHours"}
-                    type={"number"}
-                    min={0}
-                    step={1}
-                    value={hoursInput}
-                    onChange={(e) => setHoursInput(e.target.value)}
-                />
-                <label htmlFor={"yearTargetPct"}>% of 2080</label>
-                <input
-                    id={"yearTargetPct"}
-                    type={"number"}
-                    min={0}
-                    max={100}
-                    step={1}
-                    value={pctInput}
-                    onChange={(e) => setPctInput(e.target.value)}
-                />
-                <div className={"yearEditDayActions"} style={{ marginTop: 12 }}>
-                    <button type={"button"} onClick={onClose}>Cancel</button>
-                    <button type={"button"} className={"primary"} onClick={() => void handleSave()}>Save</button>
-                </div>
-            </div>
-        </div>
-    );
-}

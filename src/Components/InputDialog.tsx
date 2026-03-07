@@ -47,22 +47,23 @@ export const InputDialog = ({open, onClose, onConfirm, title, description, label
                     <button className={"inputDialogClose"} onClick={onClose} type={"button"}>&times;</button>
                 </div>
                 {description && <p className={"inputDialogDescription"}>{description}</p>}
-                <label className={"inputDialogLabel"} htmlFor={"inputDialogField"}>{label}</label>
-                <input
-                    id={"inputDialogField"}
-                    ref={inputRef}
-                    className={"inputDialogField"}
-                    type={"number"}
-                    min={min}
-                    step={step}
-                    defaultValue={defaultValue}
-                    onKeyDown={e => { if (e.key === "Enter") handleConfirm(); }}
-                />
-                {error && <p className={"inputDialogError"}>{error}</p>}
-                <div className={"inputDialogActions"}>
-                    <button className={"inputDialogCancel"} onClick={onClose} type={"button"}>Cancel</button>
-                    <button className={"inputDialogConfirm"} onClick={handleConfirm} type={"button"}>Save</button>
-                </div>
+                <form onSubmit={(e) => { e.preventDefault(); handleConfirm(); }}>
+                    <label className={"inputDialogLabel"} htmlFor={"inputDialogField"}>{label}</label>
+                    <input
+                        id={"inputDialogField"}
+                        ref={inputRef}
+                        className={"inputDialogField"}
+                        type={"number"}
+                        min={min}
+                        step={step}
+                        defaultValue={defaultValue}
+                    />
+                    {error && <p className={"inputDialogError"}>{error}</p>}
+                    <div className={"inputDialogActions"}>
+                        <button className={"inputDialogCancel"} onClick={onClose} type={"button"}>Cancel</button>
+                        <button className={"inputDialogConfirm"} type={"submit"}>Save</button>
+                    </div>
+                </form>
             </div>
         </div>
     );
