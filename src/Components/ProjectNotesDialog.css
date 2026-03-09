@@ -1,0 +1,276 @@
+.notesDialogOverlay {
+    position: fixed;
+    inset: 0;
+    background: var(--overlay-bg);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.notesDialog {
+    background: var(--dialog-bg);
+    color: var(--text-primary);
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    width: calc(100vw - 40px);
+    height: calc(100vh - 40px);
+    max-width: 1400px;
+    box-shadow: 0 8px 30px var(--dialog-shadow);
+    animation: notesDialogIn 0.15s ease-out;
+    overflow: hidden;
+}
+
+@keyframes notesDialogIn {
+    from { opacity: 0; transform: scale(0.97); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+.notesDialogHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 16px 20px 12px;
+    border-bottom: 1px solid var(--border-primary);
+    flex-shrink: 0;
+}
+
+.notesDialogProjectInfo {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.notesDialogProjectName {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 800;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.notesDialogStats {
+    display: flex;
+    gap: 16px;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    flex-wrap: wrap;
+}
+
+.notesDialogStats strong {
+    color: var(--text-secondary);
+}
+
+.notesDialogClose {
+    border: none;
+    background: transparent;
+    font-size: 1.6rem;
+    cursor: pointer;
+    color: var(--text-muted);
+    padding: 0 4px;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.notesDialogClose:hover {
+    color: var(--text-primary);
+}
+
+.notesDialogBody {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.notesEditorContainer {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.notesEditorContainer .mdxeditor {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    border: none;
+    background: transparent;
+    font-family: inherit;
+}
+
+.notesEditorContainer .mdxeditor [role="toolbar"] {
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-primary);
+    border-radius: 0;
+    flex-shrink: 0;
+}
+
+.notesEditorContainer .mdxeditor .mdxeditor-root-contenteditable {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.notesEditorContent {
+    padding: 16px 20px;
+    min-height: 100%;
+    font-size: 0.9rem;
+    line-height: 1.7;
+    outline: none;
+}
+
+.notesEditorContent h1,
+.notesEditorContent h2,
+.notesEditorContent h3 {
+    margin-top: 1em;
+    margin-bottom: 0.4em;
+}
+
+.notesEditorContent p {
+    margin: 0 0 0.6em;
+}
+
+.notesEditorContent ul,
+.notesEditorContent ol {
+    margin: 0 0 0.6em;
+    padding-left: 1.5em;
+}
+
+.notesEditorContent blockquote {
+    border-left: 3px solid var(--border-primary);
+    margin: 0 0 0.6em;
+    padding: 4px 12px;
+    color: var(--text-muted);
+}
+
+/* History panel */
+
+.notesHistoryPanel {
+    flex-shrink: 0;
+    border-left: 1px solid var(--border-primary);
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-secondary);
+    transition: width 0.2s ease;
+    position: relative;
+}
+
+.notesHistoryPanel.open {
+    width: 25%;
+    max-width: 360px;
+    min-width: 200px;
+}
+
+.notesHistoryPanel.collapsed {
+    width: 0;
+}
+
+.notesHistoryToggle {
+    position: absolute;
+    top: 8px;
+    left: -1px;
+    transform: translateX(-100%);
+    border: 1px solid var(--border-primary);
+    border-right: none;
+    background: var(--bg-secondary);
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    padding: 4px 8px;
+    cursor: pointer;
+    border-radius: 4px 0 0 4px;
+    white-space: nowrap;
+    z-index: 1;
+}
+
+.notesHistoryToggle:hover {
+    color: var(--text-primary);
+    background: var(--bg-hover);
+}
+
+.notesHistoryContent {
+    overflow-y: auto;
+    padding: 12px 14px;
+    flex: 1;
+}
+
+.notesHistoryTitle {
+    margin: 0 0 10px;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+}
+
+.notesHistoryList {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.notesHistoryItem {
+    font-size: 0.8rem;
+    line-height: 1.45;
+    padding: 6px 8px;
+    background: var(--bg-primary);
+    border-radius: 4px;
+    border: 1px solid var(--border-secondary);
+    word-break: break-word;
+}
+
+.notesHistoryEmpty {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    font-style: italic;
+    margin: 0;
+}
+
+/* Small screens: collapse history by default */
+@media (max-width: 768px) {
+    .notesHistoryPanel.open {
+        position: absolute;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        width: 70%;
+        max-width: none;
+        z-index: 10;
+        box-shadow: -4px 0 12px var(--dialog-shadow);
+    }
+
+    .notesDialog {
+        width: calc(100vw - 16px);
+        height: calc(100vh - 16px);
+        border-radius: 8px;
+    }
+}
+
+/* Dark mode adjustments for MDXEditor */
+[data-theme="dark"] .notesEditorContainer .mdxeditor {
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .notesEditorContent {
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .notesEditorContainer .mdxeditor [role="toolbar"] {
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .notesEditorContainer .mdxeditor [role="toolbar"] button {
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .notesEditorContainer .mdxeditor [role="toolbar"] select {
+    color: var(--text-primary);
+    background: var(--bg-input);
+}

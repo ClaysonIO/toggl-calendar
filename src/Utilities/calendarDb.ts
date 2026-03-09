@@ -68,6 +68,14 @@ export interface IManualTimeEntry {
     updatedAt: number;
 }
 
+export interface IProjectNote {
+    key: string;
+    workspaceId: number;
+    projectId: number;
+    notes: string;
+    updatedAt: number;
+}
+
 export const MANUAL_WORKSPACE_ID = -1;
 
 export const getManualTimeEntryKey = (projectId: number, date: string) =>
@@ -83,6 +91,7 @@ class CalendarDatabase extends Dexie {
     manualCompanies!: Table<IManualCompany, number>;
     manualProjects!: Table<IManualProject, number>;
     manualTimeEntries!: Table<IManualTimeEntry, string>;
+    projectNotes!: Table<IProjectNote, string>;
 
     constructor() {
         super("togglCalendarDatabase");
@@ -117,6 +126,18 @@ class CalendarDatabase extends Dexie {
             manualProjects: "++id, companyId",
             manualTimeEntries: "key, projectId, date"
         });
+        this.version(5).stores({
+            projectPreferences: "key, workspaceId, projectId, [workspaceId+projectId]",
+            weeklyProjectPlans: "key, workspaceId, weekStart, projectId, [workspaceId+weekStart], [workspaceId+weekStart+projectId]",
+            settings: "key",
+            dailyBillableProjections: "key, workspaceId, date, [workspaceId+date]",
+            togglProjects: "key, workspace_id",
+            togglTimeEntries: "id, [workspaceId+startDate]",
+            manualCompanies: "++id",
+            manualProjects: "++id, companyId",
+            manualTimeEntries: "key, projectId, date",
+            projectNotes: "key, workspaceId, projectId, [workspaceId+projectId]"
+        });
     }
 }
 
@@ -139,5 +160,8 @@ export const DEFAULT_ANNUAL_TARGET_HOURS = 2080;
 
 export const getDailyBillableProjectionKey = (workspaceId: number, date: string) =>
     `${workspaceId}:${date}`;
+
+export const getProjectNoteKey = (workspaceId: number, projectId: number) =>
+    `${workspaceId}:${projectId}`;
 
 export const calendarDb = new CalendarDatabase();
