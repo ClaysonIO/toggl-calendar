@@ -549,3 +549,29 @@
     from { opacity: 0; transform: translateX(-50%) translateY(6px); }
     to   { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
+
+.notesIconButton {
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    padding: 2px 4px;
+    color: var(--text-faint);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: color 0.15s ease, background 0.15s ease;
+}
+
+.notesIconButton:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.notesIconButton.hasNotes {
+    color: var(--link-color);
+}
+
+.notesIconButton.hasNotes:hover {
+    color: #1a6ad4;
+}

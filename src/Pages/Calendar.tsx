@@ -18,11 +18,13 @@ import {
     getWeeklyPlanKey,
     getWeeklyTargetKey,
     getManualTimeEntryKey,
+    getProjectNoteKey,
     MANUAL_WORKSPACE_ID,
     IProjectPreference,
     IWeeklyProjectPlan
 } from "../Utilities/calendarDb";
 import {InputDialog} from "../Components/InputDialog";
+import {ProjectNotesDialog} from "../Components/ProjectNotesDialog";
 import {
     ColumnDef,
     flexRender,
@@ -50,6 +52,7 @@ interface ICalendarTableRow {
     dailyProjectedHours: {[date: string]: number};
     dailyTaskDescriptions: {[date: string]: string[]};
     hasWeeklyPlan: boolean;
+    hasNotes: boolean;
 }
 
 interface IHoursSummary {
@@ -382,6 +385,26 @@ const ManualTimeCell = React.memo(({projectId, date, hours, formatHoursFn, onTim
     );
 });
 
+const NotesButton = React.memo(({hasNotes, onClick}: {
+    hasNotes: boolean;
+    onClick: () => void;
+}) => (
+    <button
+        className={`notesIconButton ${hasNotes ? "hasNotes" : ""}`}
+        type="button"
+        onClick={onClick}
+        title={hasNotes ? "View/edit notes" : "Add notes"}
+    >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/>
+            <line x1="16" y1="17" x2="8" y2="17"/>
+            <polyline points="10 9 9 9 8 9"/>
+        </svg>
+    </button>
+));
+
 const SYNC_ERROR_TOOLTIP = "Unable to fetch this week's data. Try again in an hour.";
 
 const SyncWeekButton = React.memo(({
@@ -586,6 +609,23 @@ export const CalendarPage = () => {
         },
         [workspaceId, weekStartKey],
         []
+    );
+
+    const projectNotes = useLiveQuery(
+        async () => {
+            if (!workspaceId) return [];
+            return calendarDb.projectNotes.where("workspaceId").equals(workspaceId).toArray();
+        },
+        [workspaceId],
+        []
+    );
+
+    const projectNotesByProjectId = useMemo(
+        () => (projectNotes || []).reduce((acc: {[projectId: number]: string}, note) => {
+            if (note.notes && note.notes.trim()) acc[note.projectId] = note.notes;
+            return acc;
+        }, {}),
+        [projectNotes]
     );
 
     const weeklyBillableTarget = useLiveQuery(
@@ -796,10 +836,11 @@ export const CalendarPage = () => {
                 dailyHours: usage?.dailyHours || createEmptyDailyHours(dateKeys),
                 dailyProjectedHours,
                 dailyTaskDescriptions: usage?.dailyTaskDescriptions || createEmptyDailyTaskDescriptions(dateKeys),
-                hasWeeklyPlan: !!weeklyPlan
+                hasWeeklyPlan: !!weeklyPlan,
+                hasNotes: !!projectNotesByProjectId[projectId]
             };
         }).sort((a, b) => a.projectName.localeCompare(b.projectName, "en", {numeric: true}));
-    }, [safeWeeklyPlans, usageByProjectId, projectById, weeklyPlanByProjectId, preferenceByProjectId, workspaceId, weekStartKey, dateKeys]);
+    }, [safeWeeklyPlans, usageByProjectId, projectById, weeklyPlanByProjectId, preferenceByProjectId, workspaceId, weekStartKey, dateKeys, projectNotesByProjectId]);
 
     const weeklyPlanProjectIds = useMemo(() => new Set(safeWeeklyPlans.map(plan => plan.projectId)), [safeWeeklyPlans]);
 
@@ -817,6 +858,7 @@ export const CalendarPage = () => {
     }, [weekStartKey]);
 
     const [showTargetDialog, setShowTargetDialog] = useState(false);
+    const [notesProjectId, setNotesProjectId] = useState<number | null>(null);
     const [copiedToast, setCopiedToast] = useState<string | null>(null);
     const toastTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
 
@@ -866,6 +908,60 @@ export const CalendarPage = () => {
             return hasActual || hasProjection;
         }),
         [tableRows, dateKeys]
+    );
+
+    const notesRow = useMemo(
+        () => notesProjectId != null ? tableRows.find(r => r.projectId === notesProjectId) : undefined,
+        [notesProjectId, tableRows]
+    );
+
+    const notesLifetimeHours = useLiveQuery(
+        async () => {
+            if (notesProjectId == null || !workspaceId) return 0;
+            if (isManual) {
+                const entries = await calendarDb.manualTimeEntries
+                    .where("projectId").equals(notesProjectId).toArray();
+                return entries.reduce((sum, e) => sum + (e.hours || 0), 0);
+            }
+            const entries = await calendarDb.togglTimeEntries
+                .where("workspaceId").equals(workspaceId).toArray();
+            return entries
+                .filter(e => e.pid === notesProjectId)
+                .reduce((sum, e) => sum + (e.dur || 0) / 3600000, 0);
+        },
+        [notesProjectId, workspaceId, isManual],
+        0
+    );
+
+    const notesAllTaskDescriptions = useLiveQuery(
+        async () => {
+            if (notesProjectId == null || !workspaceId) return [];
+            if (isManual) {
+                const entries = await calendarDb.manualTimeEntries
+                    .where("projectId").equals(notesProjectId).toArray();
+                return entries
+                    .filter(e => e.description?.trim())
+                    .sort((a, b) => b.date.localeCompare(a.date))
+                    .map(e => `${e.date}: ${e.description}`);
+            }
+            const entries = await calendarDb.togglTimeEntries
+                .where("workspaceId").equals(workspaceId).toArray();
+            const descs = entries
+                .filter(e => e.pid === notesProjectId && e.description?.trim())
+                .sort((a, b) => (b.start || "").localeCompare(a.start || ""));
+            const seen = new Set<string>();
+            const result: string[] = [];
+            for (const e of descs) {
+                const text = e.description.trim();
+                if (!seen.has(text)) {
+                    seen.add(text);
+                    result.push(text);
+                }
+            }
+            return result;
+        },
+        [notesProjectId, workspaceId, isManual],
+        []
     );
 
     const formatHoursForDisplay = useCallback((hours: number) => {
@@ -1014,6 +1110,17 @@ export const CalendarPage = () => {
                         onProjectedChange={(projectId, value) => void upsertWeeklyPlan(projectId, value)}
                     />
                 )
+            },
+            {
+                id: "notes",
+                header: () => <span style={{fontSize: "0.75rem", color: "var(--text-muted)"}}>Notes</span>,
+                cell: ({row}) => (
+                    <NotesButton
+                        hasNotes={row.original.hasNotes}
+                        onClick={() => setNotesProjectId(row.original.projectId)}
+                    />
+                ),
+                enableSorting: false
             }
         ];
     }, [dateKeys, formatHoursForDisplay, renderDailyCellContent, toggleProjectBillable, upsertWeeklyPlan]);
@@ -1389,6 +1496,7 @@ export const CalendarPage = () => {
                             <th key={`billable-${date}`}>{formatHoursForDisplay(billableSummary.dailyHours[date] || 0)}</th>
                         ))}
                         <th>{formatHoursForDisplay(billableSummary.totalHours)}{billableSummary.projectedHours > 0 ? ` / ${formatHoursForDisplay(billableSummary.projectedHours)}` : ""}</th>
+                        <th/>
                     </tr>
                     <tr>
                         <th>Non-billable</th>
@@ -1397,6 +1505,7 @@ export const CalendarPage = () => {
                             <th key={`non-billable-${date}`}>{formatHoursForDisplay(nonBillableSummary.dailyHours[date] || 0)}</th>
                         ))}
                         <th>{formatHoursForDisplay(nonBillableSummary.totalHours)}{nonBillableSummary.projectedHours > 0 ? ` / ${formatHoursForDisplay(nonBillableSummary.projectedHours)}` : ""}</th>
+                        <th/>
                     </tr>
                     <tr className={"summaryTotal"}>
                         <th>Total</th>
@@ -1412,6 +1521,7 @@ export const CalendarPage = () => {
                                 onTargetChange={value => void updateWeeklyTarget(value)}
                             />
                         </th>
+                        <th/>
                     </tr>
                     </tfoot>
                 </table>
@@ -1479,6 +1589,21 @@ export const CalendarPage = () => {
             />
             {copiedToast && <div className={"copyToast"}>{copiedToast}</div>}
             <ManualCompanyProjectDialog open={manageOpen} onClose={() => setManageOpen(false)}/>
+            {notesProjectId != null && notesRow && (
+                <ProjectNotesDialog
+                    open={true}
+                    onClose={() => setNotesProjectId(null)}
+                    workspaceId={workspaceId}
+                    projectId={notesProjectId}
+                    projectName={notesRow.projectName}
+                    projectColor={notesRow.projectColor}
+                    weeklyHours={notesRow.totalHours}
+                    projectedHours={notesRow.projectedHours}
+                    lifetimeHours={notesLifetimeHours ?? 0}
+                    taskDescriptions={notesAllTaskDescriptions ?? []}
+                    formatHours={formatHoursForDisplay}
+                />
+            )}
         </Layout>
     );
 };
