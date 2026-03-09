@@ -83,7 +83,7 @@
     display: flex;
     flex: 1;
     min-height: 0;
-    overflow: hidden;
+    position: relative;
 }
 
 .notesEditorContainer {
@@ -92,6 +92,7 @@
     flex-direction: column;
     min-width: 0;
     overflow: hidden;
+    cursor: text;
 }
 
 .notesEditorContainer .mdxeditor {
@@ -115,11 +116,14 @@
 .notesEditorContainer .mdxeditor .mdxeditor-root-contenteditable {
     flex: 1;
     overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    cursor: text;
 }
 
 .notesEditorContent {
     padding: 16px 20px;
-    min-height: 100%;
+    flex: 1;
     font-size: 0.9rem;
     line-height: 1.7;
     outline: none;
@@ -173,19 +177,20 @@
 
 .notesHistoryToggle {
     position: absolute;
-    top: 8px;
-    left: -1px;
+    top: 12px;
+    left: 0;
     transform: translateX(-100%);
     border: 1px solid var(--border-primary);
     border-right: none;
     background: var(--bg-secondary);
     color: var(--text-muted);
-    font-size: 0.72rem;
-    padding: 4px 8px;
+    font-size: 0.75rem;
+    padding: 6px 10px;
     cursor: pointer;
-    border-radius: 4px 0 0 4px;
+    border-radius: 6px 0 0 6px;
     white-space: nowrap;
-    z-index: 1;
+    z-index: 3;
+    box-shadow: -2px 1px 4px rgba(0,0,0,0.08);
 }
 
 .notesHistoryToggle:hover {
@@ -253,24 +258,11 @@
     }
 }
 
-/* Dark mode adjustments for MDXEditor */
-[data-theme="dark"] .notesEditorContainer .mdxeditor {
-    color: var(--text-primary);
+/* Dark mode: override the MDXEditor toolbar background to match our theme */
+[data-theme="dark"] .notesEditorContainer .mdxeditor [role="toolbar"] {
+    background: var(--bg-secondary);
 }
 
 [data-theme="dark"] .notesEditorContent {
     color: var(--text-primary);
-}
-
-[data-theme="dark"] .notesEditorContainer .mdxeditor [role="toolbar"] {
-    color: var(--text-primary);
-}
-
-[data-theme="dark"] .notesEditorContainer .mdxeditor [role="toolbar"] button {
-    color: var(--text-primary);
-}
-
-[data-theme="dark"] .notesEditorContainer .mdxeditor [role="toolbar"] select {
-    color: var(--text-primary);
-    background: var(--bg-input);
 }
