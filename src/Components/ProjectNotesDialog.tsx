@@ -22,6 +22,20 @@ import {calendarDb, getProjectNoteKey, IProjectNote} from "../Utilities/calendar
 import {useLiveQuery} from "dexie-react-hooks";
 import "./ProjectNotesDialog.css";
 
+const useIsDarkMode = () => {
+    const [dark, setDark] = useState(
+        () => document.documentElement.getAttribute("data-theme") === "dark"
+    );
+    useEffect(() => {
+        const observer = new MutationObserver(() => {
+            setDark(document.documentElement.getAttribute("data-theme") === "dark");
+        });
+        observer.observe(document.documentElement, {attributes: true, attributeFilter: ["data-theme"]});
+        return () => observer.disconnect();
+    }, []);
+    return dark;
+};
+
 interface ProjectNotesDialogProps {
     open: boolean;
     onClose: () => void;
@@ -42,31 +56,27 @@ const TaskHistoryPanel = React.memo(({descriptions, visible, onToggle}: {
     descriptions: string[];
     visible: boolean;
     onToggle: () => void;
-}) => {
-    if (!descriptions.length && !visible) return null;
-
-    return (
-        <div className={`notesHistoryPanel ${visible ? "open" : "collapsed"}`}>
-            <button className="notesHistoryToggle" type="button" onClick={onToggle}>
-                {visible ? "Hide History ▸" : "◂ History"}
-            </button>
-            {visible && (
-                <div className="notesHistoryContent">
-                    <h4 className="notesHistoryTitle">Task Descriptions</h4>
-                    {descriptions.length ? (
-                        <ul className="notesHistoryList">
-                            {descriptions.map((desc, i) => (
-                                <li key={i} className="notesHistoryItem">{desc}</li>
-                            ))}
-                        </ul>
-                    ) : (
-                        <p className="notesHistoryEmpty">No task descriptions recorded.</p>
-                    )}
-                </div>
-            )}
-        </div>
-    );
-});
+}) => (
+    <div className={`notesHistoryPanel ${visible ? "open" : "collapsed"}`}>
+        <button className="notesHistoryToggle" type="button" onClick={onToggle}>
+            {visible ? "Hide History \u25B8" : "\u25C2 History"}
+        </button>
+        {visible && (
+            <div className="notesHistoryContent">
+                <h4 className="notesHistoryTitle">Task Descriptions</h4>
+                {descriptions.length ? (
+                    <ul className="notesHistoryList">
+                        {descriptions.map((desc, i) => (
+                            <li key={i} className="notesHistoryItem">{desc}</li>
+                        ))}
+                    </ul>
+                ) : (
+                    <p className="notesHistoryEmpty">No task descriptions recorded.</p>
+                )}
+            </div>
+        )}
+    </div>
+));
 
 export const ProjectNotesDialog = ({
     open,
@@ -82,8 +92,10 @@ export const ProjectNotesDialog = ({
     formatHours
 }: ProjectNotesDialogProps) => {
     const editorRef = useRef<MDXEditorMethods>(null);
+    const editorContainerRef = useRef<HTMLDivElement>(null);
     const debounceRef = useRef<ReturnType<typeof setTimeout>>();
     const [historyVisible, setHistoryVisible] = useState(false);
+    const isDark = useIsDarkMode();
     const noteKey = useMemo(() => getProjectNoteKey(workspaceId, projectId), [workspaceId, projectId]);
     const latestMarkdownRef = useRef<string | null>(null);
 
@@ -142,6 +154,16 @@ export const ProjectNotesDialog = ({
         return () => window.removeEventListener("keydown", handleKeyDown);
     }, [open, handleClose]);
 
+    const handleEditorContainerClick = useCallback((e: React.MouseEvent) => {
+        const target = e.target as HTMLElement;
+        if (editorContainerRef.current && editorRef.current) {
+            const contentEditable = editorContainerRef.current.querySelector("[contenteditable]") as HTMLElement | null;
+            if (contentEditable && !contentEditable.contains(target) && !target.closest("[role='toolbar']")) {
+                editorRef.current.focus();
+            }
+        }
+    }, []);
+
     if (!open) return null;
 
     return (
@@ -161,9 +183,10 @@ export const ProjectNotesDialog = ({
                     <button className="notesDialogClose" onClick={handleClose} type="button">&times;</button>
                 </div>
                 <div className="notesDialogBody">
-                    <div className="notesEditorContainer">
+                    <div className="notesEditorContainer" ref={editorContainerRef} onClick={handleEditorContainerClick}>
                         <MDXEditor
                             ref={editorRef}
+                            className={isDark ? "dark-theme" : ""}
                             markdown={initialMarkdown}
                             onChange={handleChange}
                             plugins={[
