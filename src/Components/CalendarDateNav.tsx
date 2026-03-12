@@ -41,10 +41,10 @@ export const CalendarDateNav = ({onTodayClick}: CalendarDateNavProps) => {
         , [startDate, endDate])
 
     return (
-        <div>
-            <Link to={navLinks.back}><button className={'calendarHeaderButton'}>&lt;</button></Link>
-            <Link to={navLinks.today} onClick={clickToday}><button type="button" className={'calendarHeaderButton'}>Today</button></Link>
-            <Link to={navLinks.forward}><button className={'calendarHeaderButton'}>&gt;</button></Link>
+        <div className={"calendarDisplayButtonGroup"}>
+            <Link to={navLinks.back}><button type={"button"} className={"calendarHeaderButton"}>&lt;</button></Link>
+            <Link to={navLinks.today} onClick={clickToday}><button type={"button"} className={"calendarHeaderButton"}>Today</button></Link>
+            <Link to={navLinks.forward}><button type={"button"} className={"calendarHeaderButton"}>&gt;</button></Link>
         </div>
     );
 };

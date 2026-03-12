@@ -301,7 +301,7 @@ export const YearPage = () => {
                 <div className={"yearHeader"}>
                     <h2>FY{fiscalYear.label} — {fiscalYear.start.format("MMM D, YYYY")} – {fiscalYear.end.format("MMM D, YYYY")}</h2>
                     <div className={"yearControls"}>
-                        <div className={"yearFyNav"}>
+                        <div className={"yearFyNav calendarDisplayButtonGroup"}>
                             <Link to={`/year?year=${Number(fiscalYear.label) - 1}`}>
                                 <button type={"button"} className={"calendarHeaderButton"}>&lt;</button>
                             </Link>

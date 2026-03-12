@@ -25,6 +25,24 @@
 .weekDisplayButtonGroup {
     display: flex;
     align-items: center;
+    border: 1px solid var(--border-primary);
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--bg-secondary);
+}
+
+.weekDisplayButtonGroup .weekHeaderButton {
+    border-radius: 0;
+    border: none;
+    border-right: 1px solid var(--border-primary);
+}
+
+.weekDisplayButtonGroup .weekHeaderButton:last-child {
+    border-right: none;
+}
+
+.weekDisplayButtonGroup .weekHeaderButton.selected {
+    border-color: transparent;
 }
 
 .weekSearch {

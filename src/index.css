@@ -36,6 +36,8 @@
   --projected-text-hover: #333;
   --progress-track: #e8e8e8;
   --link-color: #2f81f7;
+  --btn-selected-bg: darkred;
+  --btn-selected-text: #ffffff;
 }
 
 [data-theme="dark"] {
@@ -76,6 +78,8 @@
   --projected-text-hover: #c4c4d4;
   --progress-track: #2e2e4a;
   --link-color: #5a9ef7;
+  --btn-selected-bg: #c04040;
+  --btn-selected-text: #ffffff;
 }
 
 body {
@@ -137,14 +141,17 @@ main{
 }
 
 .calendarHeaderButton{
-  border:none;
+  border: 1px solid var(--border-primary);
+  border-radius: 6px;
   background-color: var(--bg-button);
   color: var(--text-primary);
   height: 2rem;
   padding: 0 1rem;
+  font-size: 0.85rem;
   cursor: pointer;
   outline: none;
   user-select: none;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 
 .calendarHeaderButton:hover{
@@ -152,7 +159,9 @@ main{
 }
 
 .calendarHeaderButton.selected{
-  background-color: var(--bg-button-selected);
+  background-color: var(--btn-selected-bg);
+  color: var(--btn-selected-text);
+  border-color: var(--btn-selected-bg);
 }
 
 .calendarHeaderButton.syncError{
@@ -165,14 +174,17 @@ main{
 }
 
 .weekHeaderButton{
-  border:none;
+  border: 1px solid var(--border-primary);
+  border-radius: 6px;
   background-color: var(--bg-button);
   color: var(--text-primary);
   height: 2rem;
   padding: 0 1rem;
+  font-size: 0.85rem;
   cursor: pointer;
   outline: none;
   user-select: none;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 
 .weekHeaderButton:hover{
@@ -180,7 +192,9 @@ main{
 }
 
 .weekHeaderButton.selected{
-  background-color: var(--bg-button-selected);
+  background-color: var(--btn-selected-bg);
+  color: var(--btn-selected-text);
+  border-color: var(--btn-selected-bg);
 }
 
 .weekHeaderButton.syncError{
@@ -190,6 +204,38 @@ main{
 
 .weekHeaderButton.syncError:hover{
   background-color: var(--error-bg-hover, #5a2830);
+}
+
+.calendarDisplayButtonGroup {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--border-primary);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--bg-secondary);
+}
+
+.calendarDisplayButtonGroup a {
+  text-decoration: none;
+  color: inherit;
+}
+
+.calendarDisplayButtonGroup a:hover {
+  color: inherit;
+}
+
+.calendarDisplayButtonGroup .calendarHeaderButton {
+  border-radius: 0;
+  border: none;
+  border-right: 1px solid var(--border-primary);
+}
+
+.calendarDisplayButtonGroup .calendarHeaderButton:last-child {
+  border-right: none;
+}
+
+.calendarDisplayButtonGroup .calendarHeaderButton.selected {
+  border-color: transparent;
 }
 
 .headerModeToggle {

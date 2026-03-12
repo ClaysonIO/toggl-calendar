@@ -227,7 +227,7 @@ export const ProjectsPage = () => {
                 <div className={"projectsHeader"}>
                     <h2>Projects — FY{fiscalYear.label}</h2>
                     <div className={"projectsControls"}>
-                        <div className={"projectsFyNav"}>
+                        <div className={"projectsFyNav calendarDisplayButtonGroup"}>
                             <Link to={`/projects?year=${Number(fiscalYear.label) - 1}`}>
                                 <button type={"button"} className={"calendarHeaderButton"}>&lt;</button>
                             </Link>

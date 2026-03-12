@@ -30,6 +30,10 @@
     gap: 8px;
 }
 
+.yearFyNav.calendarDisplayButtonGroup {
+    gap: 0;
+}
+
 .yearProjectSelectWrap {
     position: relative;
 }

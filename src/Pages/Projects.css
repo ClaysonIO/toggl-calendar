@@ -38,6 +38,10 @@
     gap: 8px;
 }
 
+.projectsFyNav.calendarDisplayButtonGroup {
+    gap: 0;
+}
+
 .projectsAddCompany {
     display: flex;
     gap: 8px;
