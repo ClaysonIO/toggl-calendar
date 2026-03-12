@@ -99,31 +99,6 @@
     margin-bottom: 8px;
 }
 
-.metricsBar {
-    flex: 1;
-    display: flex;
-    border-radius: 999px;
-    overflow: hidden;
-    border: 1px solid var(--border-search);
-    min-height: 16px;
-}
-
-.metricSegment {
-    min-height: 16px;
-}
-
-.metricSegment.currentBillable {
-    background: #2f81f7;
-}
-
-.metricSegment.projected {
-    background: #2ea043;
-}
-
-.metricSegment.target {
-    background: #d29922;
-}
-
 .metricLegend {
     display: flex;
     gap: 14px;

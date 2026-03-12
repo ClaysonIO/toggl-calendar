@@ -10,7 +10,9 @@ import {
     getDailyBillableProjectionKey,
     ANNUAL_TARGET_HOURS_KEY,
     ANNUAL_TARGET_PERCENTAGE_KEY,
+    FULL_TIME_HOURS_KEY,
     DEFAULT_ANNUAL_TARGET_HOURS,
+    DEFAULT_FULL_TIME_HOURS,
     MANUAL_WORKSPACE_ID,
     START_OF_YEAR_MONTH_KEY
 } from "../Utilities/calendarDb";
@@ -21,12 +23,13 @@ import {ConfigDialog} from "../Components/ConfigDialog";
 import {syncDateRange} from "../Utilities/togglSync";
 import {useTogglApiKey} from "../Utilities/useTogglApiKey";
 import {useTogglUser} from "../Utilities/useTogglUser";
-import {formatHours, formatHoursDisplay, projectLabel, FULL_TIME_HOURS, type ViewMode, type TimeDisplayMode} from "../Utilities/yearViewUtils";
+import {formatHours, formatHoursDisplay, projectLabel, type ViewMode, type TimeDisplayMode} from "../Utilities/yearViewUtils";
 import {YearProjectSelect} from "../Components/YearProjectSelect";
 import {YearMonthCard} from "../Components/YearMonthCard";
 import {YearEditDayDialog} from "../Components/YearEditDayDialog";
 import {YearEditTargetDialog} from "../Components/YearEditTargetDialog";
 import {ManualDayTimeDialog} from "../Components/ManualDayTimeDialog";
+import {HoursProgressBar} from "../Components/HoursProgressBar";
 import "./Year.css";
 
 const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -104,11 +107,23 @@ export const YearPage = () => {
         [],
         undefined
     );
-    const annualTargetHours = useMemo(() => {
+    const fullTimeHoursSetting = useLiveQuery(
+        () => calendarDb.settings.get(FULL_TIME_HOURS_KEY),
+        [],
+        undefined
+    );
+    const fullTimeHours = fullTimeHoursSetting?.value ?? DEFAULT_FULL_TIME_HOURS;
+    const billableTargetHours = useMemo(() => {
         const pct = annualTargetPctSetting?.value;
-        if (pct != null && pct > 0) return (pct / 100) * FULL_TIME_HOURS;
+        if (pct != null && pct > 0) return (pct / 100) * fullTimeHours;
         return annualTargetHoursSetting?.value ?? DEFAULT_ANNUAL_TARGET_HOURS;
-    }, [annualTargetHoursSetting?.value, annualTargetPctSetting?.value]);
+    }, [annualTargetHoursSetting?.value, annualTargetPctSetting?.value, fullTimeHours]);
+
+    const annualTargetHours = useMemo(() => {
+        if (billableFilter === "all") return fullTimeHours;
+        if (billableFilter === "nonBillable") return Math.max(0, fullTimeHours - billableTargetHours);
+        return billableTargetHours;
+    }, [billableFilter, billableTargetHours, fullTimeHours]);
 
     const dailyProjectionsInRange = useLiveQuery(
         async () => {
@@ -130,19 +145,6 @@ export const YearPage = () => {
         return map;
     }, [dailyProjectionsInRange]);
 
-    const billableToDateData = useLiveQuery(
-        async () => {
-            if (!fyStartKey || !fyEndKey) return { byDay: {} as Record<string, number>, total: 0 };
-            const today = dayjs().format("YYYY-MM-DD");
-            const toDate = today <= fyEndKey ? today : fyEndKey;
-            if (toDate < fyStartKey) return { byDay: {} as Record<string, number>, total: 0 };
-            if (isManual) return getManualBillableHoursByDay(fyStartKey, toDate, "billable");
-            if (!workspaceId) return { byDay: {} as Record<string, number>, total: 0 };
-            return getBillableHoursByDay(workspaceId, fyStartKey, toDate, "billable");
-        },
-        [workspaceId, fyStartKey, fyEndKey, isManual],
-        { byDay: {}, total: 0 }
-    );
     const actualByDayAll = useLiveQuery(
         async () => {
             if (!fyStartKey || !fyEndKey) return { byDay: {} as Record<string, number>, total: 0 };
@@ -153,8 +155,65 @@ export const YearPage = () => {
         [workspaceId, fyStartKey, fyEndKey, billableFilter, selectedProjectId, isManual],
         { byDay: {}, total: 0 }
     );
-    const billableHoursToDate = billableToDateData?.total ?? 0;
+    const actualByDayBillable = useLiveQuery(
+        async () => {
+            if (!fyStartKey || !fyEndKey) return { byDay: {} as Record<string, number>, total: 0 };
+            if (isManual) return getManualBillableHoursByDay(fyStartKey, fyEndKey, "billable", selectedProjectId);
+            if (!workspaceId) return { byDay: {} as Record<string, number>, total: 0 };
+            return getBillableHoursByDay(workspaceId, fyStartKey, fyEndKey, "billable", selectedProjectId);
+        },
+        [workspaceId, fyStartKey, fyEndKey, selectedProjectId, isManual],
+        { byDay: {}, total: 0 }
+    );
+    const actualByDayNonBillable = useLiveQuery(
+        async () => {
+            if (!fyStartKey || !fyEndKey) return { byDay: {} as Record<string, number>, total: 0 };
+            if (isManual) return getManualBillableHoursByDay(fyStartKey, fyEndKey, "nonBillable", selectedProjectId);
+            if (!workspaceId) return { byDay: {} as Record<string, number>, total: 0 };
+            return getBillableHoursByDay(workspaceId, fyStartKey, fyEndKey, "nonBillable", selectedProjectId);
+        },
+        [workspaceId, fyStartKey, fyEndKey, selectedProjectId, isManual],
+        { byDay: {}, total: 0 }
+    );
     const actualByDay = actualByDayAll?.byDay ?? {};
+    const sumHoursToDate = useCallback((byDay: Record<string, number>) => {
+        if (!fyStartKey || !fyEndKey) return 0;
+        const today = dayjs().format("YYYY-MM-DD");
+        const toDate = today <= fyEndKey ? today : fyEndKey;
+        if (toDate < fyStartKey) return 0;
+        let sum = 0;
+        let d = dayjs(fyStartKey);
+        const end = dayjs(toDate);
+        while (!d.isAfter(end)) {
+            const key = d.format("YYYY-MM-DD");
+            sum += byDay[key] ?? 0;
+            d = d.add(1, "day");
+        }
+        return sum;
+    }, [fyStartKey, fyEndKey]);
+    const billableHoursToDate = useMemo(
+        () => sumHoursToDate(actualByDayBillable?.byDay ?? {}),
+        [sumHoursToDate, actualByDayBillable?.byDay]
+    );
+    const nonBillableHoursToDate = useMemo(
+        () => sumHoursToDate(actualByDayNonBillable?.byDay ?? {}),
+        [sumHoursToDate, actualByDayNonBillable?.byDay]
+    );
+    const hoursToDate = useMemo(() => {
+        if (!fyStartKey || !fyEndKey) return 0;
+        const today = dayjs().format("YYYY-MM-DD");
+        const toDate = today <= fyEndKey ? today : fyEndKey;
+        if (toDate < fyStartKey) return 0;
+        let sum = 0;
+        let d = dayjs(fyStartKey);
+        const end = dayjs(toDate);
+        while (!d.isAfter(end)) {
+            const key = d.format("YYYY-MM-DD");
+            sum += actualByDay[key] ?? 0;
+            d = d.add(1, "day");
+        }
+        return sum;
+    }, [fyStartKey, fyEndKey, actualByDay]);
 
     const simpleDataForYear = useLiveQuery(
         async () => {
@@ -223,13 +282,9 @@ export const YearPage = () => {
         return count;
     }, [fyEndKey, todayKey, projectionsByDate]);
 
-    const hoursRemaining = Math.max(0, annualTargetHours - billableHoursToDate);
+    const hoursRemaining = Math.max(0, annualTargetHours - hoursToDate);
     const dailyTarget = daysAvailable > 0 ? hoursRemaining / daysAvailable : 0;
     const weeklyTarget = dailyTarget * 5;
-
-    const progressPct = annualTargetHours > 0
-        ? Math.min(100, (billableHoursToDate / annualTargetHours) * 100)
-        : 0;
 
     const effectiveWsId = isManual ? MANUAL_WORKSPACE_ID : workspaceId;
     const upsertDailyProjection = useCallback(
@@ -429,22 +484,16 @@ export const YearPage = () => {
 
                 <div className={"yearMetrics"}>
                     <div className={"yearMetricsBar"}>
-                        <div className={"yearProgressTrack"}>
-                            <div
-                                className={"yearProgressFill"}
-                                style={{ width: `${progressPct}%` }}
-                            />
-                        </div>
-                        <button
-                            type={"button"}
-                            className={"calendarHeaderButton"}
-                            onClick={() => setEditTargetOpen(true)}
-                        >
-                            Edit target
-                        </button>
+                        <HoursProgressBar
+                            totalHours={fullTimeHours}
+                            billableHours={billableHoursToDate}
+                            nonBillableHours={nonBillableHoursToDate}
+                            targetBillableHours={billableTargetHours}
+                            onClickBillableTarget={() => setEditTargetOpen(true)}
+                        />
                     </div>
                     <div className={"metricLegend"}>
-                        <span><strong>Billable to date:</strong> {formatHours(billableHoursToDate, timeDisplayMode)}</span>
+                        <span><strong>Hours to date:</strong> {formatHours(hoursToDate, timeDisplayMode)}</span>
                         <span><strong>Annual target:</strong> {formatHours(annualTargetHours, timeDisplayMode)}</span>
                     </div>
                     <div className={"yearTargets"}>
@@ -488,8 +537,9 @@ export const YearPage = () => {
             )}
             {editTargetOpen && (
                 <YearEditTargetDialog
-                    annualTargetHours={annualTargetHours}
+                    annualTargetHours={billableTargetHours}
                     annualTargetPct={annualTargetPctSetting?.value}
+                    fullTimeHours={fullTimeHours}
                     onClose={() => setEditTargetOpen(false)}
                 />
             )}

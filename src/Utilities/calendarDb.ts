@@ -185,7 +185,9 @@ export const getWeeklyNonBillableTargetKey = (weekStart: string) =>
 export const START_OF_YEAR_MONTH_KEY = "startOfYearMonth";
 export const ANNUAL_TARGET_HOURS_KEY = "annualTargetHours";
 export const ANNUAL_TARGET_PERCENTAGE_KEY = "annualTargetPercentage";
+export const FULL_TIME_HOURS_KEY = "fullTimeHours";
 export const DEFAULT_ANNUAL_TARGET_HOURS = 2080;
+export const DEFAULT_FULL_TIME_HOURS = 2080;
 
 export const getDailyBillableProjectionKey = (workspaceId: number, date: string) =>
     `${workspaceId}:${date}`;

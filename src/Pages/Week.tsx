@@ -37,7 +37,10 @@ import {
 import {ISingleProject} from "../Utilities/Interfaces/ISingleProject";
 import {DecimalToRoundedTime} from "../Utilities/Functions/DecimalToRoundedTime";
 import {getAllManualProjectsAsSingleProject, getManualSimpleData} from "../Utilities/manualData";
+import {HoursProgressBar} from "../Components/HoursProgressBar";
+import {WeekBillableTargetDialog} from "../Components/WeekBillableTargetDialog";
 import "./Week.css";
+import "./Year.css";
 
 interface IWeekTableRow {
     id: string;
@@ -1010,6 +1013,7 @@ export const WeekPage = () => {
         }
     }, [weekStartKey, putSetting]);
     const [notesProjectId, setNotesProjectId] = useState<number | null>(null);
+    const [weekBillableTargetDialogOpen, setWeekBillableTargetDialogOpen] = useState(false);
     const [copiedToast, setCopiedToast] = useState<string | null>(null);
     const toastTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
 
@@ -1028,16 +1032,6 @@ export const WeekPage = () => {
     const effectiveTargetForBar = weeklyTotalTarget ?? (billableTargetValue != null && nonBillableTargetValue != null
         ? billableTargetValue + nonBillableTargetValue
         : null) ?? safeDefault;
-    const currentBillableHours = tableRows
-        .filter(row => row.billable)
-        .reduce((acc, row) => acc + row.totalHours, 0);
-    const projectedHoursTotal = tableRows.reduce((acc, row) => acc + row.projectedHours, 0);
-
-    const metricTotal = currentBillableHours + projectedHoursTotal + effectiveTargetForBar;
-    const billableBarWidth = metricTotal > 0 ? (currentBillableHours / metricTotal) * 100 : 100 / 3;
-    const projectedBarWidth = metricTotal > 0 ? (projectedHoursTotal / metricTotal) * 100 : 100 / 3;
-    const targetBarWidth = metricTotal > 0 ? (effectiveTargetForBar / metricTotal) * 100 : 100 / 3;
-
     const billableSummary = useMemo(
         () => summarizeRows(tableRows.filter(row => row.billable), dateKeys),
         [tableRows, dateKeys]
@@ -1570,16 +1564,18 @@ export const WeekPage = () => {
             />
 
             <div className={"metricsContainer"}>
-                <div className={"metricsBar"}>
-                    <div className={"metricSegment currentBillable"} style={{width: `${billableBarWidth}%`}}/>
-                    <div className={"metricSegment projected"} style={{width: `${projectedBarWidth}%`}}/>
-                    <div className={"metricSegment target"} style={{width: `${targetBarWidth}%`}}/>
-                </div>
+                <HoursProgressBar
+                    totalHours={effectiveTargetForBar}
+                    billableHours={billableSummary.totalHours}
+                    nonBillableHours={nonBillableSummary.totalHours}
+                    targetBillableHours={billableTargetValue ?? effectiveTargetForBar}
+                    onClickBillableTarget={() => setWeekBillableTargetDialogOpen(true)}
+                />
             </div>
             <div className={"metricLegend"}>
-                <span><strong>Current Billable:</strong> {formatHoursForDisplay(currentBillableHours)}</span>
-                <span><strong>Projected:</strong> {formatHoursForDisplay(projectedHoursTotal)}</span>
-                <span><strong>Target:</strong> {formatHoursForDisplay(effectiveTargetForBar)}</span>
+                <span><strong>Billable:</strong> {formatHoursForDisplay(billableSummary.totalHours)}</span>
+                <span><strong>Non-billable:</strong> {formatHoursForDisplay(nonBillableSummary.totalHours)}</span>
+                <span><strong>Target:</strong> {formatHoursForDisplay(billableTargetValue ?? effectiveTargetForBar)}</span>
             </div>
 
             <div className={"weekTableContainer"}>
@@ -1763,6 +1759,15 @@ export const WeekPage = () => {
                     lifetimeHours={notesLifetimeHours ?? 0}
                     taskDescriptions={notesAllTaskDescriptions ?? []}
                     formatHours={formatHoursForDisplay}
+                />
+            )}
+            {weekBillableTargetDialogOpen && (
+                <WeekBillableTargetDialog
+                    open={weekBillableTargetDialogOpen}
+                    weekLabel={weekStart.format("MMM D, YYYY")}
+                    currentTarget={billableTargetValue}
+                    onSave={(v) => { void onBillableTargetChange(v); setWeekBillableTargetDialogOpen(false); }}
+                    onClose={() => setWeekBillableTargetDialogOpen(false)}
                 />
             )}
         </Layout>

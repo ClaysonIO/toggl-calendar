@@ -1,0 +1,103 @@
+.hoursProgressBar {
+    flex: 1;
+    min-width: 0;
+    position: relative;
+}
+
+.hoursProgressBarTrack {
+    position: relative;
+    display: flex;
+    min-height: 16px;
+    height: 20px;
+    border-radius: 999px;
+    overflow: visible;
+    border: 1px solid var(--border-search);
+    background: var(--progress-track);
+}
+
+.hoursProgressBarBillable {
+    height: 100%;
+    min-width: 0;
+    background: #2ea043;
+    border-radius: 999px 0 0 999px;
+    flex-shrink: 0;
+}
+
+.hoursProgressBarNonBillable {
+    height: 100%;
+    min-width: 0;
+    background: #d4a017;
+    flex-shrink: 0;
+}
+
+.hoursProgressBarTrack .hoursProgressBarNonBillable:first-child {
+    border-radius: 999px 0 0 999px;
+}
+
+.hoursProgressBarTargetMarker {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 8px;
+    background: #8b4513;
+    z-index: 2;
+    cursor: default;
+}
+
+.hoursProgressBarTargetMarkerAtStart {
+    border-radius: 999px 0 0 999px;
+}
+
+.hoursProgressBarTargetMarkerAtEnd {
+    border-radius: 0 999px 999px 0;
+}
+
+.hoursProgressBarTargetMarkerClickable {
+    cursor: pointer;
+}
+
+[data-theme="dark"] .hoursProgressBarTargetMarker {
+    background: #d2691e;
+}
+
+[data-theme="dark"] .hoursProgressBarNonBillable {
+    background: #b8860b;
+}
+
+.hoursProgressBarPopover {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    min-width: 180px;
+    padding: 10px 12px;
+    background: var(--dialog-bg);
+    border: 1px solid var(--border-primary);
+    border-radius: 8px;
+    box-shadow: var(--dialog-shadow);
+    font-size: 0.85rem;
+    pointer-events: none;
+}
+
+.hoursProgressBarPopover dl {
+    margin: 0;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 4px 16px;
+}
+
+.hoursProgressBarPopover dt {
+    margin: 0;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.hoursProgressBarPopover dd {
+    margin: 0;
+    text-align: right;
+}
+
+.hoursProgressBarTargetPopover {
+    bottom: calc(100% + 8px);
+}
