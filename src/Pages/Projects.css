@@ -143,6 +143,35 @@
     min-width: 200px;
 }
 
+.projectsColBillable {
+    width: 56px;
+    text-align: center;
+}
+
+.projectsBillableToggle {
+    border: none;
+    border-radius: 999px;
+    padding: 2px 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    line-height: 1.2;
+}
+
+.projectsBillableToggle.billable {
+    background-color: var(--badge-billable-bg);
+    color: var(--badge-billable-text);
+}
+
+.projectsBillableToggle.nonBillable {
+    background-color: var(--badge-nonbillable-bg);
+    color: var(--badge-nonbillable-text);
+}
+
+.projectsBillableToggle:hover {
+    opacity: 0.9;
+}
+
 .projectsColHours {
     width: 100px;
     text-align: right;

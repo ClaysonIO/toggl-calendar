@@ -177,6 +177,18 @@ export const ProjectsPage = () => {
         });
     }, []);
 
+    const toggleProjectBillable = useCallback(async (projectId: number, currentValue: boolean) => {
+        if (!workspaceId) return;
+        const key = getProjectPreferenceKey(workspaceId, projectId);
+        await calendarDb.projectPreferences.put({
+            key,
+            workspaceId,
+            projectId,
+            billable: !currentValue,
+            updatedAt: Date.now()
+        });
+    }, [workspaceId]);
+
     const [newCompanyName, setNewCompanyName] = useState("");
     const [addingProjectFor, setAddingProjectFor] = useState<number | null>(null);
     const [newProjectName, setNewProjectName] = useState("");
@@ -282,6 +294,7 @@ export const ProjectsPage = () => {
                         <thead>
                             <tr>
                                 <th className={"projectsColName"}>Company / Project</th>
+                                <th className={"projectsColBillable"} title={"Toggle billable (B) / non-billable (NB) per project"}>B/NB</th>
                                 <th className={"projectsColHours"}>Total hours</th>
                                 <th className={"projectsColHours"}>Billable</th>
                                 <th className={"projectsColHours"}>Non-billable</th>
@@ -291,7 +304,7 @@ export const ProjectsPage = () => {
                         <tbody>
                             {companies.length === 0 && (
                                 <tr>
-                                    <td colSpan={isManual ? 5 : 4} className={"projectsEmpty"}>
+                                    <td colSpan={isManual ? 6 : 5} className={"projectsEmpty"}>
                                         {isManual
                                             ? "No companies yet. Add one above to get started."
                                             : "No project data for this fiscal year. Sync your Toggl workspace from the Year page."}
@@ -308,6 +321,7 @@ export const ProjectsPage = () => {
                                             <span className={`projectsExpandIcon ${expandedCompanyIds.has(company.id) ? "expanded" : ""}`}>▸</span>
                                             <span>{company.name}</span>
                                         </td>
+                                        <td className={"projectsColBillable"} />
                                         <td className={"projectsColHours"}>{formatHoursDisplay(company.totalHours, timeDisplayMode)}</td>
                                         <td className={"projectsColHours"}>{formatHoursDisplay(company.billableHours, timeDisplayMode)}</td>
                                         <td className={"projectsColHours"}>{formatHoursDisplay(company.nonBillableHours, timeDisplayMode)}</td>
@@ -320,6 +334,19 @@ export const ProjectsPage = () => {
                                                 {project.color && <span className={"projectsProjectColor"} style={{background: project.color}} />}
                                                 <span>{project.name}</span>
                                             </td>
+                                            <td className={"projectsColBillable"}>
+                                                <button
+                                                    type={"button"}
+                                                    className={`projectsBillableToggle ${project.billable ? "billable" : "nonBillable"}`}
+                                                    onClick={e => {
+                                                        e.stopPropagation();
+                                                        void toggleProjectBillable(project.id, project.billable);
+                                                    }}
+                                                    title={project.billable ? "Billable — click to set non-billable" : "Non-billable — click to set billable"}
+                                                >
+                                                    {project.billable ? "B" : "NB"}
+                                                </button>
+                                            </td>
                                             <td className={"projectsColHours"}>{formatHoursDisplay(project.totalHours, timeDisplayMode)}</td>
                                             <td className={"projectsColHours"}>{project.billable ? formatHoursDisplay(project.totalHours, timeDisplayMode) : "—"}</td>
                                             <td className={"projectsColHours"}>{!project.billable ? formatHoursDisplay(project.totalHours, timeDisplayMode) : "—"}</td>
@@ -329,7 +356,7 @@ export const ProjectsPage = () => {
                                     {isManual && expandedCompanyIds.has(company.id) && (
                                         addingProjectFor === company.manualCompanyId ? (
                                             <tr className={"projectsAddProjectRow"}>
-                                                <td colSpan={5} className={"projectsColName"}>
+                                                <td colSpan={6} className={"projectsColName"}>
                                                     <span className={"projectsProjectIndent"} />
                                                     <input
                                                         className={"projectsInput projectsInputSmall"}
@@ -367,7 +394,7 @@ export const ProjectsPage = () => {
                                             </tr>
                                         ) : (
                                             <tr className={"projectsAddProjectRow"}>
-                                                <td colSpan={5} className={"projectsColName"}>
+                                                <td colSpan={6} className={"projectsColName"}>
                                                     <span className={"projectsProjectIndent"} />
                                                     <button
                                                         type={"button"}
