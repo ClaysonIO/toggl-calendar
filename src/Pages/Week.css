@@ -1,4 +1,4 @@
-.calendarHeader {
+.weekHeader {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -7,7 +7,7 @@
     gap: 12px;
 }
 
-.calendarHeaderControls {
+.weekHeaderControls {
     display: flex;
     align-items: center;
     gap: 12px;
@@ -15,26 +15,26 @@
     justify-content: flex-end;
 }
 
-.calendarDisplayControls {
+.weekDisplayControls {
     display: flex;
     align-items: center;
     gap: 8px;
     flex-wrap: wrap;
 }
 
-.calendarDisplayButtonGroup {
+.weekDisplayButtonGroup {
     display: flex;
     align-items: center;
 }
 
-.calendarSearch {
+.weekSearch {
     display: flex;
     align-items: center;
     gap: 8px;
     margin-bottom: 6px;
 }
 
-.calendarSearch input {
+.weekSearch input {
     flex: 1;
     min-width: 220px;
     padding: 5px 8px;
@@ -45,14 +45,14 @@
     border-radius: 4px;
 }
 
-.calendarSearchResults {
+.weekSearchResults {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
     margin-bottom: 14px;
 }
 
-.calendarSearchResult {
+.weekSearchResult {
     border: 1px solid var(--border-search);
     background: var(--search-result-bg);
     color: var(--text-primary);
@@ -64,11 +64,11 @@
     align-items: flex-start;
 }
 
-.calendarSearchResult:hover {
+.weekSearchResult:hover {
     background: var(--search-result-hover);
 }
 
-.calendarSearchResultEmpty {
+.weekSearchResultEmpty {
     color: var(--text-muted);
     font-style: italic;
     padding: 2px;
@@ -114,7 +114,7 @@
     font-size: 0.85rem;
 }
 
-.calendarTableContainer {
+.weekTableContainer {
     width: 100%;
     overflow-x: auto;
     border: 1px solid var(--border-primary);
@@ -122,14 +122,14 @@
     background: var(--bg-table-container);
 }
 
-.calendarTable {
+.weekTable {
     border-collapse: collapse;
     width: 100%;
     min-width: 950px;
 }
 
-.calendarTable th,
-.calendarTable td {
+.weekTable th,
+.weekTable td {
     border-bottom: 1px solid var(--border-secondary);
     padding: 4px 6px;
     vertical-align: middle;
@@ -138,19 +138,19 @@
     line-height: 1.3;
 }
 
-.calendarTable thead th {
+.weekTable thead th {
     background: var(--bg-secondary);
     position: sticky;
     top: 0;
     z-index: 2;
 }
 
-.calendarTable tfoot th {
+.weekTable tfoot th {
     background: var(--bg-tertiary);
     font-weight: 700;
 }
 
-.calendarSortButton {
+.weekSortButton {
     border: none;
     background: transparent;
     color: var(--text-primary);
@@ -163,7 +163,7 @@
     font-weight: 600;
 }
 
-.calendarProjectButton {
+.weekProjectButton {
     border: none;
     background: transparent;
     color: var(--text-primary);
@@ -176,17 +176,17 @@
     padding: 0;
 }
 
-.calendarProjectName {
+.weekProjectName {
     overflow: hidden;
     text-overflow: ellipsis;
     font-weight: 800;
 }
 
-.calendarClientName {
+.weekClientName {
     font-weight: 700;
 }
 
-.calendarDayCellCombined {
+.weekDayCellCombined {
     display: flex;
     flex-direction: column;
     gap: 1px;
@@ -194,7 +194,7 @@
     max-width: 260px;
 }
 
-.calendarDayDescription {
+.weekDayDescription {
     display: block;
     white-space: normal;
     word-break: break-word;
@@ -202,7 +202,7 @@
     max-width: 260px;
 }
 
-.calendarTotalHours {
+.weekTotalHours {
     font-weight: 800;
 }
 
@@ -290,8 +290,8 @@
 
 /* .projectedHoursInput removed — now inline in total column */
 
-.calendarLoading,
-.calendarNoRows {
+.weekLoading,
+.weekNoRows {
     display: flex;
     justify-content: center;
     align-items: center;
@@ -299,7 +299,7 @@
     color: var(--text-muted);
 }
 
-.calendarTable tfoot tr.summaryTotal th {
+.weekTable tfoot tr.summaryTotal th {
     border-top: 2px solid var(--border-primary);
     font-weight: 800;
 }
@@ -517,14 +517,14 @@
     line-height: 1.2;
 }
 
-.calendarDayCellCopyable {
+.weekDayCellCopyable {
     cursor: pointer;
     border-radius: 3px;
     padding: 1px 2px;
     margin: -1px -2px;
 }
 
-.calendarDayCellCopyable:hover {
+.weekDayCellCopyable:hover {
     background: var(--bg-secondary);
     outline: 1px solid var(--border-secondary);
 }

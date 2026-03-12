@@ -37,9 +37,9 @@ import {ISingleProject} from "../Utilities/Interfaces/ISingleProject";
 import {DecimalToRoundedTime} from "../Utilities/Functions/DecimalToRoundedTime";
 import {getAllManualProjectsAsSingleProject, getManualSimpleData} from "../Utilities/manualData";
 import {ManualCompanyProjectDialog} from "../Components/ManualCompanyProjectDialog";
-import "./Calendar.css";
+import "./Week.css";
 
-interface ICalendarTableRow {
+interface IWeekTableRow {
     id: string;
     projectId: number;
     projectName: string;
@@ -66,8 +66,8 @@ const roundHours = (hours: number) => Math.round(hours * 100) / 100;
 type TimeDisplayMode = "rounded" | "actual";
 type RowDisplayMode = "time" | "description" | "timeAndDescription" | "projections";
 
-const TIME_DISPLAY_STORAGE_KEY = "calendarTimeDisplayMode";
-const ROW_DISPLAY_STORAGE_KEY = "calendarRowDisplayMode";
+const TIME_DISPLAY_STORAGE_KEY = "weekTimeDisplayMode";
+const ROW_DISPLAY_STORAGE_KEY = "weekRowDisplayMode";
 
 const safeWindow = typeof window !== "undefined" ? window : undefined;
 
@@ -114,7 +114,7 @@ const createEmptyDailyTaskDescriptions = (dateKeys: string[]) =>
         return acc;
     }, {});
 
-const summarizeRows = (rows: ICalendarTableRow[], dateKeys: string[]): IHoursSummary => {
+const summarizeRows = (rows: IWeekTableRow[], dateKeys: string[]): IHoursSummary => {
     const summary: IHoursSummary = {
         projectedHours: 0,
         totalHours: 0,
@@ -160,7 +160,7 @@ const getProgressBarColor = (actual: number, projected: number, hasWeeklyPlan: b
 };
 
 const TotalHoursCell = React.memo(({row, formatHours, onProjectedChange}: {
-    row: ICalendarTableRow,
+    row: IWeekTableRow,
     formatHours: (h: number) => string,
     onProjectedChange: (projectId: number, value: number) => void
 }) => {
@@ -420,7 +420,7 @@ const SyncWeekButton = React.memo(({
 }) => (
     <button
         type="button"
-        className={`calendarHeaderButton ${syncError ? "syncError" : ""}`}
+        className={`weekHeaderButton ${syncError ? "syncError" : ""}`}
         onClick={() => { onClearError(); onSync(); }}
         disabled={isSyncing}
         title={syncError ? SYNC_ERROR_TOOLTIP : "Fetch this week's data from Toggl"}
@@ -477,7 +477,7 @@ const ProjectSearchBar = React.memo(({projects, weeklyPlanProjectIds, onAddProje
 
     return (
         <>
-            <div className={"calendarSearch"}>
+            <div className={"weekSearch"}>
                 <input
                     ref={inputRef}
                     type={"text"}
@@ -489,7 +489,7 @@ const ProjectSearchBar = React.memo(({projects, weeklyPlanProjectIds, onAddProje
                     }}
                 />
                 <button
-                    className={"calendarHeaderButton"}
+                    className={"weekHeaderButton"}
                     onClick={() => { if (results.length) handleAdd(results[0].id); }}
                     disabled={!results.length}
                 >
@@ -497,11 +497,11 @@ const ProjectSearchBar = React.memo(({projects, weeklyPlanProjectIds, onAddProje
                 </button>
             </div>
             {showResults && (
-                <div className={"calendarSearchResults"}>
+                <div className={"weekSearchResults"}>
                     {results.length ? results.map(project => (
                         <button
                             key={project.id}
-                            className={"calendarSearchResult"}
+                            className={"weekSearchResult"}
                             style={{
                                 borderColor: project.color || "#ddd",
                                 backgroundColor: (project.color || "#7A7A7A") + "18"
@@ -511,14 +511,14 @@ const ProjectSearchBar = React.memo(({projects, weeklyPlanProjectIds, onAddProje
                             <span style={{color: project.color || "inherit", fontWeight: 600}}>{project.name}</span>
                             <small>{project.client_name || "No client"}</small>
                         </button>
-                    )) : <div className={"calendarSearchResultEmpty"}>No projects found.</div>}
+                    )) : <div className={"weekSearchResultEmpty"}>No projects found.</div>}
                 </div>
             )}
         </>
     );
 });
 
-export const CalendarPage = () => {
+export const WeekPage = () => {
     const location = useLocation();
     const {startDate, endDate} = splitQuery(location.search);
     const [sorting, setSorting] = useState<SortingState>([{id: "clientName", desc: false}]);
@@ -799,7 +799,7 @@ export const CalendarPage = () => {
         }
     }, []);
 
-    const tableRows = useMemo<ICalendarTableRow[]>(() => {
+    const tableRows = useMemo<IWeekTableRow[]>(() => {
         const visibleProjectIds = new Set<number>();
 
         safeWeeklyPlans.forEach(plan => {
@@ -995,7 +995,7 @@ export const CalendarPage = () => {
         [dailyVarianceTotals]
     );
 
-    const renderDailyCellContent = useCallback((row: ICalendarTableRow, date: string) => {
+    const renderDailyCellContent = useCallback((row: IWeekTableRow, date: string) => {
         const dayHours = row.dailyHours[date] || 0;
         const descriptionText = (row.dailyTaskDescriptions[date] || []).join(", ");
         const hasDescription = !!descriptionText;
@@ -1017,8 +1017,8 @@ export const CalendarPage = () => {
             case "description": {
                 if (!hasDescription) return "";
                 return (
-                    <div className={"calendarDayCellCopyable"} onClick={() => copyToClipboard(descriptionText)}>
-                        <span className={"calendarDayDescription"}>{descriptionText}</span>
+                    <div className={"weekDayCellCopyable"} onClick={() => copyToClipboard(descriptionText)}>
+                        <span className={"weekDayDescription"}>{descriptionText}</span>
                     </div>
                 );
             }
@@ -1026,9 +1026,9 @@ export const CalendarPage = () => {
                 if (!hasDescription && !timeText) return "";
                 const copyText = [timeText, descriptionText].filter(Boolean).join(" — ");
                 return (
-                    <div className={"calendarDayCellCombined calendarDayCellCopyable"} onClick={() => copyToClipboard(copyText)}>
+                    <div className={"weekDayCellCombined weekDayCellCopyable"} onClick={() => copyToClipboard(copyText)}>
                         {timeText ? <strong>{timeText}</strong> : null}
-                        {hasDescription ? <span className={"calendarDayDescription"}>{descriptionText}</span> : null}
+                        {hasDescription ? <span className={"weekDayDescription"}>{descriptionText}</span> : null}
                     </div>
                 );
             }
@@ -1044,7 +1044,7 @@ export const CalendarPage = () => {
             default: {
                 if (!timeText) return "";
                 return (
-                    <div className={"calendarDayCellCopyable"} onClick={() => copyToClipboard(timeText)}>
+                    <div className={"weekDayCellCopyable"} onClick={() => copyToClipboard(timeText)}>
                         <span>{timeText}</span>
                     </div>
                 );
@@ -1052,33 +1052,33 @@ export const CalendarPage = () => {
         }
     }, [copyToClipboard, formatHoursForDisplay, rowDisplayMode, upsertDailyProjection, isManual, upsertManualTime]);
 
-    const columns = useMemo<ColumnDef<ICalendarTableRow>[]>(() => {
+    const columns = useMemo<ColumnDef<IWeekTableRow>[]>(() => {
         return [
             {
                 id: "clientName",
                 accessorFn: row => row.clientName,
                 header: ({column}) => (
-                    <button className={"calendarSortButton"} onClick={column.getToggleSortingHandler()} type={"button"}>
+                    <button className={"weekSortButton"} onClick={column.getToggleSortingHandler()} type={"button"}>
                         Client <span>{sortSymbol(column.getIsSorted())}</span>
                     </button>
                 ),
-                cell: ({row}) => <span className={"calendarClientName"} style={{color: row.original.projectColor}}>{row.original.clientName || "-"}</span>
+                cell: ({row}) => <span className={"weekClientName"} style={{color: row.original.projectColor}}>{row.original.clientName || "-"}</span>
             },
             {
                 id: "projectName",
                 accessorFn: row => row.projectName,
                 header: ({column}) => (
-                    <button className={"calendarSortButton"} onClick={column.getToggleSortingHandler()} type={"button"}>
+                    <button className={"weekSortButton"} onClick={column.getToggleSortingHandler()} type={"button"}>
                         Project <span>{sortSymbol(column.getIsSorted())}</span>
                     </button>
                 ),
                 cell: ({row}) => (
                     <button
-                        className={"calendarProjectButton"}
+                        className={"weekProjectButton"}
                         type={"button"}
                         onClick={() => void toggleProjectBillable(row.original.projectId, row.original.billable)}
                     >
-                        <span className={"calendarProjectName"} style={{color: row.original.projectColor}}>{row.original.projectName}</span>
+                        <span className={"weekProjectName"} style={{color: row.original.projectColor}}>{row.original.projectName}</span>
                         <span className={row.original.billable ? "billableBadge billable" : "billableBadge nonBillable"}>
                             {row.original.billable ? "B" : "NB"}
                         </span>
@@ -1087,9 +1087,9 @@ export const CalendarPage = () => {
             },
             ...dateKeys.map(date => ({
                 id: date,
-                accessorFn: (row: ICalendarTableRow) => row.dailyHours[date] || 0,
+                accessorFn: (row: IWeekTableRow) => row.dailyHours[date] || 0,
                 header: ({column}: any) => (
-                    <button className={"calendarSortButton"} onClick={column.getToggleSortingHandler()} type={"button"}>
+                    <button className={"weekSortButton"} onClick={column.getToggleSortingHandler()} type={"button"}>
                         {dayjs(date).format("ddd D")} <span>{sortSymbol(column.getIsSorted())}</span>
                     </button>
                 ),
@@ -1099,7 +1099,7 @@ export const CalendarPage = () => {
                 id: "totalHours",
                 accessorFn: row => row.totalHours,
                 header: ({column}) => (
-                    <button className={"calendarSortButton"} onClick={column.getToggleSortingHandler()} type={"button"}>
+                    <button className={"weekSortButton"} onClick={column.getToggleSortingHandler()} type={"button"}>
                         Hours <span>{sortSymbol(column.getIsSorted())}</span>
                     </button>
                 ),
@@ -1125,23 +1125,23 @@ export const CalendarPage = () => {
         ];
     }, [dateKeys, formatHoursForDisplay, renderDailyCellContent, toggleProjectBillable, upsertWeeklyPlan]);
 
-    const varianceColumns = useMemo<ColumnDef<ICalendarTableRow>[]>(() => {
+    const varianceColumns = useMemo<ColumnDef<IWeekTableRow>[]>(() => {
         return [
             {
                 id: "clientName",
                 accessorFn: row => row.clientName,
                 header: ({column}) => (
-                    <button className={"calendarSortButton"} onClick={column.getToggleSortingHandler()} type={"button"}>
+                    <button className={"weekSortButton"} onClick={column.getToggleSortingHandler()} type={"button"}>
                         Client <span>{sortSymbol(column.getIsSorted())}</span>
                     </button>
                 ),
-                cell: ({row}) => <span className={"calendarClientName"} style={{color: row.original.projectColor}}>{row.original.clientName || "-"}</span>
+                cell: ({row}) => <span className={"weekClientName"} style={{color: row.original.projectColor}}>{row.original.clientName || "-"}</span>
             },
             {
                 id: "projectName",
                 accessorFn: row => row.projectName,
                 header: ({column}) => (
-                    <button className={"calendarSortButton"} onClick={column.getToggleSortingHandler()} type={"button"}>
+                    <button className={"weekSortButton"} onClick={column.getToggleSortingHandler()} type={"button"}>
                         Project <span>{sortSymbol(column.getIsSorted())}</span>
                     </button>
                 ),
@@ -1151,9 +1151,9 @@ export const CalendarPage = () => {
             },
             ...dateKeys.map(date => ({
                 id: date,
-                accessorFn: (row: ICalendarTableRow) => (row.dailyProjectedHours[date] || 0) - (row.dailyHours[date] || 0),
+                accessorFn: (row: IWeekTableRow) => (row.dailyProjectedHours[date] || 0) - (row.dailyHours[date] || 0),
                 header: ({column}: any) => (
-                    <button className={"calendarSortButton"} onClick={column.getToggleSortingHandler()} type={"button"}>
+                    <button className={"weekSortButton"} onClick={column.getToggleSortingHandler()} type={"button"}>
                         {dayjs(date).format("ddd D")} <span>{sortSymbol(column.getIsSorted())}</span>
                     </button>
                 ),
@@ -1172,7 +1172,7 @@ export const CalendarPage = () => {
                     if (rowDisplayMode === "time") {
                         const copyText = formatVarianceSimple(variance);
                         return (
-                            <div className={"calendarDayCellCopyable"} onClick={() => copyToClipboard(copyText)}>
+                            <div className={"weekDayCellCopyable"} onClick={() => copyToClipboard(copyText)}>
                                 <span className={cls}>{copyText}</span>
                             </div>
                         );
@@ -1190,7 +1190,7 @@ export const CalendarPage = () => {
                     const copyText = [hoursPart, descPart].filter(Boolean).join(" — ");
 
                     return (
-                        <div className={"calendarDayCellCopyable"} onClick={() => copyToClipboard(copyText)}>
+                        <div className={"weekDayCellCopyable"} onClick={() => copyToClipboard(copyText)}>
                             <div className={"varianceCell"}>
                                 {showHours && (
                                     <>
@@ -1207,7 +1207,7 @@ export const CalendarPage = () => {
                                             <span className={"varianceAnnotation"}>Adjusted from Projection</span>
                                         )}
                                         {descriptions.map((desc, i) => (
-                                            <span key={i} className={"calendarDayDescription"}>{desc}</span>
+                                            <span key={i} className={"weekDayDescription"}>{desc}</span>
                                         ))}
                                     </div>
                                 )}
@@ -1218,11 +1218,11 @@ export const CalendarPage = () => {
             })),
             {
                 id: "totalHours",
-                accessorFn: (row: ICalendarTableRow) => dateKeys.reduce((sum, date) => {
+                accessorFn: (row: IWeekTableRow) => dateKeys.reduce((sum, date) => {
                     return sum + ((row.dailyProjectedHours[date] || 0) - (row.dailyHours[date] || 0));
                 }, 0),
                 header: ({column}) => (
-                    <button className={"calendarSortButton"} onClick={column.getToggleSortingHandler()} type={"button"}>
+                    <button className={"weekSortButton"} onClick={column.getToggleSortingHandler()} type={"button"}>
                         Variance <span>{sortSymbol(column.getIsSorted())}</span>
                     </button>
                 ),
@@ -1342,11 +1342,11 @@ export const CalendarPage = () => {
 
     return (
         <Layout>
-            <div className={"calendarHeader"}>
+            <div className={"weekHeader"}>
                 <div>
                     <strong>{weekStart.format("MMM D, YYYY")} - {weekEnd.format("MMM D, YYYY")}</strong>
                 </div>
-                <div className={"calendarHeaderControls"}>
+                <div className={"weekHeaderControls"}>
                     {!isManual && (
                         <SyncWeekButton
                             isSyncing={isSyncing}
@@ -1358,7 +1358,7 @@ export const CalendarPage = () => {
                     {isManual && (
                         <button
                             type={"button"}
-                            className={"calendarHeaderButton"}
+                            className={"weekHeaderButton"}
                             onClick={() => setManageOpen(true)}
                         >
                             Manage Projects
@@ -1367,47 +1367,47 @@ export const CalendarPage = () => {
                     <CalendarDateNav
                         onTodayClick={isManual ? undefined : (start, end) => void syncWeekRange(start, end)}
                     />
-                    <div className={"calendarDisplayControls"}>
-                        <div className={"calendarDisplayButtonGroup"}>
+                    <div className={"weekDisplayControls"}>
+                        <div className={"weekDisplayButtonGroup"}>
                             <button
-                                className={`calendarHeaderButton ${timeDisplayMode === "rounded" ? "selected" : ""}`}
+                                className={`weekHeaderButton ${timeDisplayMode === "rounded" ? "selected" : ""}`}
                                 type={"button"}
                                 onClick={() => setTimeDisplayMode("rounded")}
                             >
                                 Rounded
                             </button>
                             <button
-                                className={`calendarHeaderButton ${timeDisplayMode === "actual" ? "selected" : ""}`}
+                                className={`weekHeaderButton ${timeDisplayMode === "actual" ? "selected" : ""}`}
                                 type={"button"}
                                 onClick={() => setTimeDisplayMode("actual")}
                             >
                                 Actual
                             </button>
                         </div>
-                        <div className={"calendarDisplayButtonGroup"}>
+                        <div className={"weekDisplayButtonGroup"}>
                             <button
-                                className={`calendarHeaderButton ${rowDisplayMode === "time" ? "selected" : ""}`}
+                                className={`weekHeaderButton ${rowDisplayMode === "time" ? "selected" : ""}`}
                                 type={"button"}
                                 onClick={() => setRowDisplayMode("time")}
                             >
                                 Time
                             </button>
                             <button
-                                className={`calendarHeaderButton ${rowDisplayMode === "description" ? "selected" : ""}`}
+                                className={`weekHeaderButton ${rowDisplayMode === "description" ? "selected" : ""}`}
                                 type={"button"}
                                 onClick={() => setRowDisplayMode("description")}
                             >
                                 Descriptions
                             </button>
                             <button
-                                className={`calendarHeaderButton ${rowDisplayMode === "timeAndDescription" ? "selected" : ""}`}
+                                className={`weekHeaderButton ${rowDisplayMode === "timeAndDescription" ? "selected" : ""}`}
                                 type={"button"}
                                 onClick={() => setRowDisplayMode("timeAndDescription")}
                             >
                                 Time + Descriptions
                             </button>
                             <button
-                                className={`calendarHeaderButton ${rowDisplayMode === "projections" ? "selected" : ""}`}
+                                className={`weekHeaderButton ${rowDisplayMode === "projections" ? "selected" : ""}`}
                                 type={"button"}
                                 onClick={() => setRowDisplayMode("projections")}
                             >
@@ -1430,7 +1430,7 @@ export const CalendarPage = () => {
                     <div className={"metricSegment projected"} style={{width: `${projectedBarWidth}%`}}/>
                     <div className={"metricSegment target"} style={{width: `${targetBarWidth}%`}}/>
                 </div>
-                <button className={"calendarHeaderButton"} onClick={() => setShowTargetDialog(true)}>
+                <button className={"weekHeaderButton"} onClick={() => setShowTargetDialog(true)}>
                     Edit Target
                 </button>
             </div>
@@ -1440,8 +1440,8 @@ export const CalendarPage = () => {
                 <span><strong>Target:</strong> {formatHoursForDisplay(safeBillableTarget)}</span>
             </div>
 
-            <div className={"calendarTableContainer"}>
-                <table className={"calendarTable"}>
+            <div className={"weekTableContainer"}>
+                <table className={"weekTable"}>
                     <thead>
                     {table.getHeaderGroups().map(headerGroup => (
                         <tr key={headerGroup.id}>
@@ -1460,7 +1460,7 @@ export const CalendarPage = () => {
                     {showLoading && !tableRows.length ? (
                         <tr>
                             <td colSpan={leafColumnCount}>
-                                <div className={"calendarLoading"}>
+                                <div className={"weekLoading"}>
                                     <Loading/>
                                 </div>
                             </td>
@@ -1477,7 +1477,7 @@ export const CalendarPage = () => {
                         )) : (
                             <tr>
                                 <td colSpan={leafColumnCount}>
-                                    <div className={"calendarNoRows"}>
+                                    <div className={"weekNoRows"}>
                                         {isManual
                                             ? "No projects yet. Use \"Manage Projects\" to create companies and projects, then search to add them."
                                             : "No projects yet. Track time or add a project to this week."
@@ -1529,8 +1529,8 @@ export const CalendarPage = () => {
             {hasAnyDailyProjections && varianceRows.length > 0 && (
                 <div className={"varianceTableContainer"}>
                     <div className={"varianceTableTitle"}>Projection vs Actual</div>
-                    <div className={"calendarTableContainer"}>
-                        <table className={"calendarTable"}>
+                    <div className={"weekTableContainer"}>
+                        <table className={"weekTable"}>
                             <thead>
                             {varianceTable.getHeaderGroups().map(headerGroup => (
                                 <tr key={headerGroup.id}>

@@ -164,6 +164,34 @@ main{
   background-color: var(--error-bg-hover, #5a2830);
 }
 
+.weekHeaderButton{
+  border:none;
+  background-color: var(--bg-button);
+  color: var(--text-primary);
+  height: 2rem;
+  padding: 0 1rem;
+  cursor: pointer;
+  outline: none;
+  user-select: none;
+}
+
+.weekHeaderButton:hover{
+  background-color: var(--bg-button-hover);
+}
+
+.weekHeaderButton.selected{
+  background-color: var(--bg-button-selected);
+}
+
+.weekHeaderButton.syncError{
+  background-color: var(--error-bg, #4a2020);
+  color: var(--error-text, #f0a0a0);
+}
+
+.weekHeaderButton.syncError:hover{
+  background-color: var(--error-bg-hover, #5a2830);
+}
+
 .headerModeToggle {
   display: flex;
   margin-left: 16px;
