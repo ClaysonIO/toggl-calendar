@@ -561,6 +561,7 @@
 }
 
 .notesIconButton {
+    position: relative;
     border: none;
     background: transparent;
     cursor: pointer;
@@ -571,6 +572,30 @@
     justify-content: center;
     border-radius: 4px;
     transition: color 0.15s ease, background 0.15s ease;
+}
+
+.notesIconButtonInner {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.notesTaskBadge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    min-width: 14px;
+    height: 14px;
+    padding: 0 4px;
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 14px;
+    text-align: center;
+    color: var(--text-primary);
+    background: var(--link-color);
+    border-radius: 7px;
+    box-sizing: border-box;
 }
 
 .notesIconButton:hover {

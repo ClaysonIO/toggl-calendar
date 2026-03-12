@@ -170,8 +170,17 @@ export const getProjectPreferenceKey = (workspaceId: number, projectId: number) 
 export const getWeeklyPlanKey = (workspaceId: number, weekStart: string, projectId: number) =>
     `${workspaceId}:${weekStart}:${projectId}`;
 
+/** Weekly target for the total row (actual total hours vs target). Backwards compat: existing data is total target. */
 export const getWeeklyTargetKey = (weekStart: string) =>
     `weeklyBillableTarget:${weekStart}`;
+
+/** Weekly target for the billable row only. */
+export const getWeeklyBillableTargetKey = (weekStart: string) =>
+    `weeklyBillableRowTarget:${weekStart}`;
+
+/** Weekly target for the non-billable row only. */
+export const getWeeklyNonBillableTargetKey = (weekStart: string) =>
+    `weeklyNonBillableTarget:${weekStart}`;
 
 export const START_OF_YEAR_MONTH_KEY = "startOfYearMonth";
 export const ANNUAL_TARGET_HOURS_KEY = "annualTargetHours";

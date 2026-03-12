@@ -17,13 +17,14 @@ import {
     getProjectPreferenceKey,
     getWeeklyPlanKey,
     getWeeklyTargetKey,
+    getWeeklyBillableTargetKey,
+    getWeeklyNonBillableTargetKey,
     getManualTimeEntryKey,
     getProjectNoteKey,
     MANUAL_WORKSPACE_ID,
     IProjectPreference,
     IWeeklyProjectPlan
 } from "../Utilities/calendarDb";
-import {InputDialog} from "../Components/InputDialog";
 import {ProjectNotesDialog} from "../Components/ProjectNotesDialog";
 import {
     ColumnDef,
@@ -112,6 +113,13 @@ const createEmptyDailyTaskDescriptions = (dateKeys: string[]) =>
         acc[date] = [];
         return acc;
     }, {});
+
+/** Count unchecked markdown task list lines (- [ ] or * [ ]) in notes text. */
+const countOpenTasks = (notes: string): number => {
+    if (!notes || !notes.trim()) return 0;
+    const matches = notes.match(/^\s*[-*]\s*\[\s\]/gm);
+    return matches ? matches.length : 0;
+};
 
 const summarizeRows = (rows: IWeekTableRow[], dateKeys: string[]): IHoursSummary => {
     const summary: IHoursSummary = {
@@ -221,16 +229,18 @@ const TotalHoursCell = React.memo(({row, formatHours, onProjectedChange}: {
     );
 });
 
-const WeeklyTargetCell = React.memo(({totalHours, targetHours, formatHours, onTargetChange}: {
-    totalHours: number,
-    targetHours: number,
+/** Editable optional target: actual / target with progress bar. targetHours null = no target (show "--"). */
+const OptionalWeeklyTargetCell = React.memo(({actualHours, targetHours, formatHours, onTargetChange}: {
+    actualHours: number,
+    targetHours: number | null,
     formatHours: (h: number) => string,
-    onTargetChange: (value: number) => void
+    onTargetChange: (value: number | null) => void
 }) => {
     const [editing, setEditing] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
-    const progressPct = targetHours > 0 ? Math.min((totalHours / targetHours) * 100, 100) : 0;
-    const barColor = getProgressBarColor(totalHours, targetHours, true);
+    const effectiveTarget = targetHours ?? 0;
+    const progressPct = effectiveTarget > 0 ? Math.min((actualHours / effectiveTarget) * 100, 100) : 0;
+    const barColor = getProgressBarColor(actualHours, effectiveTarget, true);
 
     useEffect(() => {
         if (editing && inputRef.current) {
@@ -241,15 +251,23 @@ const WeeklyTargetCell = React.memo(({totalHours, targetHours, formatHours, onTa
 
     const commitEdit = (value: string) => {
         setEditing(false);
-        const parsed = Number(value);
-        const safe = Number.isFinite(parsed) && parsed >= 0 ? parsed : targetHours;
-        onTargetChange(safe);
+        const trimmed = value.trim();
+        if (trimmed === "") {
+            onTargetChange(null);
+            return;
+        }
+        const parsed = Number(trimmed);
+        if (Number.isFinite(parsed) && parsed >= 0) {
+            onTargetChange(parsed);
+        } else {
+            onTargetChange(targetHours);
+        }
     };
 
     return (
         <div className={"totalHoursCell"}>
             <span className={"totalHoursText"}>
-                <strong>{formatHours(totalHours)}</strong>
+                <strong>{formatHours(actualHours)}</strong>
                 <span className={"totalHoursSeparator"}>/</span>
                 {editing ? (
                     <input
@@ -258,7 +276,8 @@ const WeeklyTargetCell = React.memo(({totalHours, targetHours, formatHours, onTa
                         type={"number"}
                         min={0}
                         step={0.25}
-                        defaultValue={targetHours}
+                        placeholder={"--"}
+                        defaultValue={targetHours ?? ""}
                         onBlur={e => commitEdit(e.currentTarget.value)}
                         onKeyDown={e => { if (e.key === "Enter") e.currentTarget.blur(); }}
                     />
@@ -267,11 +286,38 @@ const WeeklyTargetCell = React.memo(({totalHours, targetHours, formatHours, onTa
                         className={"projectedInlineButton"}
                         type={"button"}
                         onClick={() => setEditing(true)}
-                        title={"Click to edit weekly target"}
+                        title={"Click to edit target (leave empty to clear)"}
                     >
-                        {formatHours(targetHours)}
+                        {targetHours != null && targetHours > 0 ? formatHours(targetHours) : "--"}
                     </button>
                 )}
+            </span>
+            <div className={"progressBarTrack"}>
+                <div
+                    className={"progressBarFill"}
+                    style={{width: `${progressPct}%`, background: barColor}}
+                />
+            </div>
+        </div>
+    );
+});
+
+/** Read-only worked / planned display for the Planned work summary row. */
+const PlannedWorkCell = React.memo(({actualHours, projectedHours, formatHours}: {
+    actualHours: number;
+    projectedHours: number;
+    formatHours: (h: number) => string;
+}) => {
+    const progressPct = projectedHours > 0 ? Math.min((actualHours / projectedHours) * 100, 100) : (actualHours > 0 ? 100 : 0);
+    const barColor = getProgressBarColor(actualHours, projectedHours, true);
+    const showActual = formatHours(actualHours);
+    const showPlanned = projectedHours > 0 ? formatHours(projectedHours) : "--";
+    return (
+        <div className={"totalHoursCell"}>
+            <span className={"totalHoursText"}>
+                <strong>{showActual}</strong>
+                <span className={"totalHoursSeparator"}>/</span>
+                <span>{showPlanned}</span>
             </span>
             <div className={"progressBarTrack"}>
                 <div
@@ -384,8 +430,9 @@ const ManualTimeCell = React.memo(({projectId, date, hours, formatHoursFn, onTim
     );
 });
 
-const NotesButton = React.memo(({hasNotes, onClick}: {
+const NotesButton = React.memo(({hasNotes, openTaskCount = 0, onClick}: {
     hasNotes: boolean;
+    openTaskCount?: number;
     onClick: () => void;
 }) => (
     <button
@@ -394,13 +441,20 @@ const NotesButton = React.memo(({hasNotes, onClick}: {
         onClick={onClick}
         title={hasNotes ? "View/edit notes" : "Add notes"}
     >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-            <polyline points="14 2 14 8 20 8"/>
-            <line x1="16" y1="13" x2="8" y2="13"/>
-            <line x1="16" y1="17" x2="8" y2="17"/>
-            <polyline points="10 9 9 9 8 9"/>
-        </svg>
+        <span className="notesIconButtonInner">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/>
+                <line x1="16" y1="17" x2="8" y2="17"/>
+                <polyline points="10 9 9 9 8 9"/>
+            </svg>
+            {openTaskCount > 0 && (
+                <span className="notesTaskBadge" aria-label={`${openTaskCount} open task${openTaskCount !== 1 ? "s" : ""}`}>
+                    {openTaskCount > 99 ? "99+" : openTaskCount}
+                </span>
+            )}
+        </span>
     </button>
 ));
 
@@ -639,15 +693,55 @@ export const WeekPage = () => {
         [projectNotes]
     );
 
-    const weeklyBillableTarget = useLiveQuery(
+    const openTaskCountByProjectId = useMemo(
+        () => Object.keys(projectNotesByProjectId).reduce((acc: {[projectId: number]: number}, projectIdStr) => {
+            const projectId = Number(projectIdStr);
+            if (Number.isFinite(projectId)) {
+                acc[projectId] = countOpenTasks(projectNotesByProjectId[projectId] ?? "");
+            }
+            return acc;
+        }, {}),
+        [projectNotesByProjectId]
+    );
+
+    /** Total row target; undefined when not set (no default so row can show "--"). */
+    const weeklyTotalTarget = useLiveQuery(
         async () => {
             const weekSetting = await calendarDb.settings.get(getWeeklyTargetKey(weekStartKey));
-            if (weekSetting) return weekSetting.value;
+            return weekSetting?.value ?? undefined;
+        },
+        [weekStartKey],
+        undefined
+    );
+
+    /** Global default for metrics bar when no week targets are set. */
+    const globalDefaultTarget = useLiveQuery(
+        async () => {
             const globalSetting = await calendarDb.settings.get(BILLABLE_TARGET_SETTING_KEY);
             return globalSetting?.value ?? DEFAULT_BILLABLE_TARGET_HOURS;
         },
-        [weekStartKey],
+        [],
         DEFAULT_BILLABLE_TARGET_HOURS
+    );
+
+    /** Billable row target only; undefined when not set. */
+    const weeklyBillableRowTarget = useLiveQuery(
+        async () => {
+            const row = await calendarDb.settings.get(getWeeklyBillableTargetKey(weekStartKey));
+            return row?.value ?? undefined;
+        },
+        [weekStartKey],
+        undefined
+    );
+
+    /** Non-billable row target only; undefined when not set. */
+    const weeklyNonBillableRowTarget = useLiveQuery(
+        async () => {
+            const row = await calendarDb.settings.get(getWeeklyNonBillableTargetKey(weekStartKey));
+            return row?.value ?? undefined;
+        },
+        [weekStartKey],
+        undefined
     );
 
     const safeProjectPreferences = (projectPreferences || []) as IProjectPreference[];
@@ -860,15 +954,61 @@ export const WeekPage = () => {
         await upsertWeeklyPlan(projectId, projectedHours);
     }, [upsertWeeklyPlan, weeklyPlanByProjectId]);
 
-    const updateWeeklyTarget = useCallback(async (value: number) => {
-        await calendarDb.settings.put({
-            key: getWeeklyTargetKey(weekStartKey),
-            value: roundHours(Math.max(value, 0)),
-            updatedAt: Date.now()
-        });
-    }, [weekStartKey]);
+    const putSetting = useCallback(async (key: string, value: number | null) => {
+        if (value == null || value <= 0) {
+            await calendarDb.settings.delete(key);
+        } else {
+            await calendarDb.settings.put({
+                key,
+                value: roundHours(value),
+                updatedAt: Date.now()
+            });
+        }
+    }, []);
 
-    const [showTargetDialog, setShowTargetDialog] = useState(false);
+    const onBillableTargetChange = useCallback(async (newBillable: number | null) => {
+        const billableKey = getWeeklyBillableTargetKey(weekStartKey);
+        const nonBillableKey = getWeeklyNonBillableTargetKey(weekStartKey);
+        const totalKey = getWeeklyTargetKey(weekStartKey);
+        await putSetting(billableKey, newBillable ?? 0);
+        const totalSetting = await calendarDb.settings.get(totalKey);
+        const nonBillableSetting = await calendarDb.settings.get(nonBillableKey);
+        const currentTotal = totalSetting?.value;
+        const currentNonBillable = nonBillableSetting?.value;
+        if (newBillable != null && newBillable > 0 && currentNonBillable != null && currentNonBillable > 0 && currentTotal != null) {
+            await putSetting(totalKey, roundHours(newBillable + currentNonBillable));
+        }
+    }, [weekStartKey, putSetting]);
+
+    const onNonBillableTargetChange = useCallback(async (newNonBillable: number | null) => {
+        const billableKey = getWeeklyBillableTargetKey(weekStartKey);
+        const nonBillableKey = getWeeklyNonBillableTargetKey(weekStartKey);
+        const totalKey = getWeeklyTargetKey(weekStartKey);
+        await putSetting(nonBillableKey, newNonBillable ?? 0);
+        const totalSetting = await calendarDb.settings.get(totalKey);
+        const billableSetting = await calendarDb.settings.get(billableKey);
+        const currentTotal = totalSetting?.value;
+        const currentBillable = billableSetting?.value;
+        if (newNonBillable != null && newNonBillable > 0 && currentBillable != null && currentBillable > 0 && currentTotal != null) {
+            await putSetting(totalKey, roundHours(currentBillable + newNonBillable));
+        }
+    }, [weekStartKey, putSetting]);
+
+    const onTotalTargetChange = useCallback(async (newTotal: number | null) => {
+        const totalKey = getWeeklyTargetKey(weekStartKey);
+        const billableKey = getWeeklyBillableTargetKey(weekStartKey);
+        const nonBillableKey = getWeeklyNonBillableTargetKey(weekStartKey);
+        await putSetting(totalKey, newTotal ?? 0);
+        if (newTotal != null && newTotal > 0) {
+            const billableSetting = await calendarDb.settings.get(billableKey);
+            const nonBillableSetting = await calendarDb.settings.get(nonBillableKey);
+            const currentBillable = billableSetting?.value;
+            const currentNonBillable = nonBillableSetting?.value;
+            if (currentBillable != null && currentBillable > 0 && currentNonBillable != null && currentNonBillable > 0) {
+                await putSetting(nonBillableKey, roundHours(Math.max(0, newTotal - currentBillable)));
+            }
+        }
+    }, [weekStartKey, putSetting]);
     const [notesProjectId, setNotesProjectId] = useState<number | null>(null);
     const [copiedToast, setCopiedToast] = useState<string | null>(null);
     const toastTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
@@ -881,16 +1021,22 @@ export const WeekPage = () => {
         });
     }, []);
 
-    const safeBillableTarget = weeklyBillableTarget ?? DEFAULT_BILLABLE_TARGET_HOURS;
+    const totalTargetValue = weeklyTotalTarget ?? null;
+    const billableTargetValue = weeklyBillableRowTarget ?? null;
+    const nonBillableTargetValue = weeklyNonBillableRowTarget ?? null;
+    const safeDefault = globalDefaultTarget ?? DEFAULT_BILLABLE_TARGET_HOURS;
+    const effectiveTargetForBar = weeklyTotalTarget ?? (billableTargetValue != null && nonBillableTargetValue != null
+        ? billableTargetValue + nonBillableTargetValue
+        : null) ?? safeDefault;
     const currentBillableHours = tableRows
         .filter(row => row.billable)
         .reduce((acc, row) => acc + row.totalHours, 0);
     const projectedHoursTotal = tableRows.reduce((acc, row) => acc + row.projectedHours, 0);
 
-    const metricTotal = currentBillableHours + projectedHoursTotal + safeBillableTarget;
+    const metricTotal = currentBillableHours + projectedHoursTotal + effectiveTargetForBar;
     const billableBarWidth = metricTotal > 0 ? (currentBillableHours / metricTotal) * 100 : 100 / 3;
     const projectedBarWidth = metricTotal > 0 ? (projectedHoursTotal / metricTotal) * 100 : 100 / 3;
-    const targetBarWidth = metricTotal > 0 ? (safeBillableTarget / metricTotal) * 100 : 100 / 3;
+    const targetBarWidth = metricTotal > 0 ? (effectiveTargetForBar / metricTotal) * 100 : 100 / 3;
 
     const billableSummary = useMemo(
         () => summarizeRows(tableRows.filter(row => row.billable), dateKeys),
@@ -906,6 +1052,15 @@ export const WeekPage = () => {
         () => summarizeRows(tableRows, dateKeys),
         [tableRows, dateKeys]
     );
+
+    const plannedWorkSummary = useMemo(() => {
+        const plannedWorkRows = tableRows.filter(row =>
+            row.hasWeeklyPlan ||
+            row.projectedHours > 0 ||
+            dateKeys.some(d => (row.dailyProjectedHours[d] || 0) > 0)
+        );
+        return summarizeRows(plannedWorkRows, dateKeys);
+    }, [tableRows, dateKeys]);
 
     const hasAnyDailyProjections = useMemo(
         () => tableRows.some(row => dateKeys.some(d => (row.dailyProjectedHours[d] || 0) > 0)),
@@ -1120,13 +1275,14 @@ export const WeekPage = () => {
                 cell: ({row}) => (
                     <NotesButton
                         hasNotes={row.original.hasNotes}
+                        openTaskCount={openTaskCountByProjectId[row.original.projectId] ?? 0}
                         onClick={() => setNotesProjectId(row.original.projectId)}
                     />
                 ),
                 enableSorting: false
             }
         ];
-    }, [dateKeys, formatHoursForDisplay, renderDailyCellContent, toggleProjectBillable, upsertWeeklyPlan]);
+    }, [dateKeys, formatHoursForDisplay, openTaskCountByProjectId, renderDailyCellContent, toggleProjectBillable, upsertWeeklyPlan]);
 
     const varianceColumns = useMemo<ColumnDef<IWeekTableRow>[]>(() => {
         return [
@@ -1419,14 +1575,11 @@ export const WeekPage = () => {
                     <div className={"metricSegment projected"} style={{width: `${projectedBarWidth}%`}}/>
                     <div className={"metricSegment target"} style={{width: `${targetBarWidth}%`}}/>
                 </div>
-                <button className={"weekHeaderButton"} onClick={() => setShowTargetDialog(true)}>
-                    Edit Target
-                </button>
             </div>
             <div className={"metricLegend"}>
                 <span><strong>Current Billable:</strong> {formatHoursForDisplay(currentBillableHours)}</span>
                 <span><strong>Projected:</strong> {formatHoursForDisplay(projectedHoursTotal)}</span>
-                <span><strong>Target:</strong> {formatHoursForDisplay(safeBillableTarget)}</span>
+                <span><strong>Target:</strong> {formatHoursForDisplay(effectiveTargetForBar)}</span>
             </div>
 
             <div className={"weekTableContainer"}>
@@ -1479,35 +1632,64 @@ export const WeekPage = () => {
                     </tbody>
                     <tfoot>
                     <tr>
-                        <th>Billable</th>
+                        <th title={"Actual hours worked vs total projected hours for projects in your weekly plan (projects with projected hours or daily projections)."}>Planned work</th>
+                        <th/>
+                        {dateKeys.map(date => (
+                            <th key={`planned-work-${date}`}>{formatHoursForDisplay(plannedWorkSummary.dailyHours[date] || 0)}</th>
+                        ))}
+                        <th>
+                            <PlannedWorkCell
+                                actualHours={plannedWorkSummary.totalHours}
+                                projectedHours={plannedWorkSummary.projectedHours}
+                                formatHours={formatHoursForDisplay}
+                            />
+                        </th>
+                        <th/>
+                    </tr>
+                    <tr>
+                        <th title={"Sum of tracked hours for projects marked as billable (B). Compare to your optional billable target."}>Billable</th>
                         <th/>
                         {dateKeys.map(date => (
                             <th key={`billable-${date}`}>{formatHoursForDisplay(billableSummary.dailyHours[date] || 0)}</th>
                         ))}
-                        <th>{formatHoursForDisplay(billableSummary.totalHours)}{billableSummary.projectedHours > 0 ? ` / ${formatHoursForDisplay(billableSummary.projectedHours)}` : ""}</th>
+                        <th>
+                            <OptionalWeeklyTargetCell
+                                actualHours={billableSummary.totalHours}
+                                targetHours={billableTargetValue}
+                                formatHours={formatHoursForDisplay}
+                                onTargetChange={v => void onBillableTargetChange(v)}
+                            />
+                        </th>
                         <th/>
                     </tr>
                     <tr>
-                        <th>Non-billable</th>
+                        <th title={"Sum of tracked hours for projects marked as non-billable (NB). Compare to your optional non-billable target."}>Non-billable</th>
                         <th/>
                         {dateKeys.map(date => (
                             <th key={`non-billable-${date}`}>{formatHoursForDisplay(nonBillableSummary.dailyHours[date] || 0)}</th>
                         ))}
-                        <th>{formatHoursForDisplay(nonBillableSummary.totalHours)}{nonBillableSummary.projectedHours > 0 ? ` / ${formatHoursForDisplay(nonBillableSummary.projectedHours)}` : ""}</th>
+                        <th>
+                            <OptionalWeeklyTargetCell
+                                actualHours={nonBillableSummary.totalHours}
+                                targetHours={nonBillableTargetValue}
+                                formatHours={formatHoursForDisplay}
+                                onTargetChange={v => void onNonBillableTargetChange(v)}
+                            />
+                        </th>
                         <th/>
                     </tr>
                     <tr className={"summaryTotal"}>
-                        <th>Total</th>
+                        <th title={"Sum of all tracked hours across every project this week. Compare to your optional weekly total target."}>Total</th>
                         <th/>
                         {dateKeys.map(date => (
                             <th key={`total-${date}`}>{formatHoursForDisplay(totalSummary.dailyHours[date] || 0)}</th>
                         ))}
                         <th>
-                            <WeeklyTargetCell
-                                totalHours={totalSummary.totalHours}
-                                targetHours={safeBillableTarget}
+                            <OptionalWeeklyTargetCell
+                                actualHours={totalSummary.totalHours}
+                                targetHours={totalTargetValue}
                                 formatHours={formatHoursForDisplay}
-                                onTargetChange={value => void updateWeeklyTarget(value)}
+                                onTargetChange={v => void onTotalTargetChange(v)}
                             />
                         </th>
                         <th/>
@@ -1567,15 +1749,6 @@ export const WeekPage = () => {
                 </div>
             )}
 
-            <InputDialog
-                open={showTargetDialog}
-                onClose={() => setShowTargetDialog(false)}
-                onConfirm={value => void updateWeeklyTarget(value)}
-                title={"Edit Weekly Target"}
-                description={`Set your billable hours target for the week of ${weekStart.format("MMM D")} - ${weekEnd.format("MMM D, YYYY")}.`}
-                label={"Hours per week"}
-                defaultValue={safeBillableTarget}
-            />
             {copiedToast && <div className={"copyToast"}>{copiedToast}</div>}
             {notesProjectId != null && notesRow && (
                 <ProjectNotesDialog
