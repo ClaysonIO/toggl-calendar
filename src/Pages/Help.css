@@ -1,0 +1,120 @@
+.helpPage {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 1rem 1.5rem 2rem;
+    color: var(--text-primary);
+}
+
+.helpPage h1 {
+    margin: 0 0 1rem;
+    font-size: 1.5rem;
+    color: var(--text-primary);
+}
+
+.helpAccordion {
+    margin-top: 0.5rem;
+}
+
+.helpAccordionSection {
+    margin: 1.25rem 0 0.5rem;
+    font-size: 1.2rem;
+    color: var(--text-primary);
+}
+
+.helpAccordionSection:first-child {
+    margin-top: 0;
+}
+
+.helpAccordionItem {
+    border: 1px solid var(--border-primary);
+    border-radius: 6px;
+    margin-bottom: 8px;
+    overflow: hidden;
+    background: var(--bg-secondary);
+}
+
+.helpAccordionQuestion {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    text-align: left;
+    padding: 12px 14px;
+    border: none;
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+.helpAccordionQuestion:hover {
+    background: var(--bg-hover);
+}
+
+.helpAccordionIcon {
+    flex-shrink: 0;
+    font-size: 1.1rem;
+    opacity: 0.85;
+    color: var(--text-muted);
+}
+
+.helpAccordionAnswer {
+    border-top: 1px solid var(--border-primary);
+    background: var(--bg-secondary);
+}
+
+.helpAccordionAnswer[hidden] {
+    display: none;
+}
+
+.helpAccordionAnswerInner {
+    padding: 12px 14px;
+    line-height: 1.5;
+    color: var(--text-secondary);
+}
+
+.helpAccordionAnswerInner p {
+    margin: 0 0 0.5rem;
+}
+
+.helpAccordionAnswerInner p:last-child {
+    margin-bottom: 0;
+}
+
+.helpAccordionAnswerInner strong {
+    color: var(--text-primary);
+}
+
+.helpAccordionAnswerInner a {
+    color: var(--link-color);
+}
+
+/* Dark mode: stronger card separation and readability */
+[data-theme="dark"] .helpAccordionItem {
+    border-color: var(--border-primary);
+    background: var(--bg-secondary);
+}
+
+[data-theme="dark"] .helpAccordionQuestion {
+    background: var(--bg-tertiary);
+}
+
+[data-theme="dark"] .helpAccordionQuestion:hover {
+    background: var(--bg-hover);
+}
+
+[data-theme="dark"] .helpAccordionAnswer {
+    border-top-color: var(--border-primary);
+    background: var(--bg-primary);
+}
+
+[data-theme="dark"] .helpAccordionAnswerInner {
+    color: var(--text-secondary);
+}
+
+[data-theme="dark"] .helpAccordionIcon {
+    color: var(--text-faint);
+}

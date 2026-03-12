@@ -78,6 +78,9 @@ export const Header = () => {
                         Manual Entry
                     </span>
                 ) : null}
+                <Link to={"/help"} className={"menuButton"} title={"Help"} style={{fontSize: "1rem", textDecoration: "none"}}>
+                    &#10068; Help
+                </Link>
                 <button
                     className={"menuButton"}
                     onClick={toggleDark}
