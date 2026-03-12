@@ -76,6 +76,12 @@ export interface IProjectNote {
     updatedAt: number;
 }
 
+/** Cached Toggl workspace list for offline use (id = Toggl workspace id) */
+export interface ITogglWorkspaceStored {
+    id: number;
+    name: string;
+}
+
 export const MANUAL_WORKSPACE_ID = -1;
 
 export const getManualTimeEntryKey = (projectId: number, date: string) =>
@@ -92,6 +98,7 @@ class CalendarDatabase extends Dexie {
     manualProjects!: Table<IManualProject, number>;
     manualTimeEntries!: Table<IManualTimeEntry, string>;
     projectNotes!: Table<IProjectNote, string>;
+    togglWorkspaces!: Table<ITogglWorkspaceStored, number>;
 
     constructor() {
         super("togglCalendarDatabase");
@@ -137,6 +144,19 @@ class CalendarDatabase extends Dexie {
             manualProjects: "++id, companyId",
             manualTimeEntries: "key, projectId, date",
             projectNotes: "key, workspaceId, projectId, [workspaceId+projectId]"
+        });
+        this.version(6).stores({
+            projectPreferences: "key, workspaceId, projectId, [workspaceId+projectId]",
+            weeklyProjectPlans: "key, workspaceId, weekStart, projectId, [workspaceId+weekStart], [workspaceId+weekStart+projectId]",
+            settings: "key",
+            dailyBillableProjections: "key, workspaceId, date, [workspaceId+date]",
+            togglProjects: "key, workspace_id",
+            togglTimeEntries: "id, [workspaceId+startDate]",
+            manualCompanies: "++id",
+            manualProjects: "++id, companyId",
+            manualTimeEntries: "key, projectId, date",
+            projectNotes: "key, workspaceId, projectId, [workspaceId+projectId]",
+            togglWorkspaces: "id"
         });
     }
 }

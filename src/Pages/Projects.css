@@ -1,0 +1,219 @@
+.projectsPage {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.projectsWelcome {
+    padding: 24px;
+}
+
+.projectsWelcome h2 {
+    margin: 0 0 8px 0;
+}
+
+.projectsHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.projectsHeader h2 {
+    margin: 0;
+    font-size: 1.25rem;
+}
+
+.projectsControls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.projectsFyNav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.projectsAddCompany {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.projectsInput {
+    padding: 6px 10px;
+    font-size: 0.9rem;
+    border: 1px solid var(--border-input);
+    border-radius: 6px;
+    background: var(--bg-input);
+    color: var(--text-primary);
+    min-width: 200px;
+}
+
+.projectsInputSmall {
+    min-width: 140px;
+}
+
+.projectsButton {
+    padding: 6px 12px;
+    font-size: 0.9rem;
+    border-radius: 6px;
+    border: 1px solid var(--border-input);
+    background: var(--bg-button);
+    color: var(--text-primary);
+    cursor: pointer;
+}
+
+.projectsButton:hover:not(:disabled) {
+    opacity: 0.9;
+}
+
+.projectsButton:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.projectsButtonPrimary {
+    background: var(--header-bg);
+    color: var(--header-text);
+    border: none;
+}
+
+.projectsButtonSmall {
+    padding: 4px 10px;
+    font-size: 0.85rem;
+}
+
+.projectsTableWrap {
+    overflow-x: auto;
+    border: 1px solid var(--border-search);
+    border-radius: 8px;
+    background: var(--dialog-bg);
+}
+
+.projectsTable {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.projectsTable th,
+.projectsTable td {
+    padding: 8px 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-search);
+}
+
+.projectsTable th {
+    font-weight: 600;
+    background: var(--config-workspace-bg);
+}
+
+.projectsTable tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.projectsCompanyRow {
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.projectsCompanyRow:hover {
+    background: var(--config-workspace-hover);
+}
+
+.projectsProjectRow {
+    background: var(--bg-input);
+}
+
+.projectsProjectRow td {
+    border-bottom: 1px solid var(--border-search);
+}
+
+.projectsColName {
+    min-width: 200px;
+}
+
+.projectsColHours {
+    width: 100px;
+    text-align: right;
+}
+
+.projectsColActions {
+    width: 120px;
+}
+
+.projectsExpandIcon {
+    display: inline-block;
+    margin-right: 6px;
+    transition: transform 0.15s ease;
+}
+
+.projectsExpandIcon.expanded {
+    transform: rotate(90deg);
+}
+
+.projectsProjectIndent {
+    display: inline-block;
+    width: 24px;
+}
+
+.projectsProjectColor {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 8px;
+    vertical-align: middle;
+}
+
+.projectsAddProjectRow td {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border-search);
+}
+
+.projectsAddProjectButton {
+    padding: 4px 8px;
+    font-size: 0.85rem;
+    border: 1px dashed var(--border-input);
+    background: transparent;
+    color: var(--text-primary);
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+.projectsAddProjectButton:hover {
+    background: var(--config-workspace-hover);
+}
+
+.projectsColorPicker {
+    display: inline-flex;
+    gap: 4px;
+    margin-left: 8px;
+    vertical-align: middle;
+}
+
+.projectsColorSwatch {
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    border: 2px solid transparent;
+    cursor: pointer;
+    padding: 0;
+}
+
+.projectsColorSwatch.selected {
+    border-color: var(--text-primary);
+}
+
+.projectsEmpty {
+    text-align: center;
+    padding: 24px;
+    color: var(--text-muted);
+    font-style: italic;
+}

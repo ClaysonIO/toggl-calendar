@@ -2,6 +2,8 @@ import React, {useRef, useState} from "react";
 import {calendarDb, ANNUAL_TARGET_HOURS_KEY, ANNUAL_TARGET_PERCENTAGE_KEY} from "../Utilities/calendarDb";
 import {FULL_TIME_HOURS} from "../Utilities/yearViewUtils";
 
+const roundToQuarterHour = (h: number) => Math.round(h * 4) / 4;
+
 export function YearEditTargetDialog({
     annualTargetHours,
     annualTargetPct,
@@ -11,9 +13,9 @@ export function YearEditTargetDialog({
     annualTargetPct?: number;
     onClose: () => void;
 }) {
-    const [hoursInput, setHoursInput] = useState(String(annualTargetHours));
+    const [hoursInput, setHoursInput] = useState(String(roundToQuarterHour(annualTargetHours)));
     const [pctInput, setPctInput] = useState(
-        annualTargetPct != null ? String(annualTargetPct) : String(Math.round((annualTargetHours / FULL_TIME_HOURS) * 100))
+        annualTargetPct != null ? String(annualTargetPct) : String(Math.round((roundToQuarterHour(annualTargetHours) / FULL_TIME_HOURS) * 100))
     );
     const pointerDownOnOverlay = useRef(false);
 
@@ -22,8 +24,9 @@ export function YearEditTargetDialog({
         setHoursInput(raw);
         const parsed = Number(raw);
         if (Number.isFinite(parsed) && parsed >= 0) {
-            const pct = Math.round((parsed / FULL_TIME_HOURS) * 100);
-            setPctInput(String(Math.min(100, Math.max(0, pct))));
+            const rounded = roundToQuarterHour(parsed);
+            setHoursInput(String(rounded));
+            setPctInput(String(Math.min(100, Math.max(0, Math.round((rounded / FULL_TIME_HOURS) * 100)))));
         }
     };
     const handlePctChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -31,7 +34,8 @@ export function YearEditTargetDialog({
         setPctInput(raw);
         const parsed = Number(raw);
         if (Number.isFinite(parsed) && parsed >= 0 && parsed <= 100) {
-            setHoursInput(String(Math.round((parsed / 100) * FULL_TIME_HOURS)));
+            const derivedHours = (parsed / 100) * FULL_TIME_HOURS;
+            setHoursInput(String(roundToQuarterHour(derivedHours)));
         }
     };
 
@@ -40,12 +44,13 @@ export function YearEditTargetDialog({
         const pct = Number(pctInput);
         const now = Date.now();
         if (Number.isFinite(hours) && hours >= 0) {
+            const roundedHours = roundToQuarterHour(hours);
             await calendarDb.settings.put({
                 key: ANNUAL_TARGET_HOURS_KEY,
-                value: hours,
+                value: roundedHours,
                 updatedAt: now
             });
-            const derivedPct = Math.round((hours / FULL_TIME_HOURS) * 100);
+            const derivedPct = Math.round((roundedHours / FULL_TIME_HOURS) * 100);
             await calendarDb.settings.put({
                 key: ANNUAL_TARGET_PERCENTAGE_KEY,
                 value: Math.min(100, Math.max(0, derivedPct)),
@@ -53,14 +58,15 @@ export function YearEditTargetDialog({
             });
         } else if (Number.isFinite(pct) && pct >= 0 && pct <= 100) {
             const derivedHours = (pct / 100) * FULL_TIME_HOURS;
+            const roundedHours = roundToQuarterHour(derivedHours);
             await calendarDb.settings.put({
                 key: ANNUAL_TARGET_HOURS_KEY,
-                value: Math.round(derivedHours),
+                value: roundedHours,
                 updatedAt: now
             });
             await calendarDb.settings.put({
                 key: ANNUAL_TARGET_PERCENTAGE_KEY,
-                value: pct,
+                value: Math.round((roundedHours / FULL_TIME_HOURS) * 100),
                 updatedAt: now
             });
         }

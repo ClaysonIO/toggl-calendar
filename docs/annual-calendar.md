@@ -19,7 +19,7 @@ This daily billable projection will require edits to the data model, as it is no
 
 ## 2. Set Start of Year
 
-This tool is used to track based on the fiscal year, which does not necessarily align with the calendar year. In the configuration dialog, we should set the month for 'Start of Year'
+This tool is used to track based on the fiscal year, which does not necessarily align with the calendar year. In the configuration dialog, we should set the month for 'Start of Year'. The fiscal year is named by its **ending** year (e.g. FY27 is the period ending in 2027, such as Feb 2026 – Feb 2027).
 
 ## 4. Set a target worked hours per year
 

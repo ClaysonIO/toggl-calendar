@@ -28,6 +28,8 @@ import {ManualDayTimeDialog} from "../Components/ManualDayTimeDialog";
 import {ManualCompanyProjectDialog} from "../Components/ManualCompanyProjectDialog";
 import "./Year.css";
 
+const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
 export const YearPage = () => {
     const {selectedWorkspace, dataMode, setDataMode} = useAppContext();
     const {togglApiKey} = useTogglApiKey();
@@ -45,6 +47,8 @@ export const YearPage = () => {
     const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
     const [manualDayEdit, setManualDayEdit] = useState<string | null>(null);
     const [manageOpen, setManageOpen] = useState(false);
+    const [fiscalStartPickerOpen, setFiscalStartPickerOpen] = useState(false);
+    const [selectedFyLabel, setSelectedFyLabel] = useState<string | null>(null);
 
     const projects = useLiveQuery(
         async () => {
@@ -63,11 +67,23 @@ export const YearPage = () => {
         undefined
     );
     const startMonth = Math.min(12, Math.max(1, startOfYearSetting?.value ?? 1));
+    const setStartOfYearMonth = useCallback(async (month: number) => {
+        await calendarDb.settings.put({
+            key: START_OF_YEAR_MONTH_KEY,
+            value: Math.min(12, Math.max(1, month)),
+            updatedAt: Date.now()
+        });
+    }, []);
 
-    const fiscalYear = useMemo(
-        () => getFiscalYearBounds(dayjs(), startMonth),
-        [startMonth]
-    );
+    const fiscalYear = useMemo(() => {
+        const refDate = selectedFyLabel
+            ? (() => {
+                const startYear = startMonth === 1 ? selectedFyLabel : String(Number(selectedFyLabel) - 1);
+                return dayjs(`${startYear}-${String(startMonth).padStart(2, "0")}-15`);
+            })()
+            : dayjs();
+        return getFiscalYearBounds(refDate, startMonth);
+    }, [startMonth, selectedFyLabel]);
     const {startKey: fyStartKey, endKey: fyEndKey} = fiscalYear;
     const monthStarts = useMemo(
         () => getFiscalYearMonthStarts(fiscalYear.start, fiscalYear.end),
@@ -279,6 +295,70 @@ export const YearPage = () => {
                 <div className={"yearHeader"}>
                     <h2>FY{fiscalYear.label} — {fiscalYear.start.format("MMM D, YYYY")} – {fiscalYear.end.format("MMM D, YYYY")}</h2>
                     <div className={"yearControls"}>
+                        <div className={"yearFyNav"}>
+                            <button
+                                type={"button"}
+                                className={"calendarHeaderButton"}
+                                onClick={() => setSelectedFyLabel(String(Number(fiscalYear.label) - 1))}
+                            >
+                                &lt;
+                            </button>
+                            <button
+                                type={"button"}
+                                className={"calendarHeaderButton"}
+                                onClick={() => setSelectedFyLabel(null)}
+                            >
+                                Today
+                            </button>
+                            <button
+                                type={"button"}
+                                className={"calendarHeaderButton"}
+                                onClick={() => setSelectedFyLabel(String(Number(fiscalYear.label) + 1))}
+                            >
+                                &gt;
+                            </button>
+                        </div>
+                        <div className={"yearFiscalStartWrap"}>
+                            <button
+                                type={"button"}
+                                className={"calendarHeaderButton"}
+                                onClick={() => setFiscalStartPickerOpen(true)}
+                                title={"First month of fiscal year"}
+                            >
+                                Fiscal year start
+                            </button>
+                            {fiscalStartPickerOpen && (
+                                <div
+                                    className={"yearEditDayPopup"}
+                                    onClick={() => setFiscalStartPickerOpen(false)}
+                                >
+                                    <div
+                                        className={"yearEditDayContent"}
+                                        onClick={e => e.stopPropagation()}
+                                        style={{ minWidth: 200 }}
+                                    >
+                                        <h3 style={{ marginTop: 0 }}>Start of fiscal year</h3>
+                                        <label htmlFor={"yearFiscalStartMonth"}>First month</label>
+                                        <select
+                                            id={"yearFiscalStartMonth"}
+                                            value={startMonth}
+                                            onChange={e => {
+                                                void setStartOfYearMonth(Number(e.target.value));
+                                                setFiscalStartPickerOpen(false);
+                                            }}
+                                            aria-label={"First month of fiscal year"}
+                                        >
+                                            {MONTH_NAMES.map((name, i) => (
+                                                <option key={i} value={i + 1}>{name}</option>
+                                            ))}
+                                        </select>
+                                        <div className={"yearEditDayActions"} style={{ marginTop: 12 }}>
+                                            <button type={"button"} onClick={() => setFiscalStartPickerOpen(false)}>Close</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                         <div className={"calendarDisplayButtonGroup"}>
                             <button
                                 type={"button"}

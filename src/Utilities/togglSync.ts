@@ -28,6 +28,7 @@ export async function syncProjects(apiKey: string, workspaceId: number): Promise
 
 /**
  * Fetch time entries for a date range from Toggl and write them to Dexie.
+ * Works for any date range (e.g. one week for Calendar or full year for Year view).
  * Upserts entries by id (so overlapping fetches merge correctly).
  */
 export async function syncWeekDetails(
@@ -49,7 +50,8 @@ export async function syncWeekDetails(
 }
 
 /**
- * Sync a long date range by iterating week-by-week. Use for annual view.
+ * Sync time entries for a date range in a single request (e.g. full fiscal year for annual view).
+ * Toggl API is called once with since/until; pagination is handled inside FetchDateRangeDetails.
  */
 export async function syncDateRange(
     apiKey: string,
@@ -58,13 +60,5 @@ export async function syncDateRange(
     startDate: Dayjs,
     endDate: Dayjs
 ): Promise<void> {
-    let current = startDate.startOf("week");
-    const end = endDate.endOf("week");
-    while (current.isBefore(end) || current.isSame(end, "day")) {
-        const weekEnd = current.endOf("week");
-        const chunkStart = current.isBefore(startDate) ? startDate : current;
-        const chunkEnd = weekEnd.isAfter(endDate) ? endDate : weekEnd;
-        await syncWeekDetails(apiKey, userId, workspaceId, chunkStart, chunkEnd);
-        current = current.add(1, "week").startOf("week");
-    }
+    await syncWeekDetails(apiKey, userId, workspaceId, startDate, endDate);
 }

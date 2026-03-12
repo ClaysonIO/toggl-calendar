@@ -119,7 +119,7 @@ export const ManualDayTimeDialog = ({date, onClose}: Props) => {
                                 <div key={project.id} className={"manualDayProjectRow"}>
                                     <span className={"manualDayProjectColor"} style={{background: project.color}}/>
                                     <span className={"manualDayProjectLabel"}>
-                                        {company?.name ? `${company.name} - ` : ""}{project.name}
+                                        {company?.name ? `${company.name} - ` : ""}{project.name || "Unnamed project"}
                                     </span>
                                     <input
                                         className={"manualDayHoursInput"}
@@ -128,6 +128,7 @@ export const ManualDayTimeDialog = ({date, onClose}: Props) => {
                                         step={0.25}
                                         value={getValue(project.id!)}
                                         onChange={e => handleChange(project.id!, e.target.value)}
+                                        onFocus={e => (e.target as HTMLInputElement).select()}
                                     />
                                     <span className={"manualDayHoursLabel"}>hrs</span>
                                 </div>

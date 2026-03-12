@@ -3,6 +3,7 @@ import dayjs, {Dayjs} from "dayjs";
 /**
  * Return the fiscal year that contains the given date.
  * startMonth 1 = January (calendar year); startMonth 4 = April (e.g. FY runs Apr–Mar).
+ * The label is the ending year (e.g. FY27 for the period ending in 2027).
  */
 export function getFiscalYearBounds(
     date: Dayjs,
@@ -18,7 +19,7 @@ export function getFiscalYearBounds(
         end,
         startKey: start.format("YYYY-MM-DD"),
         endKey: end.format("YYYY-MM-DD"),
-        label: String(fyStartYear)
+        label: String(end.year())
     };
 }
 

@@ -24,6 +24,12 @@
     flex-wrap: wrap;
 }
 
+.yearFyNav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
 .yearProjectSelectWrap {
     position: relative;
 }
@@ -358,12 +364,17 @@
     font-size: 0.85rem;
 }
 
-.yearEditDayContent input {
+.yearEditDayContent input,
+.yearEditDayContent select {
     width: 100%;
     padding: 6px 8px;
     margin-bottom: 12px;
     font-size: 0.9rem;
     box-sizing: border-box;
+}
+
+.yearFiscalStartWrap {
+    position: relative;
 }
 
 .yearEditDayActions {
@@ -417,9 +428,15 @@
 
 .manualDayProjectLabel {
     flex: 1;
+    min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+/* Override .yearEditDayContent input { width: 100% } so the label has space */
+.manualDayContent .manualDayHoursInput {
+    width: 60px;
 }
 
 .manualDayHoursInput {

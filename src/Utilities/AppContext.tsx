@@ -1,7 +1,10 @@
 import React, {createContext, useCallback, useContext, useEffect, useMemo, useRef, useState} from "react";
+import {useLiveQuery} from "dexie-react-hooks";
+import {calendarDb} from "./calendarDb";
 import {useTogglApiKey} from "./useTogglApiKey";
 import {useTogglUser} from "./useTogglUser";
 import {TEST_TOGGL_WORKSPACE_NAME} from "./testingEnv";
+import {ensureDefaultManualWorkspace} from "./seedManualDefault";
 
 interface WorkspaceSummary {
     id: number;
@@ -26,9 +29,16 @@ interface AppContextValue {
 
 const AppContext = createContext<AppContextValue | undefined>(undefined);
 
+function sortWorkspaces(workspaces: WorkspaceSummary[]): WorkspaceSummary[] {
+    return [...workspaces].sort((a, b) =>
+        a.name.toLowerCase().localeCompare(b.name.toLowerCase(), "en", {numeric: true})
+    );
+}
+
 export function AppProvider({children}: {children: React.ReactNode}) {
     const {togglApiKey, setTogglApiKey} = useTogglApiKey();
     const {data: user, isLoading: isLoadingUser, refetch: refetchUser} = useTogglUser();
+    const cachedWorkspaces = useLiveQuery(() => calendarDb.togglWorkspaces.toArray(), []);
 
     const [dataMode, setDataModeState] = useState<DataMode>(() => {
         const stored = localStorage.getItem(DATA_MODE_STORAGE_KEY);
@@ -39,12 +49,12 @@ export function AppProvider({children}: {children: React.ReactNode}) {
         localStorage.setItem(DATA_MODE_STORAGE_KEY, mode);
     }, []);
 
-    const workspaces: WorkspaceSummary[] = useMemo(
-        () => (user?.workspaces ?? [])
-            .map(ws => ({id: ws.id, name: ws.name}))
-            .sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase(), "en", {numeric: true})),
-        [user]
-    );
+    const workspaces: WorkspaceSummary[] = useMemo(() => {
+        const raw = user?.workspaces?.length
+            ? user.workspaces.map(ws => ({id: ws.id, name: ws.name}))
+            : (cachedWorkspaces ?? []);
+        return sortWorkspaces(raw);
+    }, [user, cachedWorkspaces]);
 
     const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<number | null>(() => {
         const stored = localStorage.getItem("workSpaceId");
@@ -83,6 +93,11 @@ export function AppProvider({children}: {children: React.ReactNode}) {
     useEffect(() => {
         autoSelectApplied.current = false;
     }, [togglApiKey]);
+
+    // When in Manual mode, ensure default company and projects exist if none yet.
+    useEffect(() => {
+        if (dataMode === "manual") void ensureDefaultManualWorkspace();
+    }, [dataMode]);
 
     const selectWorkspace = useCallback((id: number | null) => {
         setSelectedWorkspaceId(id);
