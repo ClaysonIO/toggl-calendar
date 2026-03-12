@@ -12,7 +12,7 @@ This tool was built as a 100% client-side application. All requests are made by 
 
 ## Run Locally
 
-It's a basic [CRA](https://create-react-app.dev/) application. To run it locally, clone the repository, run `npm install`, followed by `npm run start`. 
+It's a basic React application using Vite and Typescript. To run it locally, clone the repository, run `npm install`, followed by `npm run start`. 
 
 ### Optional testing env vars
 
