@@ -67,6 +67,7 @@ type RowDisplayMode = "time" | "description" | "timeAndDescription" | "projectio
 
 const TIME_DISPLAY_STORAGE_KEY = "weekTimeDisplayMode";
 const ROW_DISPLAY_STORAGE_KEY = "weekRowDisplayMode";
+const FOCUS_SYNC_THROTTLE_MS = 5 * 60 * 1000;
 
 const safeWindow = typeof window !== "undefined" ? window : undefined;
 
@@ -579,7 +580,7 @@ export const WeekPage = () => {
     const simpleData = simpleDataFromDexie;
     const detailsLoading = !isManual && workspaceId !== 0 && simpleDataFromDexie === undefined;
 
-    const {syncWeekRange, isSyncing, syncError, setSyncError} = useTogglSync(
+    const {syncWeekRange, isSyncing, syncError, setSyncError, lastSyncAtRef} = useTogglSync(
         isManual ? 0 : workspaceId,
         weekStartKey,
         weekEndKey
@@ -587,6 +588,19 @@ export const WeekPage = () => {
     useEffect(() => {
         setSyncError(false);
     }, [weekStartKey, weekEndKey, setSyncError]);
+
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (document.visibilityState !== "visible") return;
+            if (isManual || isSyncing) return;
+            const lastSync = lastSyncAtRef.current;
+            if (lastSync != null && Date.now() - lastSync <= FOCUS_SYNC_THROTTLE_MS) return;
+            setSyncError(false);
+            void syncWeekRange(weekStartKey, weekEndKey);
+        };
+        document.addEventListener("visibilitychange", handleVisibilityChange);
+        return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+    }, [isManual, isSyncing, lastSyncAtRef, setSyncError, syncWeekRange, weekStartKey, weekEndKey]);
 
     const projectPreferences = useLiveQuery(
         async () => {

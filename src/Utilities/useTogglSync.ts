@@ -18,6 +18,7 @@ export function useTogglSync(
     const [isSyncing, setIsSyncing] = useState(false);
     const [syncError, setSyncError] = useState(false);
     const hasInitialSync = useRef(false);
+    const lastSyncAtRef = useRef<number | null>(null);
 
     const syncWeekRange = useCallback(
         async (startDate: string, endDate: string) => {
@@ -32,6 +33,7 @@ export function useTogglSync(
                     dayjs(startDate, "YYYY-MM-DD"),
                     dayjs(endDate, "YYYY-MM-DD")
                 );
+                lastSyncAtRef.current = Date.now();
             } catch {
                 setSyncError(true);
             } finally {
@@ -55,6 +57,7 @@ export function useTogglSync(
                     dayjs(weekStartKey, "YYYY-MM-DD"),
                     dayjs(weekEndKey, "YYYY-MM-DD")
                 );
+                lastSyncAtRef.current = Date.now();
             } catch {
                 // Background sync failure: leave data as-is; user can use manual sync
             }
@@ -66,6 +69,7 @@ export function useTogglSync(
         syncWeekRange,
         isSyncing,
         syncError,
-        setSyncError
+        setSyncError,
+        lastSyncAtRef
     };
 }
