@@ -75,19 +75,41 @@ export class Toggl{
         })
     }
 
+    /**
+     * Fetch all projects for a workspace (Toggl API v9).
+     * Response is { items: [...] }; supports pagination and includes archived (active=both).
+     */
     static fetchProjects(apiKey: string, workspace_id: string): Promise<any[]>{
+        const perPage = 200;
         return new Promise((resolve, reject)=>{
-
-            axios.get(`${TOGGL_API}/api/v9/workspaces/${workspace_id}/projects`, {
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                auth: {username: apiKey, password: "api_token"}
-            })
-                .then(result=> resolve(result.data))
-                .catch(err=>{
-                    reject(err)
+            const collect: any[] = [];
+            const fetchPage = (page: number) => {
+                axios.get(`${TOGGL_API}/api/v9/workspaces/${workspace_id}/projects`, {
+                    params: {
+                        active: "both",
+                        per_page: perPage,
+                        page
+                    },
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    auth: {username: apiKey, password: "api_token"}
                 })
-        })
+                    .then(result => {
+                        const data = result.data;
+                        const items = Array.isArray(data) ? data : (data?.items ?? []);
+                        collect.push(...items);
+                        const total = typeof data?.total_count === "number" ? data.total_count : null;
+                        const done = items.length < perPage || (total != null && collect.length >= total);
+                        if (done) {
+                            resolve(collect);
+                        } else {
+                            setTimeout(() => fetchPage(page + 1), 300);
+                        }
+                    })
+                    .catch(err => reject(err));
+            };
+            fetchPage(1);
+        });
     }
 }

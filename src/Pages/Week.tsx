@@ -506,11 +506,12 @@ const ProjectSearchBar = React.memo(({projects, weeklyPlanProjectIds, onAddProje
             setShowResults(false);
             return;
         }
-        const filtered = projectsRef.current
-            .filter(p => !planIdsRef.current.has(p.id))
-            .filter(p => p.name.toLowerCase().includes(normalized) || (p.client_name || "").toLowerCase().includes(normalized))
-            .sort((a, b) => a.name.localeCompare(b.name, "en", {numeric: true}))
-            .slice(0, 8);
+        const rawProjects = projectsRef.current;
+        const planIds = planIdsRef.current;
+        const notInPlan = rawProjects.filter(p => !planIds.has(p.id));
+        const nameMatched = notInPlan.filter(p => p.name.toLowerCase().includes(normalized) || (p.client_name || "").toLowerCase().includes(normalized));
+        const sorted = nameMatched.sort((a, b) => a.name.localeCompare(b.name, "en", {numeric: true}));
+        const filtered = sorted.slice(0, 8);
         setResults(filtered);
         setShowResults(true);
     }, []);
