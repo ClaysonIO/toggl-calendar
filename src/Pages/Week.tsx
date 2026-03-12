@@ -63,7 +63,7 @@ interface IHoursSummary {
 const roundHours = (hours: number) => Math.round(hours * 100) / 100;
 
 type TimeDisplayMode = "rounded" | "actual";
-type RowDisplayMode = "time" | "description" | "timeAndDescription" | "projections";
+type RowDisplayMode = "time" | "description" | "projections";
 
 const TIME_DISPLAY_STORAGE_KEY = "weekTimeDisplayMode";
 const ROW_DISPLAY_STORAGE_KEY = "weekRowDisplayMode";
@@ -80,7 +80,6 @@ const loadRowDisplayMode = (): RowDisplayMode => {
     const storedValue = safeWindow?.localStorage.getItem(ROW_DISPLAY_STORAGE_KEY);
     switch (storedValue) {
         case "description":
-        case "timeAndDescription":
         case "time":
         case "projections":
             return storedValue;
@@ -982,20 +981,18 @@ export const WeekPage = () => {
 
     const formatVarianceSimple = useCallback((v: number) => {
         if (Math.abs(v) < 0.005) return "0";
-        const sign = v > 0 ? "+" : "-";
-        return sign + formatHoursForDisplay(Math.abs(v));
+        return v < 0 ? "-" + formatHoursForDisplay(Math.abs(v)) : formatHoursForDisplay(v);
     }, [formatHoursForDisplay]);
 
     const formatVariance = useCallback((v: number) => {
         if (Math.abs(v) < 0.005) return "0";
-        const sign = v > 0 ? "+" : "";
-        return sign + formatHoursForDisplay(Math.abs(v)) + (v < 0 ? " short" : " over");
+        return v < 0 ? "-" + formatHoursForDisplay(Math.abs(v)) + " short" : formatHoursForDisplay(v) + " over";
     }, [formatHoursForDisplay]);
 
     const dailyVarianceTotals = useMemo(
         () => dateKeys.reduce((acc: {[date: string]: number}, date) => {
             acc[date] = varianceRows.reduce((sum, row) => {
-                return sum + ((row.dailyProjectedHours[date] || 0) - (row.dailyHours[date] || 0));
+                return sum + ((row.dailyHours[date] || 0) - (row.dailyProjectedHours[date] || 0));
             }, 0);
             return acc;
         }, {}),
@@ -1029,18 +1026,12 @@ export const WeekPage = () => {
             case "description": {
                 if (!hasDescription) return "";
                 return (
-                    <div className={"weekDayCellCopyable"} onClick={() => copyToClipboard(descriptionText)}>
-                        <span className={"weekDayDescription"}>{descriptionText}</span>
-                    </div>
-                );
-            }
-            case "timeAndDescription": {
-                if (!hasDescription && !timeText) return "";
-                const copyText = [timeText, descriptionText].filter(Boolean).join(" — ");
-                return (
-                    <div className={"weekDayCellCombined weekDayCellCopyable"} onClick={() => copyToClipboard(copyText)}>
-                        {timeText ? <strong>{timeText}</strong> : null}
-                        {hasDescription ? <span className={"weekDayDescription"}>{descriptionText}</span> : null}
+                    <div
+                        className={"weekDayCellCopyable"}
+                        title={descriptionText}
+                        onClick={() => copyToClipboard(descriptionText)}
+                    >
+                        <span className={"weekDayDescriptionLine"}>{descriptionText}</span>
                     </div>
                 );
             }
@@ -1163,7 +1154,7 @@ export const WeekPage = () => {
             },
             ...dateKeys.map(date => ({
                 id: date,
-                accessorFn: (row: IWeekTableRow) => (row.dailyProjectedHours[date] || 0) - (row.dailyHours[date] || 0),
+                accessorFn: (row: IWeekTableRow) => (row.dailyHours[date] || 0) - (row.dailyProjectedHours[date] || 0),
                 header: ({column}: any) => (
                     <button className={"weekSortButton"} onClick={column.getToggleSortingHandler()} type={"button"}>
                         {dayjs(date).format("ddd D")} <span>{sortSymbol(column.getIsSorted())}</span>
@@ -1175,11 +1166,11 @@ export const WeekPage = () => {
                     if (projected === 0 && actual === 0) {
                         return <span className={"varianceNeutral"}>—</span>;
                     }
-                    const variance = projected - actual;
+                    const variance = actual - projected;
                     const hasVariance = Math.abs(variance) >= 0.005;
                     const cls = variance > 0.005 ? "varianceOver" : variance < -0.005 ? "varianceShort" : "varianceNeutral";
                     const descriptions = row.original.dailyTaskDescriptions[date] || [];
-                    const showDescriptions = rowDisplayMode === "description" || rowDisplayMode === "timeAndDescription";
+                    const showDescriptions = rowDisplayMode === "description";
 
                     if (rowDisplayMode === "time") {
                         const copyText = formatVarianceSimple(variance);
@@ -1190,7 +1181,7 @@ export const WeekPage = () => {
                         );
                     }
 
-                    const showHours = rowDisplayMode === "projections" || rowDisplayMode === "timeAndDescription";
+                    const showHours = rowDisplayMode === "projections";
                     const hoursPart = showHours
                         ? [
                             `P: ${projected > 0 ? formatHoursForDisplay(projected) : "—"}`,
@@ -1202,7 +1193,11 @@ export const WeekPage = () => {
                     const copyText = [hoursPart, descPart].filter(Boolean).join(" — ");
 
                     return (
-                        <div className={"weekDayCellCopyable"} onClick={() => copyToClipboard(copyText)}>
+                        <div
+                            className={"weekDayCellCopyable"}
+                            title={copyText}
+                            onClick={() => copyToClipboard(copyText)}
+                        >
                             <div className={"varianceCell"}>
                                 {showHours && (
                                     <>
@@ -1218,9 +1213,7 @@ export const WeekPage = () => {
                                         {hasVariance && (
                                             <span className={"varianceAnnotation"}>Adjusted from Projection</span>
                                         )}
-                                        {descriptions.map((desc, i) => (
-                                            <span key={i} className={"weekDayDescription"}>{desc}</span>
-                                        ))}
+                                        <span className={"weekDayDescriptionLine"}>{descPart}</span>
                                     </div>
                                 )}
                             </div>
@@ -1231,7 +1224,7 @@ export const WeekPage = () => {
             {
                 id: "totalHours",
                 accessorFn: (row: IWeekTableRow) => dateKeys.reduce((sum, date) => {
-                    return sum + ((row.dailyProjectedHours[date] || 0) - (row.dailyHours[date] || 0));
+                    return sum + ((row.dailyHours[date] || 0) - (row.dailyProjectedHours[date] || 0));
                 }, 0),
                 header: ({column}) => (
                     <button className={"weekSortButton"} onClick={column.getToggleSortingHandler()} type={"button"}>
@@ -1240,7 +1233,7 @@ export const WeekPage = () => {
                 ),
                 cell: ({row}) => {
                     const rowVariance = dateKeys.reduce((sum, date) => {
-                        return sum + ((row.original.dailyProjectedHours[date] || 0) - (row.original.dailyHours[date] || 0));
+                        return sum + ((row.original.dailyHours[date] || 0) - (row.original.dailyProjectedHours[date] || 0));
                     }, 0);
                     const cls = rowVariance > 0.005 ? "varianceOver" : rowVariance < -0.005 ? "varianceShort" : "varianceNeutral";
                     return (
@@ -1401,13 +1394,6 @@ export const WeekPage = () => {
                                 onClick={() => setRowDisplayMode("description")}
                             >
                                 Descriptions
-                            </button>
-                            <button
-                                className={`weekHeaderButton ${rowDisplayMode === "timeAndDescription" ? "selected" : ""}`}
-                                type={"button"}
-                                onClick={() => setRowDisplayMode("timeAndDescription")}
-                            >
-                                Time + Descriptions
                             </button>
                             <button
                                 className={`weekHeaderButton ${rowDisplayMode === "projections" ? "selected" : ""}`}
