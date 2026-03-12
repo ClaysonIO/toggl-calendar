@@ -1,6 +1,7 @@
-import React, {useCallback, useEffect, useState} from "react";
+import React, {useCallback, useEffect, useMemo, useState} from "react";
 import {Link, useLocation} from "react-router-dom";
 import {useAppContext} from "../Utilities/AppContext";
+import {splitQuery} from "../Utilities/Functions/SplitQuery";
 import type {DataMode} from "../Utilities/AppContext";
 import {GithubLogo} from "./GithubLogo";
 import {ConfigDialog} from "./ConfigDialog";
@@ -35,14 +36,21 @@ export const Header = () => {
     const toggleDark = useCallback(() => setDarkMode(prev => !prev), []);
     const handleModeChange = useCallback((mode: DataMode) => setDataMode(mode), [setDataMode]);
 
+    const yearSearch = useMemo(() => {
+        if (location.pathname !== "/year" && location.pathname !== "/projects") return "";
+        const params = splitQuery(location.search);
+        const y = params.year;
+        return y && /^\d{4}$/.test(y) ? `?year=${y}` : "";
+    }, [location.pathname, location.search]);
+
     return (
         <>
             <header>
                 <Link to={'/week'}><h1>Toggl Calendar View</h1></Link>
                 <nav className={"headerNav"}>
                     <Link to={'/week'} className={location.pathname === '/week' ? 'headerNavActive' : ''}>Week</Link>
-                    <Link to={'/year'} className={location.pathname === '/year' ? 'headerNavActive' : ''}>Year</Link>
-                    <Link to={'/projects'} className={location.pathname === '/projects' ? 'headerNavActive' : ''}>Projects</Link>
+                    <Link to={`/year${yearSearch}`} className={location.pathname === '/year' ? 'headerNavActive' : ''}>Year</Link>
+                    <Link to={`/projects${yearSearch}`} className={location.pathname === '/projects' ? 'headerNavActive' : ''}>Projects</Link>
                 </nav>
                 <div className={"headerModeToggle"}>
                     <button

@@ -36,7 +36,6 @@ import {
 import {ISingleProject} from "../Utilities/Interfaces/ISingleProject";
 import {DecimalToRoundedTime} from "../Utilities/Functions/DecimalToRoundedTime";
 import {getAllManualProjectsAsSingleProject, getManualSimpleData} from "../Utilities/manualData";
-import {ManualCompanyProjectDialog} from "../Components/ManualCompanyProjectDialog";
 import "./Week.css";
 
 interface IWeekTableRow {
@@ -525,7 +524,6 @@ export const WeekPage = () => {
     const [varianceSorting, setVarianceSorting] = useState<SortingState>([{id: "clientName", desc: false}]);
     const [timeDisplayMode, setTimeDisplayMode] = useState<TimeDisplayMode>(() => loadTimeDisplayMode());
     const [rowDisplayMode, setRowDisplayMode] = useState<RowDisplayMode>(() => loadRowDisplayMode());
-    const [manageOpen, setManageOpen] = useState(false);
 
     const fallbackStart = dayjs().startOf("week");
     const normalizedStartDate = startDate && dayjs(startDate).isValid()
@@ -1355,15 +1353,6 @@ export const WeekPage = () => {
                             onClearError={() => setSyncError(false)}
                         />
                     )}
-                    {isManual && (
-                        <button
-                            type={"button"}
-                            className={"weekHeaderButton"}
-                            onClick={() => setManageOpen(true)}
-                        >
-                            Manage Projects
-                        </button>
-                    )}
                     <CalendarDateNav
                         onTodayClick={isManual ? undefined : (start, end) => void syncWeekRange(start, end)}
                     />
@@ -1479,7 +1468,7 @@ export const WeekPage = () => {
                                 <td colSpan={leafColumnCount}>
                                     <div className={"weekNoRows"}>
                                         {isManual
-                                            ? "No projects yet. Use \"Manage Projects\" to create companies and projects, then search to add them."
+                                            ? "No projects yet. Use the header to manage companies and projects, then search to add them."
                                             : "No projects yet. Track time or add a project to this week."
                                         }
                                     </div>
@@ -1588,7 +1577,6 @@ export const WeekPage = () => {
                 defaultValue={safeBillableTarget}
             />
             {copiedToast && <div className={"copyToast"}>{copiedToast}</div>}
-            <ManualCompanyProjectDialog open={manageOpen} onClose={() => setManageOpen(false)}/>
             {notesProjectId != null && notesRow && (
                 <ProjectNotesDialog
                     open={true}

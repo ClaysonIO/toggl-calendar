@@ -1,6 +1,8 @@
 import React, {useCallback, useMemo, useState} from "react";
+import {Link, useLocation} from "react-router-dom";
 import {Layout} from "../Components/Layout";
 import {useAppContext} from "../Utilities/AppContext";
+import {splitQuery} from "../Utilities/Functions/SplitQuery";
 import {useLiveQuery} from "dexie-react-hooks";
 import dayjs from "dayjs";
 import {
@@ -45,7 +47,11 @@ export const ProjectsPage = () => {
 
     const [expandedCompanyIds, setExpandedCompanyIds] = useState<Set<string>>(new Set());
     const [timeDisplayMode, setTimeDisplayMode] = useState<TimeDisplayMode>("rounded");
-    const [selectedFyLabel, setSelectedFyLabel] = useState<string | null>(null);
+
+    const location = useLocation();
+    const params = splitQuery(location.search);
+    const yearParam = params.year;
+    const selectedFyLabel = yearParam && /^\d{4}$/.test(yearParam) ? yearParam : null;
 
     const startOfYearSetting = useLiveQuery(
         () => calendarDb.settings.get(START_OF_YEAR_MONTH_KEY),
@@ -222,27 +228,15 @@ export const ProjectsPage = () => {
                     <h2>Projects — FY{fiscalYear.label}</h2>
                     <div className={"projectsControls"}>
                         <div className={"projectsFyNav"}>
-                            <button
-                                type={"button"}
-                                className={"calendarHeaderButton"}
-                                onClick={() => setSelectedFyLabel(String(Number(fiscalYear.label) - 1))}
-                            >
-                                &lt;
-                            </button>
-                            <button
-                                type={"button"}
-                                className={"calendarHeaderButton"}
-                                onClick={() => setSelectedFyLabel(null)}
-                            >
-                                Today
-                            </button>
-                            <button
-                                type={"button"}
-                                className={"calendarHeaderButton"}
-                                onClick={() => setSelectedFyLabel(String(Number(fiscalYear.label) + 1))}
-                            >
-                                &gt;
-                            </button>
+                            <Link to={`/projects?year=${Number(fiscalYear.label) - 1}`}>
+                                <button type={"button"} className={"calendarHeaderButton"}>&lt;</button>
+                            </Link>
+                            <Link to={"/projects"}>
+                                <button type={"button"} className={"calendarHeaderButton"}>Today</button>
+                            </Link>
+                            <Link to={`/projects?year=${Number(fiscalYear.label) + 1}`}>
+                                <button type={"button"} className={"calendarHeaderButton"}>&gt;</button>
+                            </Link>
                         </div>
                         <div className={"calendarDisplayButtonGroup"}>
                             <button

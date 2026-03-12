@@ -1,6 +1,8 @@
 import React, {useCallback, useMemo, useState} from "react";
+import {Link, useLocation} from "react-router-dom";
 import {Layout} from "../Components/Layout";
 import {useAppContext} from "../Utilities/AppContext";
+import {splitQuery} from "../Utilities/Functions/SplitQuery";
 import {useLiveQuery} from "dexie-react-hooks";
 import dayjs from "dayjs";
 import {
@@ -25,7 +27,6 @@ import {YearMonthCard} from "../Components/YearMonthCard";
 import {YearEditDayDialog} from "../Components/YearEditDayDialog";
 import {YearEditTargetDialog} from "../Components/YearEditTargetDialog";
 import {ManualDayTimeDialog} from "../Components/ManualDayTimeDialog";
-import {ManualCompanyProjectDialog} from "../Components/ManualCompanyProjectDialog";
 import "./Year.css";
 
 const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -46,9 +47,12 @@ export const YearPage = () => {
     const [isSyncing, setIsSyncing] = useState(false);
     const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
     const [manualDayEdit, setManualDayEdit] = useState<string | null>(null);
-    const [manageOpen, setManageOpen] = useState(false);
     const [fiscalStartPickerOpen, setFiscalStartPickerOpen] = useState(false);
-    const [selectedFyLabel, setSelectedFyLabel] = useState<string | null>(null);
+
+    const location = useLocation();
+    const params = splitQuery(location.search);
+    const yearParam = params.year;
+    const selectedFyLabel = yearParam && /^\d{4}$/.test(yearParam) ? yearParam : null;
 
     const projects = useLiveQuery(
         async () => {
@@ -128,13 +132,15 @@ export const YearPage = () => {
 
     const billableToDateData = useLiveQuery(
         async () => {
-            if (!fyStartKey) return { byDay: {} as Record<string, number>, total: 0 };
+            if (!fyStartKey || !fyEndKey) return { byDay: {} as Record<string, number>, total: 0 };
             const today = dayjs().format("YYYY-MM-DD");
-            if (isManual) return getManualBillableHoursByDay(fyStartKey, today, "billable");
+            const toDate = today <= fyEndKey ? today : fyEndKey;
+            if (toDate < fyStartKey) return { byDay: {} as Record<string, number>, total: 0 };
+            if (isManual) return getManualBillableHoursByDay(fyStartKey, toDate, "billable");
             if (!workspaceId) return { byDay: {} as Record<string, number>, total: 0 };
-            return getBillableHoursByDay(workspaceId, fyStartKey, today, "billable");
+            return getBillableHoursByDay(workspaceId, fyStartKey, toDate, "billable");
         },
-        [workspaceId, fyStartKey, isManual],
+        [workspaceId, fyStartKey, fyEndKey, isManual],
         { byDay: {}, total: 0 }
     );
     const actualByDayAll = useLiveQuery(
@@ -296,27 +302,15 @@ export const YearPage = () => {
                     <h2>FY{fiscalYear.label} — {fiscalYear.start.format("MMM D, YYYY")} – {fiscalYear.end.format("MMM D, YYYY")}</h2>
                     <div className={"yearControls"}>
                         <div className={"yearFyNav"}>
-                            <button
-                                type={"button"}
-                                className={"calendarHeaderButton"}
-                                onClick={() => setSelectedFyLabel(String(Number(fiscalYear.label) - 1))}
-                            >
-                                &lt;
-                            </button>
-                            <button
-                                type={"button"}
-                                className={"calendarHeaderButton"}
-                                onClick={() => setSelectedFyLabel(null)}
-                            >
-                                Today
-                            </button>
-                            <button
-                                type={"button"}
-                                className={"calendarHeaderButton"}
-                                onClick={() => setSelectedFyLabel(String(Number(fiscalYear.label) + 1))}
-                            >
-                                &gt;
-                            </button>
+                            <Link to={`/year?year=${Number(fiscalYear.label) - 1}`}>
+                                <button type={"button"} className={"calendarHeaderButton"}>&lt;</button>
+                            </Link>
+                            <Link to={"/year"}>
+                                <button type={"button"} className={"calendarHeaderButton"}>Today</button>
+                            </Link>
+                            <Link to={`/year?year=${Number(fiscalYear.label) + 1}`}>
+                                <button type={"button"} className={"calendarHeaderButton"}>&gt;</button>
+                            </Link>
                         </div>
                         <div className={"yearFiscalStartWrap"}>
                             <button
@@ -420,15 +414,6 @@ export const YearPage = () => {
                             onChange={setSelectedProjectId}
                             title={"Filter by project"}
                         />
-                        {isManual && (
-                            <button
-                                type={"button"}
-                                className={"calendarHeaderButton"}
-                                onClick={() => setManageOpen(true)}
-                            >
-                                Manage Projects
-                            </button>
-                        )}
                         {!isManual && (
                             <button
                                 type={"button"}
@@ -515,7 +500,6 @@ export const YearPage = () => {
                     onClose={() => setManualDayEdit(null)}
                 />
             )}
-            <ManualCompanyProjectDialog open={manageOpen} onClose={() => setManageOpen(false)}/>
         </Layout>
     );
 };
