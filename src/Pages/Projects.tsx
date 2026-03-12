@@ -90,8 +90,12 @@ export const ProjectsPage = () => {
                     (acc[p.companyId] ??= []).push(p);
                     return acc;
                 }, {});
-                return (companies as IManualCompany[]).map(company => {
-                    const companyProjects = projectsByCompany[company.id!] ?? [];
+                return [...(companies as IManualCompany[])]
+                    .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }))
+                    .map(company => {
+                    const companyProjects = (projectsByCompany[company.id!] ?? [])
+                        .slice()
+                        .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
                     const projectRows: ProjectRow[] = companyProjects.map(proj => {
                         const data = simpleData[proj.id!];
                         let totalHours = 0;
@@ -148,13 +152,16 @@ export const ProjectsPage = () => {
                 });
                 byCompany.set(companyName, list);
             }
-            return Array.from(byCompany.entries()).map(([name, projects]) => {
-                const billableHours = projects.filter(p => p.billable).reduce((s, p) => s + p.totalHours, 0);
-                const nonBillableHours = projects.filter(p => !p.billable).reduce((s, p) => s + p.totalHours, 0);
+            const sortedEntries = Array.from(byCompany.entries())
+                .sort(([a], [b]) => a.localeCompare(b, undefined, { sensitivity: "base" }));
+            return sortedEntries.map(([name, projects]) => {
+                const sortedProjects = projects.slice().sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
+                const billableHours = sortedProjects.filter(p => p.billable).reduce((s, p) => s + p.totalHours, 0);
+                const nonBillableHours = sortedProjects.filter(p => !p.billable).reduce((s, p) => s + p.totalHours, 0);
                 return {
                     id: `toggl-${name}`,
                     name,
-                    projects,
+                    projects: sortedProjects,
                     totalHours: billableHours + nonBillableHours,
                     billableHours,
                     nonBillableHours
