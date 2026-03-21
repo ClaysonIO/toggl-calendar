@@ -179,12 +179,12 @@
     font-weight: 700;
 }
 
-.weekDayDescriptionLine {
+.weekDayDescriptionDot {
     display: block;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 120px;
+    text-align: center;
+    color: var(--color-primary, #888);
+    font-size: 0.8em;
+    line-height: 1;
 }
 
 .weekTotalHours {

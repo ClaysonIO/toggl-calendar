@@ -1181,7 +1181,7 @@ export const WeekPage = () => {
                         title={descriptionText}
                         onClick={() => copyToClipboard(descriptionText)}
                     >
-                        <span className={"weekDayDescriptionLine"}>{descriptionText}</span>
+                        <span className={"weekDayDescriptionDot"}>•</span>
                     </div>
                 );
             }
@@ -1359,13 +1359,8 @@ export const WeekPage = () => {
                                         )}
                                     </>
                                 )}
-                                {showDescriptions && (projected > 0 || actual > 0 || descriptions.length > 0) && (
-                                    <div className={"varianceDescriptions"}>
-                                        {hasVariance && (
-                                            <span className={"varianceAnnotation"}>Adjusted from Projection</span>
-                                        )}
-                                        <span className={"weekDayDescriptionLine"}>{descPart}</span>
-                                    </div>
+                                {showDescriptions && descriptions.length > 0 && (
+                                    <span className={"weekDayDescriptionDot"}>•</span>
                                 )}
                             </div>
                         </div>
