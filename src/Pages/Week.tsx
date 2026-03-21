@@ -1181,7 +1181,10 @@ export const WeekPage = () => {
                         title={descriptionText}
                         onClick={() => copyToClipboard(descriptionText)}
                     >
-                        <span className={"weekDayDescriptionDot"}>•</span>
+                        <svg className={"weekDayDescriptionDot"} width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-label="Copy description">
+                            <rect x="5" y="2" width="9" height="12" rx="1.5"/>
+                            <path d="M5 4H3.5A1.5 1.5 0 0 0 2 5.5v9A1.5 1.5 0 0 0 3.5 16H11a1.5 1.5 0 0 0 1.5-1.5V14"/>
+                        </svg>
                     </div>
                 );
             }
@@ -1360,7 +1363,10 @@ export const WeekPage = () => {
                                     </>
                                 )}
                                 {showDescriptions && descriptions.length > 0 && (
-                                    <span className={"weekDayDescriptionDot"}>•</span>
+                                    <svg className={"weekDayDescriptionDot"} width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-label="Copy description">
+                                        <rect x="5" y="2" width="9" height="12" rx="1.5"/>
+                                        <path d="M5 4H3.5A1.5 1.5 0 0 0 2 5.5v9A1.5 1.5 0 0 0 3.5 16H11a1.5 1.5 0 0 0 1.5-1.5V14"/>
+                                    </svg>
                                 )}
                             </div>
                         </div>
