@@ -2,7 +2,7 @@
   "name": "toggl-calendar",
   "version": "0.1.0",
   "author": "Daniel Clayson",
-  "description": "A modified view of the Toggl calendar",
+  "description": "Timesheet Helper — weekly and annual views for Toggl time",
   "private": true,
   "homepage": "./",
   "main": "./public/electron.js",

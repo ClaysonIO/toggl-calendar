@@ -1426,7 +1426,7 @@ export const WeekPage = () => {
             <Layout>
                 <div className={"welcomeContainer"}>
                     <div className={"welcomeHero"}>
-                        <h1 className={"welcomeTitle"}>Toggl Calendar View</h1>
+                        <h1 className={"welcomeTitle"}>Timesheet Helper</h1>
                         <p className={"welcomeSubtitle"}>
                             A visual weekly planner that connects to your Toggl account to display
                             tracked time alongside planned hours. Monitor progress, hit your targets,

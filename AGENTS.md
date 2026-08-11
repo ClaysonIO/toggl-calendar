@@ -2,7 +2,7 @@
 
 ### Overview
 
-Toggl Calendar is a client-side-only React SPA (Vite 4 + TypeScript + Dexie). There is no backend — all API calls go directly from the browser to Toggl's external API (`api.track.toggl.com`). All data that is entered is persisted using Dexie. 
+Timesheet Helper is a client-side-only React SPA (Vite 4 + TypeScript + Dexie). There is no backend — all API calls go directly from the browser to Toggl's external API (`api.track.toggl.com`). All data that is entered is persisted using Dexie. 
 
 ### Dev commands
 

@@ -46,7 +46,7 @@ export const Header = () => {
     return (
         <>
             <header>
-                <Link to={'/week'}><h1>Toggl Calendar View</h1></Link>
+                <Link to={'/week'}><h1>Timesheet Helper</h1></Link>
                 <nav className={"headerNav"}>
                     <Link to={'/week'} className={location.pathname === '/week' ? 'headerNavActive' : ''}>Week</Link>
                     <Link to={`/year${yearSearch}`} className={location.pathname === '/year' ? 'headerNavActive' : ''}>Year</Link>
