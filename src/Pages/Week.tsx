@@ -23,9 +23,11 @@ import {
     getProjectNoteKey,
     MANUAL_WORKSPACE_ID,
     IProjectPreference,
+    IProjectTenroxId,
     IWeeklyProjectPlan
 } from "../Utilities/calendarDb";
 import {ProjectNotesDialog} from "../Components/ProjectNotesDialog";
+import {TenroxIdDialog} from "../Components/TenroxIdDialog";
 import {
     ColumnDef,
     flexRender,
@@ -56,6 +58,7 @@ interface IWeekTableRow {
     dailyTaskDescriptions: {[date: string]: string[]};
     hasWeeklyPlan: boolean;
     hasNotes: boolean;
+    hasTenroxId: boolean;
 }
 
 interface IHoursSummary {
@@ -461,6 +464,26 @@ const NotesButton = React.memo(({hasNotes, openTaskCount = 0, onClick}: {
     </button>
 ));
 
+const TenroxIdButton = React.memo(({hasTenroxId, onClick}: {
+    hasTenroxId: boolean;
+    onClick: () => void;
+}) => (
+    <button
+        className={`notesIconButton ${hasTenroxId ? "hasTenroxId" : ""}`}
+        type="button"
+        onClick={onClick}
+        title={hasTenroxId ? "View/edit Tenrox IDs" : "Set Tenrox IDs"}
+    >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="10.2" y1="7.5" x2="9.3" y2="16.5"/>
+            <line x1="14.7" y1="7.5" x2="13.8" y2="16.5"/>
+            <line x1="7.5" y1="10.3" x2="16.5" y2="10.3"/>
+            <line x1="7.5" y1="13.7" x2="16.5" y2="13.7"/>
+        </svg>
+    </button>
+));
+
 const SYNC_ERROR_TOOLTIP = "Unable to fetch this week's data. Try again in an hour.";
 
 const SyncWeekButton = React.memo(({
@@ -695,6 +718,25 @@ export const WeekPage = () => {
             return acc;
         }, {}),
         [projectNotes]
+    );
+
+    const projectTenroxIds = useLiveQuery(
+        async () => {
+            if (!workspaceId) return [];
+            return calendarDb.projectTenroxIds.where("workspaceId").equals(workspaceId).toArray();
+        },
+        [workspaceId],
+        []
+    );
+
+    const tenroxRecordByProjectId = useMemo(
+        () => (projectTenroxIds || []).reduce((acc: {[projectId: number]: IProjectTenroxId}, rec) => {
+            if ([rec.project, rec.task, rec.charge, rec.assignmentId].some(v => v && v.trim())) {
+                acc[rec.projectId] = rec;
+            }
+            return acc;
+        }, {}),
+        [projectTenroxIds]
     );
 
     const openTaskCountByProjectId = useMemo(
@@ -946,10 +988,11 @@ export const WeekPage = () => {
                 dailyProjectedHours,
                 dailyTaskDescriptions: usage?.dailyTaskDescriptions || createEmptyDailyTaskDescriptions(dateKeys),
                 hasWeeklyPlan: !!weeklyPlan,
-                hasNotes: !!projectNotesByProjectId[projectId]
+                hasNotes: !!projectNotesByProjectId[projectId],
+                hasTenroxId: !!tenroxRecordByProjectId[projectId]
             };
         }).sort((a, b) => a.projectName.localeCompare(b.projectName, "en", {numeric: true}));
-    }, [safeWeeklyPlans, usageByProjectId, projectById, weeklyPlanByProjectId, preferenceByProjectId, workspaceId, weekStartKey, dateKeys, projectNotesByProjectId]);
+    }, [safeWeeklyPlans, usageByProjectId, projectById, weeklyPlanByProjectId, preferenceByProjectId, workspaceId, weekStartKey, dateKeys, projectNotesByProjectId, tenroxRecordByProjectId]);
 
     const weeklyPlanProjectIds = useMemo(() => new Set(safeWeeklyPlans.map(plan => plan.projectId)), [safeWeeklyPlans]);
 
@@ -1013,7 +1056,19 @@ export const WeekPage = () => {
             }
         }
     }, [weekStartKey, putSetting]);
+    const [isExportingExcel, setIsExportingExcel] = useState(false);
+    const exportToExcel = useCallback(async () => {
+        setIsExportingExcel(true);
+        try {
+            const {exportTenroxTimesheet} = await import("../Utilities/exportTenroxTimesheet");
+            await exportTenroxTimesheet(tableRows, tenroxRecordByProjectId, dateKeys, weekStartKey, weekEndKey);
+        } finally {
+            setIsExportingExcel(false);
+        }
+    }, [tableRows, tenroxRecordByProjectId, dateKeys, weekStartKey, weekEndKey]);
+
     const [notesProjectId, setNotesProjectId] = useState<number | null>(null);
+    const [tenroxProjectId, setTenroxProjectId] = useState<number | null>(null);
     const [weekBillableTargetDialogOpen, setWeekBillableTargetDialogOpen] = useState(false);
     const [copiedToast, setCopiedToast] = useState<string | null>(null);
     const toastTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
@@ -1074,6 +1129,11 @@ export const WeekPage = () => {
     const notesRow = useMemo(
         () => notesProjectId != null ? tableRows.find(r => r.projectId === notesProjectId) : undefined,
         [notesProjectId, tableRows]
+    );
+
+    const tenroxRow = useMemo(
+        () => tenroxProjectId != null ? tableRows.find(r => r.projectId === tenroxProjectId) : undefined,
+        [tenroxProjectId, tableRows]
     );
 
     const notesLifetimeHours = useLiveQuery(
@@ -1275,6 +1335,17 @@ export const WeekPage = () => {
                         hasNotes={row.original.hasNotes}
                         openTaskCount={openTaskCountByProjectId[row.original.projectId] ?? 0}
                         onClick={() => setNotesProjectId(row.original.projectId)}
+                    />
+                ),
+                enableSorting: false
+            },
+            {
+                id: "tenroxId",
+                header: () => <span style={{fontSize: "0.75rem", color: "var(--text-muted)"}}>ID</span>,
+                cell: ({row}) => (
+                    <TenroxIdButton
+                        hasTenroxId={row.original.hasTenroxId}
+                        onClick={() => setTenroxProjectId(row.original.projectId)}
                     />
                 ),
                 enableSorting: false
@@ -1578,6 +1649,21 @@ export const WeekPage = () => {
                 <span><strong>Billable:</strong> {formatHoursForDisplay(billableSummary.totalHours)}</span>
                 <span><strong>Non-billable:</strong> {formatHoursForDisplay(nonBillableSummary.totalHours)}</span>
                 <span><strong>Target:</strong> {formatHoursForDisplay(billableTargetValue ?? effectiveTargetForBar)}</span>
+                <button
+                    className={"excelExportButton"}
+                    type={"button"}
+                    onClick={() => void exportToExcel()}
+                    disabled={isExportingExcel || !tableRows.length}
+                    title={"Export this week as a Tenrox timesheet Excel file"}
+                >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                        <line x1="9.5" y1="12" x2="14.5" y2="18"/>
+                        <line x1="14.5" y1="12" x2="9.5" y2="18"/>
+                    </svg>
+                    {isExportingExcel ? "Exporting…" : "Excel"}
+                </button>
             </div>
 
             <div className={"weekTableContainer"}>
@@ -1761,6 +1847,15 @@ export const WeekPage = () => {
                     lifetimeHours={notesLifetimeHours ?? 0}
                     taskDescriptions={notesAllTaskDescriptions ?? []}
                     formatHours={formatHoursForDisplay}
+                />
+            )}
+            {tenroxProjectId != null && tenroxRow && (
+                <TenroxIdDialog
+                    open={true}
+                    onClose={() => setTenroxProjectId(null)}
+                    workspaceId={workspaceId}
+                    projectId={tenroxProjectId}
+                    projectName={tenroxRow.projectName}
                 />
             )}
             {weekBillableTargetDialogOpen && (

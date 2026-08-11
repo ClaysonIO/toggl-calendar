@@ -101,10 +101,36 @@
 
 .metricLegend {
     display: flex;
+    align-items: center;
     gap: 14px;
     flex-wrap: wrap;
     margin-bottom: 8px;
     font-size: 0.85rem;
+}
+
+.excelExportButton {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.excelExportButton:hover:not(:disabled) {
+    background: var(--bg-hover);
+}
+
+.excelExportButton:disabled {
+    opacity: 0.5;
+    cursor: default;
 }
 
 .weekTableContainer {
@@ -583,4 +609,13 @@
 
 .notesIconButton.hasNotes:hover {
     color: #1a6ad4;
+}
+
+.notesIconButton.hasTenroxId {
+    color: var(--badge-billable-text);
+}
+
+.notesIconButton.hasTenroxId:hover {
+    color: var(--badge-billable-text);
+    filter: brightness(1.15);
 }

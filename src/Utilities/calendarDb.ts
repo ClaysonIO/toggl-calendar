@@ -76,6 +76,18 @@ export interface IProjectNote {
     updatedAt: number;
 }
 
+/** Tenrox identifiers for a project (global per project, not per week) */
+export interface IProjectTenroxId {
+    key: string;
+    workspaceId: number;
+    projectId: number;
+    project: string;
+    task: string;
+    charge: string;
+    assignmentId: string;
+    updatedAt: number;
+}
+
 /** Cached Toggl workspace list for offline use (id = Toggl workspace id) */
 export interface ITogglWorkspaceStored {
     id: number;
@@ -98,6 +110,7 @@ class CalendarDatabase extends Dexie {
     manualProjects!: Table<IManualProject, number>;
     manualTimeEntries!: Table<IManualTimeEntry, string>;
     projectNotes!: Table<IProjectNote, string>;
+    projectTenroxIds!: Table<IProjectTenroxId, string>;
     togglWorkspaces!: Table<ITogglWorkspaceStored, number>;
 
     constructor() {
@@ -158,6 +171,20 @@ class CalendarDatabase extends Dexie {
             projectNotes: "key, workspaceId, projectId, [workspaceId+projectId]",
             togglWorkspaces: "id"
         });
+        this.version(7).stores({
+            projectPreferences: "key, workspaceId, projectId, [workspaceId+projectId]",
+            weeklyProjectPlans: "key, workspaceId, weekStart, projectId, [workspaceId+weekStart], [workspaceId+weekStart+projectId]",
+            settings: "key",
+            dailyBillableProjections: "key, workspaceId, date, [workspaceId+date]",
+            togglProjects: "key, workspace_id",
+            togglTimeEntries: "id, [workspaceId+startDate]",
+            manualCompanies: "++id",
+            manualProjects: "++id, companyId",
+            manualTimeEntries: "key, projectId, date",
+            projectNotes: "key, workspaceId, projectId, [workspaceId+projectId]",
+            togglWorkspaces: "id",
+            projectTenroxIds: "key, workspaceId, projectId, [workspaceId+projectId]"
+        });
     }
 }
 
@@ -193,6 +220,9 @@ export const getDailyBillableProjectionKey = (workspaceId: number, date: string)
     `${workspaceId}:${date}`;
 
 export const getProjectNoteKey = (workspaceId: number, projectId: number) =>
+    `${workspaceId}:${projectId}`;
+
+export const getProjectTenroxIdKey = (workspaceId: number, projectId: number) =>
     `${workspaceId}:${projectId}`;
 
 export const calendarDb = new CalendarDatabase();
