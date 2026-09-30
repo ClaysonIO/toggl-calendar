@@ -12,21 +12,34 @@ import {ISingleProject} from "./Interfaces/ISingleProject";
  * - Auth is `Authorization: Bearer <api key>` (keys are created in Toggl 2.0 settings)
  * - Workspace resources are nested under their organization:
  *   /organizations/{organization_id}/workspaces/{workspace_id}/...
+ * - There is no endpoint listing the user's organizations/workspaces or returning the user itself.
+ *   Workspaces are discovered from /users/me/settings, and each one's organization from
+ *   /workspaces/{id}/context.
+ * - /time-entries returns the API key owner's own entries (other members' entries live under
+ *   /time-entries/groups/users), so no user filter is needed.
  *
- * All endpoint paths live in PATHS below. Responses are normalised into the same shapes the
- * v1 client returns (IUser, ISingleProject, ITaskResponse) so the rest of the app is unchanged.
+ * Responses are normalised into the same shapes the v1 client returns (IUser, ISingleProject,
+ * ITaskResponse) so the rest of the app is unchanged.
  */
 const TOGGL_FOCUS_API = import.meta.env.DEV ? '/toggl-focus/api' : 'https://focus.toggl.com/api';
 
 const PATHS = {
-    me: () => `/users/me`,
-    organizations: () => `/organizations`,
-    workspaces: (orgId: number) => `/organizations/${orgId}/workspaces`,
+    userSettings: () => `/users/me/settings`,
+    workspaceContext: (wsId: number | string) => `/workspaces/${wsId}/context`,
+    importSources: (orgId: number) => `/importer/${orgId}/sources`,
     projects: (orgId: number, wsId: number | string) => `/organizations/${orgId}/workspaces/${wsId}/projects`,
-    timeEntries: (orgId: number, wsId: number | string) => `/organizations/${orgId}/workspaces/${wsId}/time_entries`,
+    timeEntries: (orgId: number, wsId: number | string) => `/organizations/${orgId}/workspaces/${wsId}/time-entries`,
 };
 
-/** workspace id -> organization id, filled in by GetUser */
+/**
+ * v2 has no "current user" endpoint, and the time-entries endpoint is already scoped to the key's
+ * owner. The app only needs a truthy user id to enable syncing, so v2 users get this placeholder.
+ */
+const V2_CURRENT_USER_ID = -1;
+
+const PER_PAGE = 200;
+
+/** workspace id -> organization id */
 const workspaceOrganizations = new Map<number, number>();
 
 function request<T = any>(apiKey: string, path: string, params?: Record<string, unknown>): Promise<T> {
@@ -39,72 +52,79 @@ function request<T = any>(apiKey: string, path: string, params?: Record<string, 
     }).then(result => result.data as T);
 }
 
-/** Lists come back either as a bare array or wrapped ({items|data|workspaces|...: [...]}) */
-function asList(data: any): any[] {
-    if (Array.isArray(data)) return data;
-    for (const key of ["items", "data", "results", "workspaces", "organizations", "projects", "time_entries"]) {
-        if (Array.isArray(data?.[key])) return data[key];
-    }
-    return [];
-}
-
-function nextCursor(data: any): string | null {
-    const cursor = data?.next_cursor ?? data?.pagination?.next_cursor ?? data?.meta?.next_cursor;
-    return cursor ? String(cursor) : null;
-}
-
-async function requestAll(apiKey: string, path: string, params: Record<string, unknown> = {}): Promise<any[]> {
+/** Walks a page/per_page paginated endpoint whose response is { data: [...], per_page, total? } */
+async function requestAllPages(apiKey: string, path: string, params: Record<string, unknown> = {}): Promise<any[]> {
     const collected: any[] = [];
-    let cursor: string | null = null;
-    do {
-        const data = await request(apiKey, path, cursor ? {...params, cursor} : params);
-        collected.push(...asList(data));
-        cursor = nextCursor(data);
-    } while (cursor);
-    return collected;
+    for (let page = 1; ; page++) {
+        const body = await request(apiKey, path, {...params, page, per_page: PER_PAGE});
+        const items: any[] = Array.isArray(body) ? body : (body?.data ?? []);
+        collected.push(...items);
+        // The server may cap per_page below what we asked for, so compare against what it reports
+        const perPage = Number(body?.per_page) || PER_PAGE;
+        const total = typeof body?.total === "number" ? body.total : null;
+        if (items.length === 0 || items.length < perPage || (total != null && collected.length >= total)) {
+            return collected;
+        }
+    }
 }
 
 async function organizationIdFor(apiKey: string, workspaceId: number | string): Promise<number> {
     const wsId = Number(workspaceId);
-    if (!workspaceOrganizations.has(wsId)) {
-        await GetUser(apiKey);
+    const cached = workspaceOrganizations.get(wsId);
+    if (cached != null) return cached;
+    const context = await request(apiKey, PATHS.workspaceContext(wsId));
+    const orgId = Number(context?.organization_id);
+    if (!orgId) {
+        throw new Error(`Toggl v2: could not resolve the organization for workspace ${workspaceId}`);
     }
-    const orgId = workspaceOrganizations.get(wsId);
-    if (orgId == null) {
-        throw new Error(`Toggl v2: workspace ${workspaceId} was not found in any organization`);
-    }
+    workspaceOrganizations.set(wsId, orgId);
     return orgId;
 }
 
-export async function GetUser(apiKey: string): Promise<IUser> {
-    const [me, organizations] = await Promise.all([
-        request(apiKey, PATHS.me()),
-        requestAll(apiKey, PATHS.organizations()),
-    ]);
+/** Best effort: the importer's source list is the only public endpoint that carries workspace names */
+async function workspaceNames(apiKey: string, orgIds: number[]): Promise<Map<number, string>> {
+    const names = new Map<number, string>();
+    await Promise.all(orgIds.map(orgId =>
+        request<any[]>(apiKey, PATHS.importSources(orgId))
+            .then(sources => (Array.isArray(sources) ? sources : []).forEach(source => {
+                if (source?.workspace_id && source?.workspace_name) {
+                    names.set(Number(source.workspace_id), String(source.workspace_name));
+                }
+            }))
+            .catch(() => undefined)
+    ));
+    return names;
+}
 
-    const workspaces: IUser["workspaces"] = [];
-    for (const org of organizations) {
-        const orgWorkspaces = Array.isArray(org?.workspaces)
-            ? org.workspaces
-            : await requestAll(apiKey, PATHS.workspaces(org.id));
-        for (const ws of orgWorkspaces) {
-            workspaceOrganizations.set(Number(ws.id), Number(org.id));
-            workspaces.push({
-                id: Number(ws.id),
-                name: String(ws.name ?? ""),
-                organization_id: Number(org.id),
-                api_token: "",
-                at: String(ws.at ?? ws.updated_at ?? ""),
-            });
-        }
+export async function GetUser(apiKey: string): Promise<IUser> {
+    const settings = await request(apiKey, PATHS.userSettings());
+
+    const workspaceIds = Array.from(new Set(
+        [settings?.current_workspace_id, settings?.mcp_active_workspace_id]
+            .map(Number)
+            .filter(id => Number.isFinite(id) && id > 0)
+    ));
+    if (settings?.mcp_active_workspace_id && settings?.mcp_active_organization_id) {
+        workspaceOrganizations.set(Number(settings.mcp_active_workspace_id), Number(settings.mcp_active_organization_id));
     }
 
-    const user = me?.user ?? me;
+    const orgIds = await Promise.all(workspaceIds.map(id => organizationIdFor(apiKey, id)));
+    const names = await workspaceNames(apiKey, Array.from(new Set(orgIds)));
+
     return {
-        ...user,
-        id: Number(user?.id ?? user?.user_id),
-        fullname: user?.fullname ?? user?.full_name ?? user?.name ?? "",
-        workspaces,
+        id: V2_CURRENT_USER_ID,
+        beginning_of_week: settings?.start_week_on,
+        language: settings?.language_code,
+        date_format: settings?.date_format,
+        timeofday_format: settings?.time_format,
+        default_wid: Number(settings?.current_workspace_id) || workspaceIds[0],
+        workspaces: workspaceIds.map((id, i) => ({
+            id,
+            name: names.get(id) ?? `Workspace ${id}`,
+            organization_id: orgIds[i],
+            api_token: "",
+            at: "",
+        })),
     } as IUser;
 }
 
@@ -113,66 +133,65 @@ function normaliseProject(project: any, workspaceId: number): ISingleProject {
         id: Number(project.id),
         workspace_id: Number(project.workspace_id ?? workspaceId),
         client_id: project.client_id ?? project.client?.id ?? null,
-        client_name: project.client_name ?? project.client?.name ?? "",
+        client_name: project.client?.name ?? "",
         name: String(project.name ?? ""),
-        color: String(project.color ?? project.hex_color ?? ""),
-        status: String(project.status ?? (project.active === false || project.archived ? "archived" : "active")),
+        color: String(project.color ?? ""),
+        status: project.archived_at ? "archived" : "active",
     };
 }
 
 export async function fetchProjects(apiKey: string, workspace_id: string): Promise<ISingleProject[]> {
     const orgId = await organizationIdFor(apiKey, workspace_id);
-    const projects = await requestAll(apiKey, PATHS.projects(orgId, workspace_id));
-    return projects.map(project => normaliseProject(project, Number(workspace_id)));
+    const path = PATHS.projects(orgId, workspace_id);
+    // Omitting `archived` returns active projects only, so fetch both states
+    const [active, archived] = await Promise.all([
+        requestAllPages(apiKey, path, {archived: false}),
+        requestAllPages(apiKey, path, {archived: true}),
+    ]);
+    return [...active, ...archived].map(project => normaliseProject(project, Number(workspace_id)));
 }
 
+/** Entries only report start + duration (seconds); a running entry has no duration yet */
 function durationMs(entry: any): number {
-    const start = entry.start ?? entry.started_at;
-    const stop = entry.stop ?? entry.end ?? entry.stopped_at ?? entry.ended_at;
     if (typeof entry.duration === "number" && entry.duration >= 0) return entry.duration * 1000;
-    if (typeof entry.duration_ms === "number") return entry.duration_ms;
-    // Running entry (or no duration reported): measure up to stop / now
-    return Math.max(0, dayjs(stop ?? undefined).diff(dayjs(start)));
+    return Math.max(0, dayjs().diff(dayjs(entry.start)));
 }
 
-export async function FetchDateRangeDetails(apiKey: string, user_id: number, workspace_id: string, startDate: Dayjs, endDate: Dayjs): Promise<ITaskResponse[]> {
+export async function FetchDateRangeDetails(apiKey: string, _user_id: number, workspace_id: string, startDate: Dayjs, endDate: Dayjs): Promise<ITaskResponse[]> {
     const [since, until] = startDate.isBefore(endDate) ? [startDate, endDate] : [endDate, startDate];
     const orgId = await organizationIdFor(apiKey, workspace_id);
 
-    const [entries, projects] = await Promise.all([
-        requestAll(apiKey, PATHS.timeEntries(orgId, workspace_id), {
-            start_date: since.startOf('day').format(),
-            end_date: until.endOf('day').format(),
-            user_id: user_id || undefined,
-        }),
-        fetchProjects(apiKey, workspace_id),
-    ]);
-    const projectsById = new Map(projects.map(project => [project.id, project]));
+    const entries = await requestAllPages(apiKey, PATHS.timeEntries(orgId, workspace_id), {
+        date_from: since.startOf('day').format(),
+        date_to: until.endOf('day').format(),
+        type: "activity",
+        include_taskless: true,
+        order_by: "start",
+    });
 
     return entries
-        .filter(entry => !user_id || entry.user_id == null || Number(entry.user_id) === user_id)
+        // Planned (not yet tracked) entries have no start
+        .filter(entry => !!entry.start)
         .map((entry): ITaskResponse => {
-            const pid = Number(entry.project_id ?? entry.project?.id);
-            const project = projectsById.get(pid);
-            const start = entry.start ?? entry.started_at;
-            const end = entry.stop ?? entry.end ?? entry.stopped_at ?? entry.ended_at ?? "";
-            const color = project?.color || entry.project?.color || "";
+            const project = entry.project ?? entry.task?.project;
+            const dur = durationMs(entry);
+            const color = project?.color ?? "";
             return {
                 id: Number(entry.id),
-                description: entry.description ?? entry.name ?? null,
-                start,
-                end,
-                dur: durationMs(entry),
-                pid,
-                project: project?.name ?? entry.project?.name ?? "",
-                client: project?.client_name ?? "",
+                description: entry.description || entry.task?.name || null,
+                start: entry.start,
+                end: dayjs(entry.start).add(dur, 'ms').format(),
+                dur,
+                pid: Number(entry.project_id ?? project?.id ?? entry.task?.project_id),
+                project: project?.name ?? "",
+                client: project?.client?.name ?? entry.task?.client?.name ?? "",
                 project_color: color,
                 project_hex_color: color,
                 is_billable: !!entry.billable,
-                tags: Array.isArray(entry.tags) ? entry.tags.map((tag: any) => typeof tag === "string" ? tag : tag?.name) : [],
-                uid: Number(entry.user_id ?? user_id),
+                tags: Array.isArray(entry.tags) ? entry.tags.map((tag: any) => tag?.name).filter(Boolean) : [],
+                uid: Number(entry.toggl_user_id),
                 user: "",
-                updated: entry.at ?? entry.updated_at ?? "",
+                updated: entry.updated_at ?? "",
                 use_stop: true,
             };
         });
