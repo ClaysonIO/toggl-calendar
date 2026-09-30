@@ -8,14 +8,14 @@ import {ISingleProjectTasks} from "./Interfaces/ISingleProjectTasks";
 import {DecimalToRoundedTime} from "./Functions/DecimalToRoundedTime";
 
 export function useTogglDetails(workspace_id: string, startDate: string, endDate: string){
-    const { togglApiKey } = useTogglApiKey();
+    const { togglApiKey, togglApiVersion, togglCredentials } = useTogglApiKey();
     const {data: user} = useTogglUser();
 
     const response = useQuery({
-        queryKey: ['togglDetails', {togglApiKey, workspace_id, startDate, endDate}],
+        queryKey: ['togglDetails', {togglApiKey, togglApiVersion, workspace_id, startDate, endDate}],
         enabled: !!togglApiKey && !!workspace_id && !!user?.id && !!startDate && !!endDate,
         queryFn: async () => Toggl.FetchDateRangeDetails(
-            togglApiKey,
+            togglCredentials,
             user?.id ?? 0,
             workspace_id,
             dayjs(startDate, 'YYYY-MM-DD'),

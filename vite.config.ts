@@ -17,6 +17,11 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/toggl-reports/, ''),
       },
+      '/toggl-focus': {
+        target: 'https://focus.toggl.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/toggl-focus/, ''),
+      },
     },
   }
 })

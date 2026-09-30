@@ -1,7 +1,7 @@
 import React, {createContext, useCallback, useContext, useEffect, useMemo, useRef, useState} from "react";
 import {useLiveQuery} from "dexie-react-hooks";
 import {calendarDb} from "./calendarDb";
-import {useTogglApiKey} from "./useTogglApiKey";
+import {TogglApiVersion, useTogglApiKey} from "./useTogglApiKey";
 import {useTogglUser} from "./useTogglUser";
 import {TEST_TOGGL_WORKSPACE_NAME} from "./testingEnv";
 import {ensureDefaultManualWorkspace} from "./seedManualDefault";
@@ -17,6 +17,8 @@ const DATA_MODE_STORAGE_KEY = "calendarDataMode";
 interface AppContextValue {
     apiToken: string;
     setApiToken: (token: string) => void;
+    apiVersion: TogglApiVersion;
+    setApiVersion: (version: TogglApiVersion) => void;
     workspaces: WorkspaceSummary[];
     selectedWorkspaceId: number | null;
     selectedWorkspace: WorkspaceSummary | undefined;
@@ -36,7 +38,7 @@ function sortWorkspaces(workspaces: WorkspaceSummary[]): WorkspaceSummary[] {
 }
 
 export function AppProvider({children}: {children: React.ReactNode}) {
-    const {togglApiKey, setTogglApiKey} = useTogglApiKey();
+    const {togglApiKey, setTogglApiKey, togglApiVersion, setTogglApiVersion} = useTogglApiKey();
     const {data: user, isLoading: isLoadingUser, refetch: refetchUser} = useTogglUser();
     const cachedWorkspaces = useLiveQuery(() => calendarDb.togglWorkspaces.toArray(), []);
 
@@ -88,11 +90,11 @@ export function AppProvider({children}: {children: React.ReactNode}) {
         }
     }, [workspaces]);
 
-    // When the API token changes the user query re-runs; reset auto-select so the
+    // When the API token or version changes the user query re-runs; reset auto-select so the
     // new workspace list gets the same selection logic applied.
     useEffect(() => {
         autoSelectApplied.current = false;
-    }, [togglApiKey]);
+    }, [togglApiKey, togglApiVersion]);
 
     // When in Manual mode, ensure default company and projects exist if none yet.
     useEffect(() => {
@@ -112,6 +114,8 @@ export function AppProvider({children}: {children: React.ReactNode}) {
     const value: AppContextValue = {
         apiToken: togglApiKey,
         setApiToken: setTogglApiKey,
+        apiVersion: togglApiVersion,
+        setApiVersion: setTogglApiVersion,
         workspaces,
         selectedWorkspaceId,
         selectedWorkspace,

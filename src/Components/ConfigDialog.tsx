@@ -2,7 +2,13 @@ import React, {useState, useEffect, useCallback} from "react";
 import {useLiveQuery} from "dexie-react-hooks";
 import {useAppContext} from "../Utilities/AppContext";
 import {calendarDb, START_OF_YEAR_MONTH_KEY} from "../Utilities/calendarDb";
+import {TogglApiVersion} from "../Utilities/useTogglApiKey";
 import "./ConfigDialog.css";
+
+const API_VERSIONS: {value: TogglApiVersion; label: string; tokenUrl: string; tokenHint: string}[] = [
+    {value: "v1", label: "v1 — Toggl Track", tokenUrl: "https://track.toggl.com/profile", tokenHint: "track.toggl.com/profile"},
+    {value: "v2", label: "v2 — Toggl 2.0", tokenUrl: "https://focus.toggl.com", tokenHint: "your Toggl 2.0 settings (API keys)"},
+];
 
 const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
@@ -12,7 +18,7 @@ interface ConfigDialogProps {
 }
 
 export const ConfigDialog = ({open, onClose}: ConfigDialogProps) => {
-    const {apiToken, setApiToken, workspaces, selectedWorkspaceId, selectWorkspace, refetchUser} = useAppContext();
+    const {apiToken, setApiToken, apiVersion, setApiVersion, workspaces, selectedWorkspaceId, selectWorkspace, refetchUser} = useAppContext();
     const [localToken, setLocalToken] = useState(apiToken);
     const [fetching, setFetching] = useState(false);
 
@@ -53,6 +59,8 @@ export const ConfigDialog = ({open, onClose}: ConfigDialogProps) => {
 
     if (!open) return null;
 
+    const versionInfo = API_VERSIONS.find(v => v.value === apiVersion) ?? API_VERSIONS[0];
+
     return (
         <div className={"configOverlay"} onClick={onClose}>
             <div className={"configDialog"} onClick={e => e.stopPropagation()}>
@@ -61,7 +69,19 @@ export const ConfigDialog = ({open, onClose}: ConfigDialogProps) => {
                     <button className={"configCloseButton"} onClick={onClose} type={"button"}>&times;</button>
                 </div>
 
-                <label className={"configLabel"} htmlFor={"configApiToken"}>Toggl API Token</label>
+                <label className={"configLabel"} htmlFor={"configApiVersion"}>Toggl API Version</label>
+                <select
+                    id={"configApiVersion"}
+                    className={"configSelect"}
+                    value={apiVersion}
+                    onChange={e => setApiVersion(e.target.value as TogglApiVersion)}
+                >
+                    {API_VERSIONS.map(v => (
+                        <option key={v.value} value={v.value}>{v.label}</option>
+                    ))}
+                </select>
+
+                <label className={"configLabel"} htmlFor={"configApiToken"} style={{marginTop: 18}}>Toggl API Token</label>
                 <div className={"configTokenRow"}>
                     <input
                         id={"configApiToken"}
@@ -80,7 +100,7 @@ export const ConfigDialog = ({open, onClose}: ConfigDialogProps) => {
                     </button>
                 </div>
                 <small className={"configHint"}>
-                    Find your token at <a href={"https://toggl.com/app/profile"} target={"_blank"} rel={"noopener noreferrer"}>toggl.com/app/profile</a>
+                    Find your {apiVersion} token at <a href={versionInfo.tokenUrl} target={"_blank"} rel={"noopener noreferrer"}>{versionInfo.tokenHint}</a>
                 </small>
 
                 <label className={"configLabel"} style={{marginTop: 18}}>Workspace</label>

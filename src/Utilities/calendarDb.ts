@@ -92,6 +92,7 @@ export interface IProjectTenroxId {
 export interface ITogglWorkspaceStored {
     id: number;
     name: string;
+    organization_id?: number;
 }
 
 export const MANUAL_WORKSPACE_ID = -1;

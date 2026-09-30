@@ -3,8 +3,7 @@ import {calendarDb} from "./calendarDb";
 import {ITogglProjectStored, ITogglTimeEntryStored} from "./calendarDb";
 import {Toggl} from "./Toggl";
 import {ISingleProject} from "./Interfaces/ISingleProject";
-
-const TOGGL_API = import.meta.env.DEV ? '/toggl-api' : 'https://api.track.toggl.com';
+import {TogglCredentials} from "./useTogglApiKey";
 
 function getProjectKey(project: ISingleProject): string {
     return `${project.workspace_id}:${project.id}`;
@@ -14,8 +13,8 @@ function getProjectKey(project: ISingleProject): string {
  * Fetch projects from Toggl and write them to Dexie for the given workspace.
  * Replaces all stored projects for that workspace with the API response.
  */
-export async function syncProjects(apiKey: string, workspaceId: number): Promise<void> {
-    const projects = await Toggl.fetchProjects(apiKey, String(workspaceId)) as ISingleProject[];
+export async function syncProjects(credentials: TogglCredentials, workspaceId: number): Promise<void> {
+    const projects = await Toggl.fetchProjects(credentials, String(workspaceId)) as ISingleProject[];
     const stored: ITogglProjectStored[] = projects.map((p) => ({
         ...p,
         key: getProjectKey(p)
@@ -32,13 +31,13 @@ export async function syncProjects(apiKey: string, workspaceId: number): Promise
  * Upserts entries by id (so overlapping fetches merge correctly).
  */
 export async function syncWeekDetails(
-    apiKey: string,
+    credentials: TogglCredentials,
     userId: number,
     workspaceId: number,
     startDate: Dayjs,
     endDate: Dayjs
 ): Promise<void> {
-    const raw = await Toggl.FetchDateRangeDetails(apiKey, userId, String(workspaceId), startDate, endDate);
+    const raw = await Toggl.FetchDateRangeDetails(credentials, userId, String(workspaceId), startDate, endDate);
     const stored: ITogglTimeEntryStored[] = raw.map((entry) => ({
         ...entry,
         workspaceId,
@@ -54,11 +53,11 @@ export async function syncWeekDetails(
  * Toggl API is called once with since/until; pagination is handled inside FetchDateRangeDetails.
  */
 export async function syncDateRange(
-    apiKey: string,
+    credentials: TogglCredentials,
     userId: number,
     workspaceId: number,
     startDate: Dayjs,
     endDate: Dayjs
 ): Promise<void> {
-    await syncWeekDetails(apiKey, userId, workspaceId, startDate, endDate);
+    await syncWeekDetails(credentials, userId, workspaceId, startDate, endDate);
 }
