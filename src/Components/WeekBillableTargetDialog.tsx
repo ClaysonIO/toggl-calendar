@@ -66,7 +66,7 @@ export function WeekBillableTargetDialog({
                         type={"number"}
                         min={0}
                         step={0.25}
-                        placeholder={"No target"}
+                        placeholder={"Default"}
                         value={hoursInput}
                         onChange={(e) => setHoursInput(e.target.value)}
                     />

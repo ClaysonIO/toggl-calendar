@@ -1,7 +1,8 @@
 import React, {useRef, useState} from "react";
 import {calendarDb, ANNUAL_TARGET_HOURS_KEY, ANNUAL_TARGET_PERCENTAGE_KEY, FULL_TIME_HOURS_KEY} from "../Utilities/calendarDb";
 
-const roundToQuarterHour = (h: number) => Math.round(h * 4) / 4;
+const round2 = (n: number) => Math.round(n * 100) / 100;
+const clampPct = (n: number) => Math.min(100, Math.max(0, n));
 
 export function YearEditTargetDialog({
     annualTargetHours,
@@ -14,75 +15,76 @@ export function YearEditTargetDialog({
     fullTimeHours: number;
     onClose: () => void;
 }) {
-    const [hoursInput, setHoursInput] = useState(String(roundToQuarterHour(annualTargetHours)));
+    const [hoursInput, setHoursInput] = useState(String(round2(annualTargetHours)));
     const [fullTimeHoursInput, setFullTimeHoursInput] = useState(String(fullTimeHours));
     const [pctInput, setPctInput] = useState(
-        annualTargetPct != null ? String(annualTargetPct) : String(Math.round((roundToQuarterHour(annualTargetHours) / fullTimeHours) * 100))
+        String(round2(annualTargetPct ?? (annualTargetHours / fullTimeHours) * 100))
     );
+    /** Which field the user edited last; that value is saved exactly and the other is derived from it. */
+    const [lastEdited, setLastEdited] = useState<"hours" | "pct">("hours");
     const pointerDownOnOverlay = useRef(false);
 
-    const fullTimeHoursNum = (() => {
-        const n = Number(fullTimeHoursInput);
+    const parseFullTime = (raw: string) => {
+        const n = Number(raw);
         return Number.isFinite(n) && n > 0 ? n : fullTimeHours;
-    })();
+    };
+    const fullTimeHoursNum = parseFullTime(fullTimeHoursInput);
 
     const handleHoursChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const raw = e.target.value;
         setHoursInput(raw);
+        setLastEdited("hours");
         const parsed = Number(raw);
-        if (Number.isFinite(parsed) && parsed >= 0) {
-            const rounded = roundToQuarterHour(parsed);
-            setHoursInput(String(rounded));
-            setPctInput(String(Math.min(100, Math.max(0, Math.round((rounded / fullTimeHoursNum) * 100)))));
+        if (raw.trim() !== "" && Number.isFinite(parsed) && parsed >= 0) {
+            setPctInput(String(round2(clampPct((parsed / fullTimeHoursNum) * 100))));
         }
     };
     const handlePctChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const raw = e.target.value;
         setPctInput(raw);
+        setLastEdited("pct");
         const parsed = Number(raw);
-        if (Number.isFinite(parsed) && parsed >= 0 && parsed <= 100) {
-            const derivedHours = (parsed / 100) * fullTimeHoursNum;
-            setHoursInput(String(roundToQuarterHour(derivedHours)));
+        if (raw.trim() !== "" && Number.isFinite(parsed) && parsed >= 0 && parsed <= 100) {
+            setHoursInput(String(round2((parsed / 100) * fullTimeHoursNum)));
+        }
+    };
+    const handleFullTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const raw = e.target.value;
+        setFullTimeHoursInput(raw);
+        const fullTime = parseFullTime(raw);
+        // Keep whichever value the user set last fixed, and re-derive the other
+        if (lastEdited === "pct") {
+            const pct = Number(pctInput);
+            if (Number.isFinite(pct)) setHoursInput(String(round2((pct / 100) * fullTime)));
+        } else {
+            const hours = Number(hoursInput);
+            if (Number.isFinite(hours)) setPctInput(String(round2(clampPct((hours / fullTime) * 100))));
         }
     };
 
     const handleSave = async () => {
         const hours = Number(hoursInput);
         const pct = Number(pctInput);
-        const fullTime = Number(fullTimeHoursInput);
         const now = Date.now();
-        const effectiveFullTime = Number.isFinite(fullTime) && fullTime > 0 ? fullTime : fullTimeHoursNum;
+        const effectiveFullTime = Math.round(fullTimeHoursNum);
+        let savedHours: number | null = null;
+        let savedPct: number | null = null;
+        if (lastEdited === "pct" && pctInput.trim() !== "" && Number.isFinite(pct) && pct >= 0 && pct <= 100) {
+            savedPct = round2(pct);
+            savedHours = round2((savedPct / 100) * effectiveFullTime);
+        } else if (hoursInput.trim() !== "" && Number.isFinite(hours) && hours >= 0) {
+            savedHours = round2(Math.min(hours, effectiveFullTime));
+            // Store the unrounded percentage so the year page resolves back to exactly these hours
+            savedPct = clampPct((savedHours / effectiveFullTime) * 100);
+        }
         await calendarDb.settings.put({
             key: FULL_TIME_HOURS_KEY,
-            value: Math.round(effectiveFullTime),
+            value: effectiveFullTime,
             updatedAt: now
         });
-        if (Number.isFinite(hours) && hours >= 0) {
-            const roundedHours = roundToQuarterHour(hours);
-            await calendarDb.settings.put({
-                key: ANNUAL_TARGET_HOURS_KEY,
-                value: roundedHours,
-                updatedAt: now
-            });
-            const derivedPct = Math.round((roundedHours / effectiveFullTime) * 100);
-            await calendarDb.settings.put({
-                key: ANNUAL_TARGET_PERCENTAGE_KEY,
-                value: Math.min(100, Math.max(0, derivedPct)),
-                updatedAt: now
-            });
-        } else if (Number.isFinite(pct) && pct >= 0 && pct <= 100) {
-            const derivedHours = (pct / 100) * effectiveFullTime;
-            const roundedHours = roundToQuarterHour(derivedHours);
-            await calendarDb.settings.put({
-                key: ANNUAL_TARGET_HOURS_KEY,
-                value: roundedHours,
-                updatedAt: now
-            });
-            await calendarDb.settings.put({
-                key: ANNUAL_TARGET_PERCENTAGE_KEY,
-                value: Math.round((roundedHours / effectiveFullTime) * 100),
-                updatedAt: now
-            });
+        if (savedHours != null && savedPct != null) {
+            await calendarDb.settings.put({key: ANNUAL_TARGET_HOURS_KEY, value: savedHours, updatedAt: now});
+            await calendarDb.settings.put({key: ANNUAL_TARGET_PERCENTAGE_KEY, value: savedPct, updatedAt: now});
         }
         onClose();
     };
@@ -112,7 +114,7 @@ export function YearEditTargetDialog({
                         min={1}
                         step={1}
                         value={fullTimeHoursInput}
-                        onChange={(e) => setFullTimeHoursInput(e.target.value)}
+                        onChange={handleFullTimeChange}
                         title={"Reference for percentage (e.g. 2080 or 2060)"}
                     />
                     <label htmlFor={"yearTargetHours"}>Hours per year</label>
@@ -120,7 +122,7 @@ export function YearEditTargetDialog({
                         id={"yearTargetHours"}
                         type={"number"}
                         min={0}
-                        step={1}
+                        step={0.01}
                         value={hoursInput}
                         onChange={handleHoursChange}
                     />
@@ -130,7 +132,7 @@ export function YearEditTargetDialog({
                         type={"number"}
                         min={0}
                         max={100}
-                        step={1}
+                        step={0.01}
                         value={pctInput}
                         onChange={handlePctChange}
                     />

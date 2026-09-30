@@ -494,7 +494,18 @@ export const YearPage = () => {
                     </div>
                     <div className={"metricLegend"}>
                         <span><strong>Hours to date:</strong> {formatHours(hoursToDate, timeDisplayMode)}</span>
-                        <span><strong>Annual target:</strong> {formatHours(annualTargetHours, timeDisplayMode)}</span>
+                        <span>
+                            <strong>Annual target:</strong>{" "}
+                            <button
+                                type={"button"}
+                                className={"yearTargetEditButton"}
+                                onClick={() => setEditTargetOpen(true)}
+                                title={"Edit annual target"}
+                            >
+                                {formatHours(annualTargetHours, timeDisplayMode)}
+                                <span className={"yearTargetEditIcon"} aria-hidden={"true"}>✎</span>
+                            </button>
+                        </span>
                     </div>
                     <div className={"yearTargets"}>
                         <span><strong>Daily target:</strong> {formatHours(dailyTarget, timeDisplayMode)}</span>

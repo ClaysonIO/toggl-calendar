@@ -41,6 +41,7 @@ import {DecimalToRoundedTime} from "../Utilities/Functions/DecimalToRoundedTime"
 import {getAllManualProjectsAsSingleProject, getManualSimpleData} from "../Utilities/manualData";
 import {HoursProgressBar} from "../Components/HoursProgressBar";
 import {WeekBillableTargetDialog} from "../Components/WeekBillableTargetDialog";
+import {getWeekTargetDefaults} from "../Utilities/weekTargetDefaults";
 import "./Week.css";
 import "./Year.css";
 
@@ -263,6 +264,7 @@ const OptionalWeeklyTargetCell = React.memo(({actualHours, targetHours, formatHo
             return;
         }
         const parsed = Number(trimmed);
+        if (parsed === targetHours) return;
         if (Number.isFinite(parsed) && parsed >= 0) {
             onTargetChange(parsed);
         } else {
@@ -292,7 +294,7 @@ const OptionalWeeklyTargetCell = React.memo(({actualHours, targetHours, formatHo
                         className={"projectedInlineButton"}
                         type={"button"}
                         onClick={() => setEditing(true)}
-                        title={"Click to edit target (leave empty to clear)"}
+                        title={"Click to edit target (leave empty to reset to default)"}
                     >
                         {targetHours != null && targetHours > 0 ? formatHours(targetHours) : "--"}
                     </button>
@@ -790,6 +792,13 @@ export const WeekPage = () => {
         undefined
     );
 
+    /** Defaults derived from the year page: billable = working days × daily target, total = projected hours. */
+    const weekTargetDefaults = useLiveQuery(
+        () => getWeekTargetDefaults(workspaceId, isManual, dateKeys),
+        [workspaceId, isManual, dateKeys],
+        undefined
+    );
+
     const safeProjectPreferences = (projectPreferences || []) as IProjectPreference[];
     const safeWeeklyPlans = (weeklyPlans || []) as IWeeklyProjectPlan[];
 
@@ -1081,13 +1090,18 @@ export const WeekPage = () => {
         });
     }, []);
 
-    const totalTargetValue = weeklyTotalTarget ?? null;
-    const billableTargetValue = weeklyBillableRowTarget ?? null;
+    const defaultTotalTarget = weekTargetDefaults && weekTargetDefaults.total > 0 ? roundHours(weekTargetDefaults.total) : null;
+    const defaultBillableTarget = weekTargetDefaults && weekTargetDefaults.billable > 0 ? roundHours(weekTargetDefaults.billable) : null;
+    const totalTargetValue = weeklyTotalTarget ?? defaultTotalTarget;
+    const billableTargetValue = weeklyBillableRowTarget ?? defaultBillableTarget;
     const nonBillableTargetValue = weeklyNonBillableRowTarget ?? null;
     const safeDefault = globalDefaultTarget ?? DEFAULT_BILLABLE_TARGET_HOURS;
-    const effectiveTargetForBar = weeklyTotalTarget ?? (billableTargetValue != null && nonBillableTargetValue != null
-        ? billableTargetValue + nonBillableTargetValue
-        : null) ?? safeDefault;
+    const effectiveTargetForBar = weeklyTotalTarget
+        ?? (weeklyBillableRowTarget != null && nonBillableTargetValue != null
+            ? weeklyBillableRowTarget + nonBillableTargetValue
+            : null)
+        ?? defaultTotalTarget
+        ?? safeDefault;
     const billableSummary = useMemo(
         () => summarizeRows(tableRows.filter(row => row.billable), dateKeys),
         [tableRows, dateKeys]
