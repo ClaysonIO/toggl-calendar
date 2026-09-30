@@ -2,13 +2,33 @@ import axios from 'axios';
 import {Dayjs} from 'dayjs';
 import {IUser} from "./Interfaces/IUser";
 import {ITaskResponse} from "./Interfaces/ITaskResponse";
+import {TogglCredentials} from "./useTogglApiKey";
+import * as TogglV2 from "./TogglV2";
 
 const TOGGL_API = import.meta.env.DEV ? '/toggl-api' : 'https://api.track.toggl.com';
 const TOGGL_REPORTS = import.meta.env.DEV ? '/toggl-reports' : 'https://track.toggl.com';
 
+/**
+ * Toggl API client. Every call takes TogglCredentials and is routed to the v1 (Toggl Track)
+ * or v2 (Toggl 2.0 / Focus, see TogglV2.ts) API depending on the chosen apiVersion.
+ */
 export class Toggl{
 
-    static GetUser(apiKey: string): Promise<IUser>{
+    static GetUser({apiKey, apiVersion}: TogglCredentials): Promise<IUser>{
+        return apiVersion === "v2" ? TogglV2.GetUser(apiKey) : Toggl.GetUserV1(apiKey);
+    }
+
+    static FetchDateRangeDetails({apiKey, apiVersion}: TogglCredentials, user_id: number, workspace_id: string, startDate: Dayjs, endDate: Dayjs): Promise<ITaskResponse[]>{
+        return apiVersion === "v2"
+            ? TogglV2.FetchDateRangeDetails(apiKey, user_id, workspace_id, startDate, endDate)
+            : Toggl.FetchDateRangeDetailsV1(apiKey, user_id, workspace_id, startDate, endDate);
+    }
+
+    static fetchProjects({apiKey, apiVersion}: TogglCredentials, workspace_id: string): Promise<any[]>{
+        return apiVersion === "v2" ? TogglV2.fetchProjects(apiKey, workspace_id) : Toggl.fetchProjectsV1(apiKey, workspace_id);
+    }
+
+    private static GetUserV1(apiKey: string): Promise<IUser>{
         return new Promise((resolve, reject)=>{
             Promise.all([
                 axios.get(`${TOGGL_API}/api/v9/me`, {
@@ -34,7 +54,7 @@ export class Toggl{
         })
     }
 
-    static FetchDateRangeDetails(apiKey: string, user_id: number, workspace_id: string, startDate: Dayjs, endDate: Dayjs, page?: number): Promise<ITaskResponse[]>{
+    private static FetchDateRangeDetailsV1(apiKey: string, user_id: number, workspace_id: string, startDate: Dayjs, endDate: Dayjs, page?: number): Promise<ITaskResponse[]>{
         return new Promise((resolve, reject)=>{
             let timeEntries: ITaskResponse[] = [];
             //Note that Pages in Toggl begin at 1, not 0
@@ -63,7 +83,7 @@ export class Toggl{
                         /* Toggl rate limits calls at 1 per second. We'll add an extra second on each call
                            to avoid running into trouble */
                         setTimeout(()=>{
-                            Toggl.FetchDateRangeDetails(apiKey, user_id, workspace_id, startDate, endDate, currentPage + 1 )
+                            Toggl.FetchDateRangeDetailsV1(apiKey, user_id, workspace_id, startDate, endDate, currentPage + 1 )
                                 .then((result: ITaskResponse[])=>resolve(timeEntries.concat(result)))
                                 .catch(err=>reject(err));
                         }, 1000)
@@ -79,7 +99,7 @@ export class Toggl{
      * Fetch all projects for a workspace (Toggl API v9).
      * Response is { items: [...] }; supports pagination and includes archived (active=both).
      */
-    static fetchProjects(apiKey: string, workspace_id: string): Promise<any[]>{
+    private static fetchProjectsV1(apiKey: string, workspace_id: string): Promise<any[]>{
         const perPage = 200;
         return new Promise((resolve, reject)=>{
             const collect: any[] = [];

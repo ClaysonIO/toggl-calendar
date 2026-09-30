@@ -36,7 +36,7 @@ const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "Ju
 
 export const YearPage = () => {
     const {selectedWorkspace, dataMode, setDataMode} = useAppContext();
-    const {togglApiKey} = useTogglApiKey();
+    const {togglApiKey, togglCredentials} = useTogglApiKey();
     const {data: user} = useTogglUser();
     const isManual = dataMode === "manual";
     const workspaceId = isManual ? MANUAL_WORKSPACE_ID : (selectedWorkspace?.id ?? 0);
@@ -311,7 +311,7 @@ export const YearPage = () => {
         setIsSyncing(true);
         try {
             await syncDateRange(
-                togglApiKey,
+                togglCredentials,
                 user.id,
                 workspaceId,
                 dayjs(fyStartKey),
@@ -320,7 +320,7 @@ export const YearPage = () => {
         } finally {
             setIsSyncing(false);
         }
-    }, [togglApiKey, user?.id, workspaceId, fyStartKey, fyEndKey]);
+    }, [togglApiKey, togglCredentials, user?.id, workspaceId, fyStartKey, fyEndKey]);
 
     const handleEditDayClose = useCallback(
         (confirmed: boolean, newHours?: number) => {

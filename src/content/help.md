@@ -36,7 +36,7 @@ Open the **Year** view and click **Sync year**. The app fetches time entries fro
 
 ### How do I configure my Toggl API key and workspace?
 
-Click **Config** (gear icon) in the header when in Toggl mode. Enter your Toggl API key and select the workspace you want to use. Your selection is remembered for next time.
+Click **Config** (gear icon) in the header when in Toggl mode. Choose the **Toggl API Version** — **v1** for Toggl Track, or **v2** for Toggl 2.0 — then enter the matching API key and select the workspace you want to use. Your selection is remembered for next time.
 
 ---
 

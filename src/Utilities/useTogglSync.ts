@@ -13,7 +13,7 @@ export function useTogglSync(
     weekStartKey: string,
     weekEndKey: string
 ) {
-    const {togglApiKey} = useTogglApiKey();
+    const {togglApiKey, togglCredentials} = useTogglApiKey();
     const {data: user} = useTogglUser();
     const [isSyncing, setIsSyncing] = useState(false);
     const [syncError, setSyncError] = useState(false);
@@ -27,7 +27,7 @@ export function useTogglSync(
             setSyncError(false);
             try {
                 await syncWeekDetails(
-                    togglApiKey,
+                    togglCredentials,
                     user.id,
                     workspaceId,
                     dayjs(startDate, "YYYY-MM-DD"),
@@ -40,7 +40,7 @@ export function useTogglSync(
                 setIsSyncing(false);
             }
         },
-        [togglApiKey, user?.id, workspaceId]
+        [togglApiKey, togglCredentials, user?.id, workspaceId]
     );
 
     // Background sync on visit: projects + current week (once per session to avoid rate limits)
@@ -49,9 +49,9 @@ export function useTogglSync(
         hasInitialSync.current = true;
         const run = async () => {
             try {
-                await syncProjects(togglApiKey, workspaceId);
+                await syncProjects(togglCredentials, workspaceId);
                 await syncWeekDetails(
-                    togglApiKey,
+                    togglCredentials,
                     user.id,
                     workspaceId,
                     dayjs(weekStartKey, "YYYY-MM-DD"),
@@ -63,7 +63,7 @@ export function useTogglSync(
             }
         };
         void run();
-    }, [togglApiKey, user?.id, workspaceId, weekStartKey, weekEndKey]);
+    }, [togglApiKey, togglCredentials, user?.id, workspaceId, weekStartKey, weekEndKey]);
 
     return {
         syncWeekRange,

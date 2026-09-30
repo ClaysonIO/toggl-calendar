@@ -22,6 +22,7 @@ Copy `.env.example` to `.env` and fill in values. The `VITE_TOGGL_API_KEY` secre
 ```
 VITE_TOGGL_API_KEY=<your-toggl-api-key>
 VITE_TOGGL_WORKSPACE_NAME=<workspace-name>
+VITE_TOGGL_API_VERSION=<v1|v2>   # optional, defaults to v1
 ```
 
 On startup, create `.env` from the injected secret:
@@ -36,8 +37,9 @@ The Toggl CORS whitelisting API is disabled (returns 404/410). A Vite dev proxy 
 
 - `/toggl-api/*` proxies to `https://api.track.toggl.com/*`
 - `/toggl-reports/*` proxies to `https://track.toggl.com/*`
+- `/toggl-focus/*` proxies to `https://focus.toggl.com/*` (Toggl 2.0 / v2 API)
 
-Source files (`Toggl.ts`, `useTogglProjects.ts`) use `import.meta.env.DEV` to switch between proxy paths (dev) and direct URLs (production). This means the app works fully end-to-end in dev mode without CORS issues.
+Source files (`Toggl.ts`, `TogglV2.ts`) use `import.meta.env.DEV` to switch between proxy paths (dev) and direct URLs (production). This means the app works fully end-to-end in dev mode without CORS issues.
 
 ### Agent Testing
 

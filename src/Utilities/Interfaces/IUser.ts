@@ -19,6 +19,8 @@ export interface IUser {
     "workspaces": {
         id: number;
         name: string;
+        /** Only set by the v2 (Toggl 2.0) API, where workspaces are nested under organizations */
+        organization_id?: number;
         api_token: string;
         at: string;
     }[],
