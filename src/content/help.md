@@ -22,6 +22,10 @@ The **Week** view shows your time by project for the selected week. You can see 
 
 The **Year** view shows a calendar of months for your fiscal year. You can toggle between **Projected** (planned hours per day) and **Actual** (logged time), filter by **Billable**, **Non-billable**, or **All**, and filter by project. Click a day to edit its projected hours. In Toggl mode use **Sync year** to pull the latest data; in Manual mode you enter or edit time when you click a day.
 
+### What does the All Years view show?
+
+The **All Years** view puts every fiscal year side by side. It shows overall totals, a chart of billable and non-billable hours per year against your billable target, and a summary table for each year: total, billable and non-billable hours, billable %, % of target, days worked, average hours per day and week, and the change from the prior year. Below that are a month-by-month heatmap and a breakdown of your top clients per year. The current year counts hours to date and also shows the pace it is on for the full year. Use **From** to choose the first year shown and **Billable / Non-billable / All** to change the heatmap and client breakdown. In Toggl mode, **Sync years** pulls data for every year shown. Click a year to open it in the Year view.
+
 ### What does the Projects view show?
 
 The **Projects** view lists companies and projects for the selected fiscal year, with total hours per project. In Toggl mode it uses your chosen workspace; in Manual mode it shows the companies and projects you have added. Use the year selector to change which fiscal year you are viewing.

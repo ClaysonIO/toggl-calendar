@@ -36,3 +36,9 @@ export function getFiscalYearMonthStarts(
     }
     return months;
 }
+
+/** Fiscal year bounds for a fiscal year label (the year the fiscal year ends in). */
+export function getFiscalYearBoundsForLabel(label: number, startMonth: number) {
+    const startYear = startMonth === 1 ? label : label - 1;
+    return getFiscalYearBounds(dayjs(`${startYear}-${String(startMonth).padStart(2, "0")}-15`), startMonth);
+}

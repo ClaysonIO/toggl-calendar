@@ -2,6 +2,7 @@ import React from 'react';
 import {Navigate, Route, Routes} from "react-router-dom";
 import {WeekPage} from "./Pages/Week";
 import {YearPage} from "./Pages/Year";
+import {YearsPage} from "./Pages/Years";
 import {ProjectsPage} from "./Pages/Projects";
 import {HelpPage} from "./Pages/Help";
 import {AppProvider} from "./Utilities/AppContext";
@@ -12,6 +13,7 @@ function App() {
             <Routes>
                 <Route path={'/week'} element={<WeekPage/>}/>
                 <Route path={'/year'} element={<YearPage/>}/>
+                <Route path={'/years'} element={<YearsPage/>}/>
                 <Route path={'/projects'} element={<ProjectsPage/>}/>
                 <Route path={'/help'} element={<HelpPage/>}/>
                 <Route path={'/calendar'} element={<Navigate to={'/week'} replace/>}/>

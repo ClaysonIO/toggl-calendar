@@ -50,6 +50,7 @@ export const Header = () => {
                 <nav className={"headerNav"}>
                     <Link to={'/week'} className={location.pathname === '/week' ? 'headerNavActive' : ''}>Week</Link>
                     <Link to={`/year${yearSearch}`} className={location.pathname === '/year' ? 'headerNavActive' : ''}>Year</Link>
+                    <Link to={'/years'} className={location.pathname === '/years' ? 'headerNavActive' : ''}>All Years</Link>
                     <Link to={`/projects${yearSearch}`} className={location.pathname === '/projects' ? 'headerNavActive' : ''}>Projects</Link>
                 </nav>
                 <div className={"headerModeToggle"}>
