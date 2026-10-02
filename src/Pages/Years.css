@@ -1,0 +1,374 @@
+.yearsPage {
+    max-width: 1400px;
+    margin: 0 auto;
+    --years-billable: #1f883d;
+    --years-nonbillable: #d4a017;
+    --years-target: #8b4513;
+    --years-heat-rgb: 59, 130, 246;
+}
+
+[data-theme="dark"] .yearsPage {
+    --years-billable: #1a7f37;
+    --years-nonbillable: #bb8c12;
+    --years-target: #d2691e;
+}
+
+.yearsWelcome {
+    padding: 24px;
+}
+
+.yearsHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.yearsHeader h2 {
+    margin: 0;
+    font-size: 1.25rem;
+}
+
+.yearsControls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.yearsFromLabel {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.9rem;
+}
+
+.yearsFromLabel select {
+    padding: 5px 8px;
+    font-size: 0.9rem;
+    border-radius: 6px;
+    border: 1px solid var(--border-input);
+    background: var(--bg-input);
+    color: var(--text-primary);
+}
+
+.yearsError {
+    color: var(--badge-nonbillable-text);
+}
+
+.yearsSection {
+    margin-bottom: 28px;
+}
+
+.yearsSection h3 {
+    margin: 0 0 10px 0;
+    font-size: 1.05rem;
+}
+
+/* KPI tiles */
+.yearsKpis {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.yearsKpi {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 12px 16px;
+    border: 1px solid var(--border-search);
+    border-radius: 8px;
+    background: var(--dialog-bg);
+}
+
+.yearsKpiLabel {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.yearsKpiValue {
+    font-size: 1.6rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+.yearsKpiSub {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+/* Column chart */
+.yearsChart {
+    padding: 12px 16px;
+    border: 1px solid var(--border-search);
+    border-radius: 8px;
+    background: var(--dialog-bg);
+}
+
+.yearsChartLegend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-bottom: 28px;
+}
+
+.yearsChartLegend span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.yearsSwatch {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+}
+
+.yearsSwatchBillable {
+    background: var(--years-billable);
+}
+
+.yearsSwatchNonBillable {
+    background: var(--years-nonbillable);
+}
+
+.yearsSwatchLine {
+    display: inline-block;
+    width: 16px;
+    border-top: 2px dashed var(--years-target);
+}
+
+.yearsChartPlot {
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
+    height: 220px;
+    border-bottom: 1px solid var(--border-search);
+}
+
+.yearsChartTarget {
+    position: absolute;
+    left: 0;
+    right: 0;
+    border-top: 2px dashed var(--years-target);
+    z-index: 1;
+    pointer-events: none;
+}
+
+.yearsChartColumn {
+    position: relative;
+    flex: 1;
+    max-width: 96px;
+    height: 100%;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    margin: 0 auto;
+}
+
+.yearsChartColumn.hovered {
+    background: var(--bg-hover);
+    border-radius: 4px 4px 0 0;
+}
+
+.yearsChartStack {
+    position: relative;
+    width: 60%;
+    min-width: 16px;
+    max-width: 48px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.yearsChartBillable,
+.yearsChartNonBillable {
+    flex-basis: 0;
+    min-height: 2px;
+}
+
+.yearsChartBillable {
+    background: var(--years-billable);
+}
+
+.yearsChartNonBillable {
+    background: var(--years-nonbillable);
+}
+
+.yearsChartStack > div:nth-child(2) {
+    border-radius: 4px 4px 0 0;
+}
+
+.yearsChartValue {
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    padding-bottom: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+}
+
+.yearsChartTooltip {
+    position: absolute;
+    bottom: calc(100% - 40px);
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    min-width: 170px;
+    padding: 8px 12px;
+    font-size: 0.8rem;
+    background: var(--dialog-bg);
+    border: 1px solid var(--border-search);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px var(--dialog-shadow);
+    pointer-events: none;
+}
+
+.yearsChartTooltip dl {
+    display: grid;
+    grid-template-columns: auto auto;
+    gap: 2px 12px;
+    margin: 6px 0 0 0;
+}
+
+.yearsChartTooltip dt {
+    color: var(--text-muted);
+}
+
+.yearsChartTooltip dd {
+    margin: 0;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.yearsChartAxis {
+    display: flex;
+    gap: 12px;
+    padding-top: 6px;
+}
+
+.yearsChartAxisLabel {
+    flex: 1;
+    max-width: 96px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    text-decoration: none;
+}
+
+.yearsChartAxisLabel:hover {
+    color: var(--link-color);
+}
+
+.yearsChartAxisSub {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+}
+
+/* Tables */
+.yearsTableWrap {
+    overflow-x: auto;
+    border: 1px solid var(--border-search);
+    border-radius: 8px;
+    background: var(--dialog-bg);
+}
+
+.yearsTable {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+
+.yearsTable th,
+.yearsTable td {
+    padding: 7px 10px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-search);
+    white-space: nowrap;
+}
+
+.yearsTable th {
+    font-weight: 600;
+    background: var(--config-workspace-bg);
+}
+
+.yearsTable tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.yearsTable .num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.yearsTable a {
+    color: var(--link-color);
+    text-decoration: none;
+}
+
+.yearsCurrentRow {
+    background: var(--bg-tertiary);
+}
+
+.yearsToDate {
+    margin-left: 6px;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+}
+
+.yearsChangeUp {
+    color: var(--badge-billable-text);
+}
+
+.yearsChangeDown {
+    color: var(--badge-nonbillable-text);
+}
+
+.yearsFootnote {
+    margin: 0;
+    padding: 6px 10px;
+    font-size: 0.75rem;
+}
+
+.yearsMuted {
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+.yearsOtherRow td {
+    color: var(--text-muted);
+}
+
+/* Monthly heatmap: one hue per filter, light → dark by hours */
+.yearsHeatmap[data-billable-mode="billable"] {
+    --years-heat-rgb: 34, 197, 94;
+}
+
+.yearsHeatmap[data-billable-mode="nonBillable"] {
+    --years-heat-rgb: 202, 138, 4;
+}
+
+.yearsHeatCell {
+    min-width: 36px;
+    background: rgba(var(--years-heat-rgb), calc(var(--heat, 0) * 0.65));
+    border-left: 2px solid var(--dialog-bg);
+}
+
+.yearsHeatCell.future {
+    background: transparent;
+}

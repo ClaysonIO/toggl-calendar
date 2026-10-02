@@ -214,6 +214,8 @@ export const START_OF_YEAR_MONTH_KEY = "startOfYearMonth";
 export const ANNUAL_TARGET_HOURS_KEY = "annualTargetHours";
 export const ANNUAL_TARGET_PERCENTAGE_KEY = "annualTargetPercentage";
 export const FULL_TIME_HOURS_KEY = "fullTimeHours";
+/** First fiscal year (label) shown on the multi-year page. */
+export const MULTI_YEAR_FIRST_YEAR_KEY = "multiYearFirstYear";
 export const DEFAULT_ANNUAL_TARGET_HOURS = 2080;
 export const DEFAULT_FULL_TIME_HOURS = 2080;
 
