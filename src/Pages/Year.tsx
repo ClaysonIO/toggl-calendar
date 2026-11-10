@@ -372,7 +372,7 @@ export const YearPage = () => {
             }
             const firstHours = projectedFor(dates[0]);
             const allSame = dates.every(date => projectedFor(date) === firstHours);
-            setEditDays({ dates, hours: allSame ? firstHours : 0 });
+            setEditDays({ dates, hours: allSame ? firstHours : 8 });
         };
         window.addEventListener("mouseup", finish);
         return () => window.removeEventListener("mouseup", finish);

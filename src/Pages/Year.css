@@ -381,6 +381,40 @@
     position: relative;
 }
 
+.yearEditDayQuick {
+    display: flex;
+    margin-bottom: 14px;
+}
+
+.yearEditDayQuick button {
+    flex: 1;
+    padding: 6px 12px;
+    cursor: pointer;
+    border: 1px solid var(--border-input);
+    background: var(--bg-button);
+    color: var(--text-primary);
+    white-space: nowrap;
+}
+
+.yearEditDayQuick button:first-child {
+    border-radius: 4px 0 0 4px;
+}
+
+.yearEditDayQuick button:last-child {
+    border-radius: 0 4px 4px 0;
+    border-left: none;
+}
+
+.yearEditDayQuick button:hover {
+    background: var(--bg-button-hover);
+}
+
+.yearEditDayQuick button.selected {
+    background: var(--header-bg);
+    color: var(--header-text);
+    border-color: var(--header-bg);
+}
+
 .yearEditDayActions {
     display: flex;
     gap: 8px;

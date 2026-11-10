@@ -20,7 +20,7 @@ The **Week** view shows your time by project for the selected week. You can see 
 
 ### What can I do on the Year view?
 
-The **Year** view shows a calendar of months for your fiscal year. You can toggle between **Projected** (planned hours per day) and **Actual** (logged time), filter by **Billable**, **Non-billable**, or **All**, and filter by project. Click a day to edit its projected hours, or click and drag across several days to set them all in one go (weekends in the range are skipped). In Toggl mode use **Sync year** to pull the latest data; in Manual mode you enter or edit time when you click a day.
+The **Year** view shows a calendar of months for your fiscal year. You can toggle between **Projected** (planned hours per day) and **Actual** (logged time), filter by **Billable**, **Non-billable**, or **All**, and filter by project. Click a day to edit its projected hours, or click and drag across several days to set them all in one go (weekends in the range are skipped). The dialog shows the current hours (8 for a normal day) and has **Working (8h)** and **Not working** buttons to flip a day between a work day and a day off in one click. In Toggl mode use **Sync year** to pull the latest data; in Manual mode you enter or edit time when you click a day.
 
 ### What does the All Years view show?
 
