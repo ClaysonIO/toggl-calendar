@@ -1,12 +1,14 @@
 import React, {useRef, useState} from "react";
 import dayjs from "dayjs";
 
+/** Edit projected hours for one day, or for every day in `dates` at once. */
 export function YearEditDayDialog({
-    date,
+    dates,
     hours,
     onClose
 }: {
-    date: string;
+    /** Days to update, in ascending order. */
+    dates: string[];
     hours: number;
     onClose: (confirmed: boolean, newHours?: number) => void;
 }) {
@@ -20,6 +22,11 @@ export function YearEditDayDialog({
     const handleOverlayClick = () => {
         if (pointerDownOnOverlay.current) onClose(false);
     };
+    const first = dayjs(dates[0]);
+    const last = dayjs(dates[dates.length - 1]);
+    const label = dates.length === 1
+        ? `Hours for ${first.format("MMM D, YYYY")}`
+        : `Hours per day for ${first.format(first.year() === last.year() ? "MMM D" : "MMM D, YYYY")} – ${last.format("MMM D, YYYY")} (${dates.length} weekdays)`;
     return (
         <div
             className={"yearEditDayPopup"}
@@ -32,10 +39,12 @@ export function YearEditDayDialog({
                 onClick={(e) => e.stopPropagation()}
             >
                 <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
-                    <label htmlFor={"yearEditDayInput"}>Hours for {dayjs(date).format("MMM D, YYYY")}</label>
+                    <label htmlFor={"yearEditDayInput"}>{label}</label>
                     <input
                         id={"yearEditDayInput"}
                         type={"number"}
+                        autoFocus
+                        onFocus={(e) => e.currentTarget.select()}
                         min={0}
                         step={0.25}
                         value={value}

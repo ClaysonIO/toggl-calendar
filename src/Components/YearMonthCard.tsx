@@ -18,7 +18,10 @@ export function YearMonthCard({
     actualByDay,
     byDayByProject,
     timeDisplayMode,
-    onEditProjection
+    selectedRange,
+    onDayClick,
+    onDayPointerDown,
+    onDayPointerEnter
 }: {
     monthStart: dayjs.Dayjs;
     fiscalYear: { start: dayjs.Dayjs; end: dayjs.Dayjs };
@@ -28,7 +31,14 @@ export function YearMonthCard({
     actualByDay: Record<string, number>;
     byDayByProject: Record<string, Array<{ label: string; hours: number }>>;
     timeDisplayMode: TimeDisplayMode;
-    onEditProjection?: (date: string, hours: number) => void;
+    /** Inclusive date range currently highlighted by a click-and-drag selection. */
+    selectedRange?: { start: string; end: string } | null;
+    /** Plain click on a day (used where days are edited one at a time). */
+    onDayClick?: (date: string) => void;
+    /** Mouse pressed on an editable day: starts a selection (a plain click selects just that day). */
+    onDayPointerDown?: (date: string) => void;
+    /** Mouse moved onto an editable day; extends a selection in progress. */
+    onDayPointerEnter?: (date: string) => void;
 }) {
     const monthEnd = monthStart.endOf("month");
     const calendarStart = monthStart.startOf("week");
@@ -74,8 +84,10 @@ export function YearMonthCard({
                                 const hours = viewMode === "projected" ? projectedVal : actualHours;
                                 const isToday = key === todayKey;
                                 const isPast = key < todayKey;
-                                const editable = inRange && onEditProjection != null;
-                                const editDefaultHours = projectedVal > 0 ? projectedVal : 0;
+                                const editable = inRange && (onDayPointerDown != null || onDayClick != null);
+                                // Weekends are skipped by multi-day selections, so only highlight them when clicked on their own.
+                                const isSelected = editable && selectedRange != null && key >= selectedRange.start && key <= selectedRange.end
+                                    && (date.day() !== 0 && date.day() !== 6 || selectedRange.start === selectedRange.end);
 
                                 const showGrey = viewMode === "projected" && projectionExplicitZero;
                                 const showGreen = isPast && actualHours > 0;
@@ -86,11 +98,14 @@ export function YearMonthCard({
                                         .map(({ label, hours }) => `${label}: ${formatHours(hours, timeDisplayMode)}`)
                                         .join("\n")
                                     : null;
+                                const editHint = onDayPointerDown != null
+                                    ? "Click to set hours, or drag to select several days"
+                                    : "Click to set hours";
                                 const dayTitle =
                                     dayProjectLines != null
-                                        ? `${key}\n${dayProjectLines}${editable ? "\nClick to set hours" : ""}`
+                                        ? `${key}\n${dayProjectLines}${editable ? `\n${editHint}` : ""}`
                                         : editable
-                                            ? "Click to set hours"
+                                            ? editHint
                                             : `${key}: ${hours > 0 ? formatHours(hours, timeDisplayMode) : "0"}`;
 
                                 return (
@@ -102,11 +117,18 @@ export function YearMonthCard({
                                             showGrey ? "zeroHours" : "",
                                             showGreen ? "hasActual" : "",
                                             editable ? "editable" : "",
-                                            isToday ? "today" : ""
+                                            isToday ? "today" : "",
+                                            isSelected ? "selected" : ""
                                         ].filter(Boolean).join(" ")}
                                         data-billable-mode={showGreen ? billableFilter : undefined}
                                         style={showGreen ? { ["--actual-intensity" as string]: greenIntensity } as React.CSSProperties : undefined}
-                                        onClick={editable ? () => onEditProjection!(key, editDefaultHours) : undefined}
+                                        onClick={editable && onDayClick ? () => onDayClick(key) : undefined}
+                                        onMouseDown={editable && onDayPointerDown ? (e) => {
+                                            if (e.button !== 0) return;
+                                            e.preventDefault();
+                                            onDayPointerDown(key);
+                                        } : undefined}
+                                        onMouseEnter={editable && onDayPointerEnter ? () => onDayPointerEnter(key) : undefined}
                                         title={dayTitle}
                                     >
                                         <span className={"yearDayNum"}>{date.date()}</span>

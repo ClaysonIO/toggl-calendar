@@ -1,4 +1,4 @@
-import React, {useCallback, useMemo, useState} from "react";
+import React, {useCallback, useEffect, useMemo, useRef, useState} from "react";
 import {Link, useLocation} from "react-router-dom";
 import {Layout} from "../Components/Layout";
 import {useAppContext} from "../Utilities/AppContext";
@@ -45,7 +45,11 @@ export const YearPage = () => {
     const [billableFilter, setBillableFilter] = useState<BillableFilter>("billable");
     const [timeDisplayMode, setTimeDisplayMode] = useState<TimeDisplayMode>("rounded");
     const [configOpen, setConfigOpen] = useState(false);
-    const [editDay, setEditDay] = useState<{ date: string; hours: number } | null>(null);
+    const [editDays, setEditDays] = useState<{ dates: string[]; hours: number } | null>(null);
+    /** Click-and-drag day selection on the projected calendar (anchor = where the mouse went down). */
+    const [dragRange, setDragRange] = useState<{ anchor: string; current: string } | null>(null);
+    const dragRangeRef = useRef(dragRange);
+    dragRangeRef.current = dragRange;
     const [editTargetOpen, setEditTargetOpen] = useState(false);
     const [isSyncing, setIsSyncing] = useState(false);
     const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
@@ -324,13 +328,65 @@ export const YearPage = () => {
 
     const handleEditDayClose = useCallback(
         (confirmed: boolean, newHours?: number) => {
-            if (editDay && confirmed && newHours !== undefined) {
-                void upsertDailyProjection(editDay.date, newHours);
+            if (editDays && confirmed && newHours !== undefined) {
+                void Promise.all(editDays.dates.map(date => upsertDailyProjection(date, newHours)));
             }
-            setEditDay(null);
+            setEditDays(null);
+            setDragRange(null);
         },
-        [editDay, upsertDailyProjection]
+        [editDays, upsertDailyProjection]
     );
+
+    const canSelectProjectedDays = viewMode === "projected";
+    const handleDayPointerDown = useCallback((date: string) => {
+        setDragRange({ anchor: date, current: date });
+    }, []);
+    const handleDayPointerEnter = useCallback((date: string) => {
+        setDragRange(prev => (prev && prev.current !== date ? { ...prev, current: date } : prev));
+    }, []);
+    const isDragging = dragRange != null && editDays == null;
+    // Releasing the mouse (anywhere) finishes the selection and opens the hours dialog for it.
+    useEffect(() => {
+        if (!isDragging) return;
+        const finish = () => {
+            const range = dragRangeRef.current;
+            if (!range) return;
+            const start = range.anchor < range.current ? range.anchor : range.current;
+            const end = range.anchor < range.current ? range.current : range.anchor;
+            const projectedFor = (key: string) => {
+                const dow = dayjs(key).day();
+                return dow === 0 || dow === 6 ? 0 : (projectionsByDate[key] ?? 8);
+            };
+            if (start === end) {
+                setEditDays({ dates: [start], hours: projectedFor(start) });
+                return;
+            }
+            // A multi-day selection only applies to weekdays; weekends never carry projected hours.
+            const dates: string[] = [];
+            for (let d = dayjs(start); !d.isAfter(dayjs(end)); d = d.add(1, "day")) {
+                if (d.day() !== 0 && d.day() !== 6) dates.push(d.format("YYYY-MM-DD"));
+            }
+            if (!dates.length) {
+                setDragRange(null);
+                return;
+            }
+            const firstHours = projectedFor(dates[0]);
+            const allSame = dates.every(date => projectedFor(date) === firstHours);
+            setEditDays({ dates, hours: allSame ? firstHours : 0 });
+        };
+        window.addEventListener("mouseup", finish);
+        return () => window.removeEventListener("mouseup", finish);
+    }, [isDragging, projectionsByDate]);
+    // Leaving the projected view drops any selection in progress.
+    useEffect(() => {
+        if (!canSelectProjectedDays) setDragRange(null);
+    }, [canSelectProjectedDays]);
+    const selectedRange = useMemo(() => {
+        if (!dragRange) return null;
+        return dragRange.anchor < dragRange.current
+            ? { start: dragRange.anchor, end: dragRange.current }
+            : { start: dragRange.current, end: dragRange.anchor };
+    }, [dragRange]);
 
     if (!isManual && !selectedWorkspace) {
         return (
@@ -514,7 +570,7 @@ export const YearPage = () => {
                     </div>
                 </div>
 
-                <div className={"yearGrid"}>
+                <div className={`yearGrid ${isDragging ? "yearGridSelecting" : ""}`}>
                     {monthStarts.map((monthStart) => (
                         <YearMonthCard
                             key={monthStart.format("YYYY-MM")}
@@ -526,23 +582,20 @@ export const YearPage = () => {
                             actualByDay={actualByDay}
                             byDayByProject={byDayByProject}
                             timeDisplayMode={timeDisplayMode}
-                            onEditProjection={
-                                viewMode === "projected"
-                                    ? (date, hours) => setEditDay({ date, hours })
-                                    : (isManual && viewMode === "actual")
-                                        ? (date) => setManualDayEdit(date)
-                                        : undefined
-                            }
+                            selectedRange={selectedRange}
+                            onDayClick={!canSelectProjectedDays && isManual ? setManualDayEdit : undefined}
+                            onDayPointerDown={canSelectProjectedDays ? handleDayPointerDown : undefined}
+                            onDayPointerEnter={canSelectProjectedDays ? handleDayPointerEnter : undefined}
                         />
                     ))}
                 </div>
             </div>
 
-            {editDay && (
+            {editDays && (
                 <YearEditDayDialog
-                    key={editDay.date}
-                    date={editDay.date}
-                    hours={editDay.hours}
+                    key={editDays.dates.join(",")}
+                    dates={editDays.dates}
+                    hours={editDays.hours}
                     onClose={handleEditDayClose}
                 />
             )}

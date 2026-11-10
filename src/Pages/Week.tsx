@@ -1082,13 +1082,15 @@ export const WeekPage = () => {
     const [copiedToast, setCopiedToast] = useState<string | null>(null);
     const toastTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
 
-    const copyToClipboard = useCallback((text: string) => {
-        void navigator.clipboard.writeText(text).then(() => {
-            if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
-            setCopiedToast("Copied to clipboard");
-            toastTimeoutRef.current = setTimeout(() => setCopiedToast(null), 1500);
-        });
+    const showToast = useCallback((message: string) => {
+        if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+        setCopiedToast(message);
+        toastTimeoutRef.current = setTimeout(() => setCopiedToast(null), 1500);
     }, []);
+
+    const copyToClipboard = useCallback((text: string, message: string = "Copied to clipboard") => {
+        void navigator.clipboard.writeText(text).then(() => showToast(message));
+    }, [showToast]);
 
     const defaultTotalTarget = weekTargetDefaults && weekTargetDefaults.total > 0 ? roundHours(weekTargetDefaults.total) : null;
     const defaultBillableTarget = weekTargetDefaults && weekTargetDefaults.billable > 0 ? roundHours(weekTargetDefaults.billable) : null;
@@ -1273,14 +1275,22 @@ export const WeekPage = () => {
                 );
             default: {
                 if (!timeText) return "";
+                // Clicking the hours copies the day's description (what gets pasted into a timesheet), not the number.
                 return (
-                    <div className={"weekDayCellCopyable"} onClick={() => copyToClipboard(timeText)}>
+                    <div
+                        className={"weekDayCellCopyable"}
+                        title={hasDescription ? `Click to copy description:\n${descriptionText}` : "No description to copy"}
+                        onClick={() => {
+                            if (hasDescription) copyToClipboard(descriptionText, "Description copied");
+                            else showToast("No description to copy");
+                        }}
+                    >
                         <span>{timeText}</span>
                     </div>
                 );
             }
         }
-    }, [copyToClipboard, formatHoursForDisplay, rowDisplayMode, upsertDailyProjection, isManual, upsertManualTime]);
+    }, [copyToClipboard, showToast, formatHoursForDisplay, rowDisplayMode, upsertDailyProjection, isManual, upsertManualTime]);
 
     const columns = useMemo<ColumnDef<IWeekTableRow>[]>(() => {
         return [

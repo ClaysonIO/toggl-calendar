@@ -13,8 +13,11 @@
     color: var(--text-primary);
     border-radius: 10px;
     padding: 24px 28px 20px;
-    width: 420px;
+    width: 476px;
     max-width: 90vw;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-sizing: border-box;
     box-shadow: 0 8px 30px var(--dialog-shadow);
 }
 
@@ -151,4 +154,30 @@
     font-style: italic;
     font-size: 0.85rem;
     margin: 4px 0;
+}
+
+.configTransferRow {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.configButtonSecondary {
+    background: var(--bg-button);
+    color: var(--text-primary);
+    border: 1px solid var(--border-input);
+}
+
+.configButtonSecondary:hover {
+    background: var(--bg-button-hover);
+}
+
+.configTransferStatus {
+    margin: 8px 0 0;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.configTransferStatus.error {
+    color: #dc2626;
 }

@@ -20,7 +20,7 @@ The **Week** view shows your time by project for the selected week. You can see 
 
 ### What can I do on the Year view?
 
-The **Year** view shows a calendar of months for your fiscal year. You can toggle between **Projected** (planned hours per day) and **Actual** (logged time), filter by **Billable**, **Non-billable**, or **All**, and filter by project. Click a day to edit its projected hours. In Toggl mode use **Sync year** to pull the latest data; in Manual mode you enter or edit time when you click a day.
+The **Year** view shows a calendar of months for your fiscal year. You can toggle between **Projected** (planned hours per day) and **Actual** (logged time), filter by **Billable**, **Non-billable**, or **All**, and filter by project. Click a day to edit its projected hours, or click and drag across several days to set them all in one go (weekends in the range are skipped). In Toggl mode use **Sync year** to pull the latest data; in Manual mode you enter or edit time when you click a day.
 
 ### What does the All Years view show?
 
@@ -40,7 +40,15 @@ Open the **Year** view and click **Sync year**. The app fetches time entries fro
 
 ### How do I configure my Toggl API key and workspace?
 
-Click **Config** (gear icon) in the header when in Toggl mode. Choose the **Toggl API Version** — **v1** for Toggl Track, or **v2** for Toggl 2.0 — then enter the matching API key and select the workspace you want to use. Your selection is remembered for next time.
+Click **Config** (gear icon) in the header. Choose the **Toggl API Version** — **v1** for Toggl Track, or **v2** for Toggl 2.0 — then enter the matching API key and select the workspace you want to use. Your selection is remembered for next time.
+
+### How do I move my data to another computer?
+
+Open **Config** (gear icon) and click **Export all data**. This downloads a single file with everything the app stores in your browser: synced time entries, projects, projections, notes, targets, manual entries, settings and your API token. On the other computer, open **Config**, click **Import from file…** and choose that file. Importing replaces whatever is stored in that browser, then reloads the page. The file contains your API token, so keep it private.
+
+### How do I copy a day's description?
+
+On the **Week** view in **Time** mode, click the hours for a day to copy that day's description to the clipboard. (In **Descriptions** mode, click the copy icon.)
 
 ---
 

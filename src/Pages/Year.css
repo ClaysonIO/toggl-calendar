@@ -272,6 +272,21 @@
     background: var(--bg-button-hover);
 }
 
+.yearDayCell.editable {
+    user-select: none;
+}
+
+.yearDayCell.selected,
+.yearDayCell.selected:hover {
+    background: var(--link-color);
+    color: #fff;
+    opacity: 1;
+}
+
+.yearGridSelecting {
+    cursor: pointer;
+}
+
 .yearDayCell.today {
     outline: 2px solid var(--link-color);
     outline-offset: -1px;

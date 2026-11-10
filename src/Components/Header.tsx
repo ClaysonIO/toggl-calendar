@@ -90,16 +90,14 @@ export const Header = () => {
                 >
                     {darkMode ? "\u2600\uFE0F Light" : "\uD83C\uDF19 Dark"}
                 </button>
-                {dataMode === "toggl" && (
-                    <button
-                        className={"menuButton"}
-                        onClick={() => setConfigOpen(true)}
-                        title={"Configuration"}
-                        style={{fontSize: "1rem"}}
-                    >
-                        &#9881; Config
-                    </button>
-                )}
+                <button
+                    className={"menuButton"}
+                    onClick={() => setConfigOpen(true)}
+                    title={"Configuration"}
+                    style={{fontSize: "1rem"}}
+                >
+                    &#9881; Config
+                </button>
                 <GithubLogo/>
             </header>
             <ConfigDialog open={configOpen} onClose={() => setConfigOpen(false)}/>
