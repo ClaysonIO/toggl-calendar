@@ -66,7 +66,7 @@ export async function buildDataExport(currentApiKey?: string): Promise<IDataExpo
 /** Build the export and download it as a JSON file. Returns the number of rows exported. */
 export async function downloadDataExport(currentApiKey?: string): Promise<number> {
     const data = await buildDataExport(currentApiKey);
-    const blob = new Blob([JSON.stringify(data)], {type: "application/json"});
+    const blob = new Blob([JSON.stringify(data, null, 2)], {type: "application/json"});
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
